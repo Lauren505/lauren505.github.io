@@ -337,7 +337,7 @@ blockquote {
   text-align: center;
 }
 .social .contact-icons {
-  font-size: 4rem;
+  font-size: 2rem;
 }
 .social .contact-icons a i::before {
   color: var(--global-text-color);
@@ -638,6 +638,15 @@ footer.sticky-bottom {
 }
 .publications ol.bibliography li div.abstract.hidden.open {
   border-color: var(--global-text-color);
+}
+
+.gallery h2.category {
+  color: var(--global-divider-color);
+  border-bottom: 1px solid var(--global-divider-color);
+  padding-top: 0.5rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  text-align: right;
 }
 
 figure.highlight {
