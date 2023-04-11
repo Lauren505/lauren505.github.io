@@ -1,7 +1,7 @@
 ---
 layout: page
 title: Gesture-control Car
-description: A smart wheechair simulated by a gesture-control car
+description: A smart wheelchair simulated by a gesture-control car
 img: assets/img/car.jpg
 importance: 5
 category: work

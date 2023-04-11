@@ -28,3 +28,4 @@ My contributions in 2021 included designing the light sword and repairing and ma
         {% include figure.html path="assets/img/lightdance2021-3.jpg" title="ld2021sword2" class="img-fluid rounded z-depth-1" %}
     </div>
 </div>
+<iframe width="100%" height="400" src="https://www.youtube.com/embed/e2-6fEDV36U" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
