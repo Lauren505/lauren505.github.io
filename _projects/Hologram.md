@@ -3,7 +3,7 @@ layout: page
 title: Hologram Display
 description: A DIY hologram display
 img: assets/img/hologram1.jpg
-importance: 3
+importance: 6
 category: work
 ---
 

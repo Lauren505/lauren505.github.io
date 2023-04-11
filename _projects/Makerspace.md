@@ -3,7 +3,7 @@ layout: page
 title: Makerspace
 description: Reconstruct a workspace for makers and creative minds.
 img: assets/img/makerspace1.jpg
-importance: 6
+importance: 7
 category: work
 ---
 

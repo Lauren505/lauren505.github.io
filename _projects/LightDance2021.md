@@ -3,7 +3,7 @@ layout: page
 title: Light Dance 2021
 description: Building the light sword from scratch.
 img: assets/img/lightdance2021-1.jpg
-importance: 2
+importance: 3
 category: work
 ---
 

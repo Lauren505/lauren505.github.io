@@ -3,7 +3,7 @@ layout: page
 title: 4DoF Equipment
 description: An experimental equipment that is capable of 4DoF motion
 img: assets/img/4DoF1.jpg
-importance: 4
+importance: 5
 category: work
 ---
 

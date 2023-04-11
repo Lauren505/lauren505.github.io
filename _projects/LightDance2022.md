@@ -3,7 +3,7 @@ layout: page
 title: Light Dance 2022
 description: Bringing Light Dance to life from a brand new perspective.
 img: assets/img/lightdance2022-1.jpg
-importance: 1
+importance: 2
 category: work
 ---
 
