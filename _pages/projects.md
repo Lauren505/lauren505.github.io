@@ -1,6 +1,6 @@
 ---
 layout: page
-title: projects
+title: Projects
 permalink: /projects/
 description:
 nav: true
@@ -27,7 +27,7 @@ horizontal: false
     </div>
   </div>
   {%- else -%}
-  <div class="grid">
+  <div class="grid-container">
     {%- for project in sorted_projects -%}
       {% include projects.html %}
     {%- endfor %}
@@ -53,7 +53,7 @@ horizontal: false
     </div>
   </div>
   {%- else -%}
-  <div class="grid">
+  <div class="grid gx-5">
     {%- for project in sorted_projects -%}
       {% include projects.html %}
     {%- endfor %}

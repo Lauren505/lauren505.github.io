@@ -1,8 +1,8 @@
 ---
 layout: about
-title: about
+title: About
 permalink: /
-subtitle: NTUEE undergrad | HCI Lab
+subtitle: NTUEE undergrad | HCI researcher
 
 profile:
   align: right
@@ -16,4 +16,8 @@ selected_papers: false # includes a list of papers marked as "selected={true}"
 social: true # includes social icons at the bottom of the page
 ---
 
-I am a senior undergraduate student studying [Electrical Engineering](https://web.ee.ntu.edu.tw/) at [National Taiwan University](https://www.ntu.edu.tw/). I am working at the HCI lab advised by Prof. [Mike Chen](https://mikechen.com/). My research interests include perception, haptics, and VR/MR technology. I am fortunate to be awarded the [Grace Hopper Scholarship](https://ghc.anitab.org/) and be supported by the Yu-Lin Scholarship. In my free time, I enjoy drawing, baking, and crafting things.
+I am a senior undergrad majoring in [Electrical Engineering](https://web.ee.ntu.edu.tw/) at [National Taiwan University](https://www.ntu.edu.tw/), advised by [Prof. Mike Chen](https://mikechen.com/) in the HCI Lab. Currently, I am working as a research intern at Cornell [Hybrid Body Lab](https://www.hybridbody.human.cornell.edu/) with [Prof. Cindy (Hsin-Liu) Kao](https://www.hybridbody.human.cornell.edu/cindyhlkao). <br/>
+<br/>
+My research spans VR/AR, haptics, perception, and displays, with a focus on creating immersive experiences that blend virtuality and reality. I am grateful for the [Grace Hopper Scholarship](https://ghc.anitab.org/) and the Yu-Lin Scholarship support. <br/>
+<br/>
+In my free time, I enjoy drawing, baking, and 3D modeling :)

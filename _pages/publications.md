@@ -1,9 +1,9 @@
 ---
 layout: page
 permalink: /publications/
-title: publications
+title: Publications
 description:
-years: [2022]
+years: [2023, 2022]
 nav: true
 nav_order: 2
 ---
@@ -16,5 +16,7 @@ nav_order: 2
   <h2 class="year">{{y}}</h2>
   {% bibliography -f papers -q @*[year={{y}}]* %}
 {% endfor %}
+
+  <p>... and more to come!</p>
 
 </div>

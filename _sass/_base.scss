@@ -4,6 +4,11 @@
 
 // Typography
 
+body {
+  font-family: 'Overpass', sans-serif;
+  font-weight: 400;
+}
+
 p,
 h1,
 h2,
@@ -74,7 +79,7 @@ blockquote {
 .caption {
   font-size: 0.875rem;
   margin-top: 0.75rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem;
   text-align: center;
 }
 
@@ -88,6 +93,7 @@ blockquote {
   }
 
   .card-title {
+    font-size: 24px;
     color: var(--global-text-color);
   }
 
@@ -117,7 +123,6 @@ blockquote {
   .address {
     margin-bottom: 5px;
     margin-top: 5px;
-    font-family: monospace;
 
     p {
       display: inline-block;
@@ -127,16 +132,16 @@ blockquote {
 }
 
 .profile.float-right {
-  margin-left: 1rem;
+  margin-left: 3rem;
 }
 
 .profile.float-left {
-  margin-right: 1rem;
+  margin-right: 3rem;
 }
 
 @media (min-width: 576px) {
   .profile {
-    width: 30%;
+    width: 26%;
 
     .address {
       p {
@@ -299,10 +304,10 @@ blockquote {
 // Social (bottom)
 
 .social {
-  text-align: center;
+  text-align: left;
 
   .contact-icons {
-    font-size: 2rem;
+    font-size: 1.5rem;
 
     a {
       i::before {
@@ -484,6 +489,8 @@ footer.sticky-bottom {
 // Projects
 
 .projects {
+  justify-items: center;
+
   a {
     text-decoration: none;
 
@@ -510,18 +517,17 @@ footer.sticky-bottom {
     }
   }
 
-  .grid-sizer,
   .grid-item {
-    width: 250px;
-    margin-bottom: 10px;
+    width: 300px;
+    margin-bottom: 30px;
   }
 
   h2.category {
     color: var(--global-divider-color);
     border-bottom: 1px solid var(--global-divider-color);
     padding-top: 0.5rem;
-    margin-top: 2rem;
-    margin-bottom: 1rem;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
     text-align: right;
   }
 }
@@ -776,7 +782,7 @@ html.transition *:after {
   .post-content {
     blockquote {
       border-left: 5px solid var(--global-theme-color);
-      padding: 8px;
+      padding: 5px;
     }
   }
 }
