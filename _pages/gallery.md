@@ -11,10 +11,10 @@ nav_order: 3
     <h2 class="category">3D Modeling</h2>
     <div class="row justify-content-sm-center">
         <div class="col-sm-6 mt-3 mt-md-0">
-            {% include figure.html path="assets/img/altar.png" title="3d1" class="img-fluid rounded z-depth-1" %}
+            {% include figure.html path="assets/img/farview.png" title="3d2" class="img-fluid rounded z-depth-1" %}
         </div>
         <div class="col-sm-6 mt-3 mt-md-0">
-            {% include figure.html path="assets/img/farview.png" title="3d2" class="img-fluid rounded z-depth-1" %}
+            {% include figure.html path="assets/img/altar.png" title="3d1" class="img-fluid rounded z-depth-1" %}
         </div>
     </div>
     <div class="row justify-content-sm-center">

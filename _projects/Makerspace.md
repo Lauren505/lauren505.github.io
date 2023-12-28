@@ -1,13 +1,13 @@
 ---
 layout: page
 title: Makerspace
-description: Reconstruct a workspace for makers and creative minds.
+description: Reconstruct a workspace for makers and creative minds
 img: assets/img/makerspace1.jpg
-importance: 7
+importance: 9
 category: work
 ---
 
-In July 2021, I took on the role of Academic Director for the NTUEE Student Association. One of the main goals for the academic branch is to run a Makerspace that will provide students with access to tools and equipment for creative projects and hands-on making experiences. That year, we relocated the old Makerspace to the new department building, reconstructed the space, and upgraded our equipment to facilitate a more diverse range of projects.
+In July 2021, I co-directed the Academic Branch of the NTUEE Student Association. One of our main responsibilities is to run the Makerspace that provide students access to tools and equipment for creative projects and hands-on making experiences. This year, we relocated the old Makerspace to the new department building, reconstructed the space, and upgraded our equipment to support a broader range of projects.
 
 <div class="row justify-content-sm-center">
     <div class="col-sm-8 mt-3 mt-md-0">
@@ -18,7 +18,7 @@ In July 2021, I took on the role of Academic Director for the NTUEE Student Asso
     </div>
 </div>
 
-Our Makerspace serves as an innovative hub for students to explore and experiment with technology, design, and creativity. We hold workshops on topics such as 3D printing, laser cutting, and SBCs and host talks by alumni and industry professionals to inspire fellow students with valuable insights.
+The Makerspace serves as an innovative hub for students to explore and experiment with technology, design, and creativity. We organized workshops covering topics such as 3D printing, laser cutting, and SBCs, and arranged talks featuring alumni and industry professionals.
 
 <div class="row justify-content-sm-center">
     <div class="col-sm mt-3 mt-md-0">

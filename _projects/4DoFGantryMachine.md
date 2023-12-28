@@ -1,13 +1,13 @@
 ---
 layout: page
 title: 4DoF Gantry Machine
-description: An experimental equipment that is capable of 4DoF motion
+description: A gantry machine with 4DoF motion
 img: assets/img/4DoF1.jpg
 importance: 5
 category: work
 ---
 
-One of my current research endeavors involves an exploration of the human palm's ability to perceive airflow directionality. To facilitate this investigation, I created experimental equipment that is capable of four degrees-of-freedom motion, including translational movement along both x and y axes as well as yaw and pitch rotation. The apparatus was assembled using a 3D printer kit in conjunction with two servo motors, while two laser modules were affixed to distinguish the focal point location on the palm.
+One of my research projects delves into human perception, particularly focusing on the palm's capacity to perceive airflow directionality. To conduct a thorough user study and ensure robust results, I developed specialized equipment capable of 4DoF motion. This includes translational movement along both the x and y axes, as well as yaw and pitch rotation. To build this apparatus, I repurposed a 3D printer kit, adding two servo motors and two laser modules to pinpoint the focal point location on the palm.
 
 <div class="row">
     <div class="col-sm mt-3 mt-md-0">
