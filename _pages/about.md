@@ -9,11 +9,13 @@ profile:
   image: prof_pic.jpg
   image_circular: false # crops the image to make it circular
   address: >
-    <p> email: b08901073 [at] ntu [dot] edu [dot] tw </p>
+    <p> email: b08901073 AT ntu.edu.tw </p>
 
-news: false # includes a list of news items
-selected_papers: false # includes a list of papers marked as "selected={true}"
+news: true # includes a list of news items
+selected_papers: true # includes a list of papers marked as "selected={true}"
 social: true # includes social icons at the bottom of the page
+projects: true
+gallery: true
 ---
 
 I am a senior undergrad majoring in [Electrical Engineering](https://web.ee.ntu.edu.tw/) at [National Taiwan University](https://www.ntu.edu.tw/), advised by [Prof. Mike Chen](https://mikechen.com/) in the HCI Lab. Currently, I am working as a research intern at Cornell [Hybrid Body Lab](https://www.hybridbody.human.cornell.edu/) with [Prof. Cindy (Hsin-Liu) Kao](https://www.hybridbody.human.cornell.edu/cindyhlkao). <br/>

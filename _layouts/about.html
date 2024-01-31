@@ -56,17 +56,83 @@ layout: default
 
           <!-- News -->
           {% if page.news -%}
-            <h2><a href="{{ '/news/' | relative_url }}" style="color: inherit;">news</a></h2>
-            {%- include news.html %}
+            <div class="clearfix mt-5">
+              <h2>News</a></h2>
+              {%- include news.html %}
+            </div>
           {%- endif %}
 
           <!-- Selected papers -->
           {% if page.selected_papers -%}
-            <h2><a href="{{ '/publications/' | relative_url }}" style="color: inherit;">selected publications</a></h2>
-            {%- include selected_papers.html %}
+            <div class="clearfix mt-5">
+              <h2><a href="{{ '/publications/' | relative_url }}" style="color: inherit;">Selected Publications</a></h2>
+              {%- include selected_papers.html %}
+            </div>
           {%- endif %}
 
-          
-        </article>
+          <!-- Projects -->
+          {% if page.projects -%}
+            <div class="clearfix mt-5">
+              <h2><a href="{{ '/projects/' | relative_url }}" style="color: inherit;">Projects</a></h2>
+              <!-- pages/projects.md -->
+              <!-- Display projects without categories -->
+                {%- assign sorted_projects = site.projects | sort: "importance" -%}
+              <!-- Generate cards for each project -->
+                <div class="projects">
+                  <div class="grid gx-5">
+                    {%- for project in sorted_projects -%}
+                      {% include projects.html %}
+                    {%- endfor %}
+                  </div>
+                </div>
+            </div>
+          {%- endif %}
 
+          <!-- Gallery -->
+          {% if page.gallery -%}
+            <div class="clearfix mt-5">
+              <h2><a href="{{ '/gallery/' | relative_url }}" style="color: inherit;">Gallery</a></h2>
+              <div class="gallery">
+                <h2 class="category">3D Modeling</h2>
+                <div class="row justify-content-sm-center">
+                    <div class="col-sm-6 mt-3 mt-md-0">
+                        {% include figure.html path="assets/img/farview.png" title="3d2" class="img-fluid rounded z-depth-1" %}
+                    </div>
+                    <div class="col-sm-6 mt-3 mt-md-0">
+                        {% include figure.html path="assets/img/altar.png" title="3d1" class="img-fluid rounded z-depth-1" %}
+                    </div>
+                </div>
+                <div class="row justify-content-sm-center">
+                    <div class="col-sm mt-3 mt-md-0">
+                        {% include figure.html path="assets/img/wholeview.png" title="art3" class="img-fluid rounded z-depth-1" %}
+                    </div>
+                </div>
+                <h2 class="category">Art</h2>
+                <div class="row justify-content-sm-center">
+                    <div class="col-sm-4 mt-3 mt-md-0">
+                        {% include figure.html path="assets/img/oldman.jpg" title="art1" class="img-fluid rounded z-depth-1" %}
+                    </div>
+                    <div class="col-sm-4 mt-3 mt-md-0">
+                        {% include figure.html path="assets/img/beforesunrise.jpg" title="art2" class="img-fluid rounded z-depth-1" %}
+                    </div>
+                    <div class="col-sm-4 mt-3 mt-md-0">
+                        {% include figure.html path="assets/img/rabbit.jpg" title="art3" class="img-fluid rounded z-depth-1" %}
+                    </div>
+                </div>
+                <h2 class="category">Patisserie</h2>
+                <div class="row justify-content-sm-center">
+                    <div class="col-sm-4 mt-3 mt-md-0">
+                        {% include figure.html path="assets/img/dessert1.jpg" title="dessert11" class="img-fluid rounded z-depth-1" %}
+                    </div>
+                    <div class="col-sm-4 mt-3 mt-md-0">
+                        {% include figure.html path="assets/img/dessert2.jpg" title="dessert12" class="img-fluid rounded z-depth-1" %}
+                    </div>
+                    <div class="col-sm-4 mt-3 mt-md-0">
+                        {% include figure.html path="assets/img/dessert3.jpg" title="dessert13" class="img-fluid rounded z-depth-1" %}
+                    </div>
+                </div>
+              </div>
+            </div>
+          {%- endif %}
+        </article>
 </div>
