@@ -2,14 +2,14 @@
 layout: about
 title: About
 permalink: /
-subtitle: NTUEE undergrad | HCI researcher
+subtitle: Princeton CS Student | HCI researcher
 
 profile:
   align: right
   image: prof_pic.jpg
   image_circular: false # crops the image to make it circular
   address: >
-    <p> email: b08901073 AT ntu.edu.tw </p>
+    <p> email: wlauren@princeton.edu </p>
 
 news: true # includes a list of news items
 selected_papers: true # includes a list of papers marked as "selected={true}"
@@ -18,8 +18,8 @@ projects: true
 gallery: true
 ---
 
-I am a senior undergrad majoring in [Electrical Engineering](https://web.ee.ntu.edu.tw/) at [National Taiwan University](https://www.ntu.edu.tw/), advised by [Prof. Mike Chen](https://mikechen.com/) in the HCI Lab. Currently, I am working as a research intern at Cornell [Hybrid Body Lab](https://www.hybridbody.human.cornell.edu/) with [Prof. Cindy (Hsin-Liu) Kao](https://www.hybridbody.human.cornell.edu/cindyhlkao). <br/>
+I am a 1st year Computer Science PhD student doing research with the [Princeton HCI Group](https://hci.princeton.edu/), advised by Prof. [Parastoo Abtahi](https://parastooabtahi.com/). I completed my undergrad in [Electrical Engineering](https://web.ee.ntu.edu.tw/) at the [National Taiwan University](https://www.ntu.edu.tw/). <br/>
 <br/>
-My research spans VR/AR, haptics, perception, and displays, with a focus on creating immersive experiences that blend virtuality and reality. I am grateful for the [Grace Hopper Scholarship](https://ghc.anitab.org/) and the Yu-Lin Scholarship support. <br/>
+My current research work spans VR/AR, HRI, and multimodal input, with a focus on creating immersive experiences that blend virtuality and reality. I am grateful for the [Grace Hopper Scholarship](https://ghc.anitab.org/) and the Yu-Lin Scholarship support. <br/>
 <br/>
 In my free time, I enjoy drawing, baking, and 3D modeling :)
