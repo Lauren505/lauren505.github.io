@@ -15,7 +15,7 @@ news: true # includes a list of news items
 selected_papers: true # includes a list of papers marked as "selected={true}"
 social: true # includes social icons at the bottom of the page
 projects: true
-gallery: true
+gallery: false
 ---
 
 I am a 2nd year Computer Science PhD student doing research with the [Princeton HCI Group](https://hci.princeton.edu/), advised by Prof. [Parastoo Abtahi](https://parastooabtahi.com/). I completed my undergrad in [Electrical Engineering](https://web.ee.ntu.edu.tw/) at the [National Taiwan University](https://www.ntu.edu.tw/). <br/>
