@@ -6,7 +6,11 @@ const DEG = Math.PI / 180;
  *  height of it in the air reads as nearness rather than as distortion. */
 const FOV = 30;
 /** The whole throw, from the hands to the last ripple. */
-const DROP_MS = 3500;
+const DROP_MS = 3000;
+/** How far through the throw the table starts being laid — see `onSet`: 1 is
+ *  once the cloth is lying still, less is while it is still settling, the
+ *  plates coming in over it. */
+const SET_AT = 0.8;
 /** How high the cloth is carried, as a fraction of the camera's distance from
  *  the table: at the top of the throw it is drawn about a third larger. */
 const LIFT = 0.15;
@@ -200,8 +204,9 @@ const rgb = (hex: string) => {
 
 /**
  * Throws the cloth onto the table in `canvas`, which covers the window, and
- * says so through `onDown` once it is lying still. Returns the way to take it
- * down again.
+ * says so through `onDown` once it is lying still. `onSet` is told a little
+ * before that — SET_AT of the way through — which is when the table starts
+ * being laid. Returns the way to take it down again.
  *
  * The table is longer than the window when there is more on it than fits, and
  * the cloth with it. Only the window's worth of it is thrown — `at` is where
@@ -215,6 +220,7 @@ export function layCloth(
   canvas: HTMLCanvasElement,
   { length, at }: { length: number; at: number },
   onDown?: () => void,
+  onSet?: () => void,
 ) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
@@ -306,6 +312,7 @@ export function layCloth(
   let raf = 0;
   let t0 = 0;
   let t = 0;
+  let set = false;
 
   const draw = () => {
     uniforms.uT.value = t;
@@ -318,6 +325,10 @@ export function layCloth(
     t = Math.min(1, (now - t0) / DROP_MS);
     draw();
     raf = t < 1 ? requestAnimationFrame(frame) : 0;
+    if (!set && t >= SET_AT) {
+      set = true;
+      onSet?.();
+    }
     if (!raf) onDown?.();
   };
 

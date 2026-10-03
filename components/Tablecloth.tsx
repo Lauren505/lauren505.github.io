@@ -28,7 +28,8 @@ export default function Tablecloth({
 }: {
   still?: boolean;
   length: number;
-  /** Once the cloth is lying still — at once, for the picture of it. */
+  /** When the table can start being laid: as the cloth is settling (see
+   *  SET_AT in clothScene), and at once for the picture of it. */
   onDown?: () => void;
 }) {
   const flatRef = useRef<HTMLCanvasElement>(null);
@@ -70,7 +71,12 @@ export default function Tablecloth({
     import("@/components/clothScene")
       .then(({ layCloth }) => {
         if (gone) return;
-        stop.current = layCloth(canvas, { length: len.current, at }, () => setThrowing(false));
+        stop.current = layCloth(
+          canvas,
+          { length: len.current, at },
+          () => setThrowing(false),
+          () => down.current?.(),
+        );
       })
       .catch(() => {
         if (!gone) setThrowing(false);
