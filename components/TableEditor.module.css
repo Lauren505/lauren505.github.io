@@ -13,6 +13,11 @@
   cursor: pointer;
 }
 
+.panel button[data-on] {
+  border-color: rgb(60, 90, 200);
+  color: rgb(60, 90, 200);
+}
+
 .panel button:disabled {
   opacity: 0.4;
   cursor: default;
@@ -142,9 +147,13 @@
   background: #f8f4ec;
 }
 
+/* Fitted whole into the swatch, however tall the drawing: a percentage
+   max-height alone does not hold it in a grid cell. */
 .swatch img {
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
 }
 
 .panel .swatch[data-chosen] {

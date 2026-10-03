@@ -12,7 +12,9 @@
  * Names are file names without the extension:
  *   desserts   media/bakery/desserts/     e.g. "matcha_roll"
  *   plates     media/bakery/decorations/  e.g. "plate7"
- *   cutlery    media/bakery/decorations/  e.g. "fork1", "knife2", "spoon1"
+ *   cutlery    media/bakery/decorations/  e.g. "fork1", "knife2", "spoon1",
+ *              and flowers, which lie about the same way, e.g. "flower3"
+ *   hands      media/bakery/decorations/  e.g. "hand2"
  *
  * The page is as long as the table needs: it ends MARGIN below the lowest
  * plate, and scrolls if that is further than the window. Any dessert in the
@@ -24,7 +26,16 @@
  *
  * There are two lists: `settings`, each a dessert on its plate, and `cutlery`,
  * which lies wherever it is put on the table, belonging to no plate in
- * particular — it always lies under the plates where they overlap.
+ * particular — it always lies under the plates where they overlap. Flowers go
+ * in `cutlery` too.
+ *
+ * A setting can also have a `hand`: the hand that pushes it into place as the
+ * table is laid. The plate slides in from off the window, away from the hand,
+ * the hand following it in, and once it is there the hand goes back the way
+ * it came — so a hand is never on the finished table, only seen arriving.
+ * Only the settings on the first screen of the table get theirs; further down
+ * the plates slide in on their own. A hand is drawn upright, fingers up, so at
+ * rotate 0 it reaches up the table, and at 90 in from the left.
  */
 
 export const TABLE_WIDTH = 1440;
@@ -39,6 +50,18 @@ export type CutleryPlacement = {
   x: number;
   y: number;
   /** How long it is, end to end. */
+  length: number;
+  rotate: number;
+};
+
+export type HandPlacement = {
+  /** Which drawing, e.g. "hand2". */
+  ware: string;
+  /** Where its middle is, from the middle of the plate, once it has pushed
+   *  the plate where it goes. The plate is pushed straight away from it. */
+  x: number;
+  y: number;
+  /** How long it is, fingertips to the end of the arm. */
   length: number;
   rotate: number;
 };
@@ -61,6 +84,8 @@ export type Placement = {
   dessertY?: number;
   plateRotate?: number;
   dessertRotate?: number;
+  /** What pushes it into place — see the note at the top. */
+  hand?: HandPlacement;
 };
 
 export const settings: Placement[] = [
@@ -75,6 +100,7 @@ export const settings: Placement[] = [
     dessertY: -32,
     plateRotate: -4,
     dessertRotate: 4,
+    hand: { ware: "hand1", x: -280, y: 10, length: 360, rotate: 90 },
   },
   {
     dessert: "matcha_roll",
@@ -87,6 +113,7 @@ export const settings: Placement[] = [
     dessertY: -31,
     plateRotate: -2,
     dessertRotate: -3,
+    hand: { ware: "hand3", x: 0, y: -266, length: 360, rotate: 180 },
   },
   {
     dessert: "chocolate_roll",
@@ -99,6 +126,7 @@ export const settings: Placement[] = [
     dessertY: -33,
     plateRotate: -3,
     dessertRotate: 3,
+    hand: { ware: "hand4", x: 285, y: 0, length: 360, rotate: -90 },
   },
   {
     dessert: "double_fromage",
@@ -120,6 +148,7 @@ export const settings: Placement[] = [
     dessertWidth: 150,
     dessertY: -10,
     plateRotate: 3,
+    hand: { ware: "hand5", x: 242, y: -20, length: 300, rotate: 180 },
   },
   {
     dessert: "salt_bread_roll",
@@ -331,6 +360,7 @@ export const settings: Placement[] = [
     dessertX: -3,
     dessertY: -25,
     plateRotate: 204,
+    hand: { ware: "hand2", x: -318, y: 0, length: 320, rotate: 90 },
   },
   {
     dessert: "peach_jasmine_tart",

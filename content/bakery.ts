@@ -3,13 +3,16 @@ import type { StaticImageData } from "next/image";
 /**
  * The bakery's table, read straight off media/bakery/: nothing here to list
  * by hand. Drop a picture in desserts/ and it is on the table, on a plate of
- * its own; drop a drawing in decorations/ and it is one more plate or piece of
- * cutlery for the table to be laid with.
+ * its own; drop a drawing in decorations/ and it is one more plate, piece of
+ * cutlery, flower or hand for the table to be laid with.
  *
  * Desserts are pictures with the background taken out, so they can sit on the
  * plate rather than being cropped to it. Decorations are line drawings named
- * for what they are — plate…, fork…, knife…, spoon… — which is how the table
- * knows which is which.
+ * for what they are — plate…, fork…, knife…, spoon…, flower…, hand… — which
+ * is how the table knows which is which. Flowers lie about the table like the
+ * cutlery; hands are drawn upright, fingers up, and only ever pass over it —
+ * they push the first plates into place and are gone (see `hand` in
+ * content/bakeryTable.ts).
  */
 
 export type Bake = {
@@ -19,7 +22,9 @@ export type Bake = {
   image: StaticImageData;
 };
 
-export type Ware = "plate" | "fork" | "knife" | "spoon";
+export type Ware = "plate" | "fork" | "knife" | "spoon" | "flower" | "hand";
+
+const WARES: readonly Ware[] = ["plate", "fork", "knife", "spoon", "flower", "hand"];
 
 export type Decoration = {
   id: string;
@@ -61,7 +66,7 @@ export const decorations: Decoration[] = Object.keys(drawings)
   .sort(byName)
   .flatMap((path) => {
     const id = stem(path);
-    const kind = (["plate", "fork", "knife", "spoon"] as const).find((k) =>
+    const kind = WARES.find((k) =>
       id.toLowerCase().startsWith(k),
     );
     return kind ? [{ id, kind, image: drawings[path] }] : [];

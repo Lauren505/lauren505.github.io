@@ -22,7 +22,7 @@ const view = (): View => ({
 
 /** A copy of the table, to change without touching the one it came from. */
 const copy = (t: Table): Table => ({
-  settings: t.settings.map((p) => ({ ...p })),
+  settings: t.settings.map((p) => ({ ...p, hand: p.hand && { ...p.hand } })),
   cutlery: t.cutlery.map((c) => ({ ...c })),
 });
 
@@ -34,8 +34,8 @@ const adjust = (
 ) => {
   const next = copy(t);
   const { dx = 0, dy = 0, size = 1, turn = 0 } = change;
-  if (part === "cutlery") {
-    const c = next.cutlery[i];
+  if (part === "cutlery" || part === "hand") {
+    const c = part === "cutlery" ? next.cutlery[i] : next.settings[i]?.hand;
     if (!c) return t;
     c.x += dx;
     c.y += dy;
@@ -72,7 +72,7 @@ const tidy = (t: Table): Table => {
       if (q[key] !== undefined) q[key] = r(q[key]!);
     }
   }
-  for (const c of next.cutlery) {
+  for (const c of [...next.cutlery, ...next.settings.flatMap((q) => (q.hand ? [q.hand] : []))]) {
     c.x = r(c.x);
     c.y = r(c.y);
     c.length = r(c.length);
@@ -123,6 +123,20 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
   const [draft, setDraft] = useState<Table>(placements);
   const [selected, setSelected] = useState<Part | null>(null);
   const [held, setHeld] = useState(false);
+  /** Whether the hands are out on the table, to be put where they leave their
+   *  plates. They are never on it otherwise — they only bring the plates in. */
+  const [hands, setHands] = useState(false);
+  /** The table being laid again, the way it is when the page opens, to see
+   *  the hands at work: each play is a new one, from the start. */
+  const [plays, setPlays] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const play = useCallback(() => {
+    window.scrollTo({ top: 0 });
+    setSelected(null);
+    setPlays((n) => n + 1);
+    setPlaying(true);
+  }, []);
+  const played = useCallback(() => setPlaying(false), []);
   const undo = useRef<Table[]>([]);
   const redo = useRef<Table[]>([]);
 
@@ -241,6 +255,11 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
         const t = draftRef.current;
         commit({ ...t, cutlery: t.cutlery.filter((_, n) => n !== selected.i) });
         setSelected(null);
+      } else if ((e.key === "Delete" || e.key === "Backspace") && selected.part === "hand") {
+        e.preventDefault();
+        const t = draftRef.current;
+        commit({ ...t, settings: t.settings.map((q, n) => (n === selected.i ? { ...q, hand: undefined } : q)) });
+        setSelected({ part: "plate", i: selected.i });
       }
     };
     window.addEventListener("keydown", key);
@@ -276,7 +295,16 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
         >
           {showing ? <Tablecloth still={still} length={clothLength.current} onDown={onDown} /> : null}
           {showing && down ? (
-            <TableSetting laid={layout.laid} cutlery={layout.cutlery} scale={scale} arrive={!still} edit={edit} />
+            <TableSetting
+              key={plays}
+              laid={layout.laid}
+              cutlery={layout.cutlery}
+              scale={scale}
+              arrive={!still}
+              edit={playing ? undefined : edit}
+              hands={editing && hands && !playing}
+              onArrived={played}
+            />
           ) : null}
         </div>
       ) : null}
@@ -294,6 +322,10 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
           undo={() => step(true)}
           redo={() => step(false)}
           revert={() => commit(placements)}
+          hands={hands}
+          setHands={setHands}
+          play={play}
+          playing={playing}
         />
       ) : null}
     </section>

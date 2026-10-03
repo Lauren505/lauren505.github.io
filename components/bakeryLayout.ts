@@ -39,6 +39,8 @@ export type Laid = {
   bake: Bake;
   plate: Piece;
   dessert: Piece;
+  /** What pushes it into place, where it is once it has. */
+  hand?: Piece;
 };
 
 /** Both lists in content/bakeryTable.ts: what the editor works on and saves. */
@@ -58,6 +60,7 @@ const lay = (p: Placement, bake: Bake): Laid | null => {
   const plate = drawing(p.plate, "plate");
   if (!plate) return null;
   const pw = p.plateWidth;
+  const hand = p.hand ? drawing(p.hand.ware, "hand") : undefined;
   return {
     id: bake.id,
     bake,
@@ -77,11 +80,22 @@ const lay = (p: Placement, bake: Bake): Laid | null => {
       height: p.dessertWidth * shape(bake.image),
       rotate: p.dessertRotate ?? 0,
     },
+    hand:
+      hand && p.hand
+        ? {
+            image: hand.image,
+            x: p.x + p.hand.x,
+            y: p.y + p.hand.y,
+            width: p.hand.length / shape(hand.image),
+            height: p.hand.length,
+            rotate: p.hand.rotate,
+          }
+        : undefined,
   };
 };
 
-/** A piece of cutlery on the table. The drawings stand upright, so their
- *  length is their height. */
+/** A piece of cutlery, or a flower, on the table. The drawings stand upright,
+ *  so their length is their height. */
 const layWare = (c: CutleryPlacement, source: number): Piece[] => {
   const ware = drawing(c.ware, "piece of cutlery");
   if (!ware) return [];

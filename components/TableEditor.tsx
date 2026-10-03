@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Table } from "@/components/bakeryLayout";
 import type { Part } from "@/components/TableSetting";
-import { TABLE_WIDTH, bakes, decorations, type CutleryPlacement, type Placement, type Ware } from "@/content";
+import {
+  TABLE_WIDTH,
+  bakes,
+  decorations,
+  type CutleryPlacement,
+  type HandPlacement,
+  type Placement,
+  type Ware,
+} from "@/content";
 import styles from "./TableEditor.module.css";
 
 /**
@@ -31,10 +39,21 @@ type Props = {
   undo: () => void;
   redo: () => void;
   revert: () => void;
+  /** Whether the hands are out on the table to be placed. */
+  hands: boolean;
+  setHands: (on: boolean) => void;
+  /** Lays the table again, the way the page does when it opens. */
+  play: () => void;
+  playing: boolean;
 };
 
 const plates = decorations.filter((d) => d.kind === "plate");
-const wares = decorations.filter((d) => d.kind !== "plate");
+/** What lies about the table: the cutlery, and the flowers. */
+const wares = decorations.filter((d) => d.kind !== "plate" && d.kind !== "hand");
+const handDrawings = decorations.filter((d) => d.kind === "hand");
+
+/** How long a new one is, by what it is. */
+const LENGTH: Partial<Record<Ware, number>> = { knife: 160, flower: 110, hand: 360 };
 
 /** A number field that only commits when it holds a number. */
 function Num({
@@ -109,6 +128,10 @@ export default function TableEditor({
   undo,
   redo,
   revert,
+  hands,
+  setHands,
+  play,
+  playing,
 }: Props) {
   const [status, setStatus] = useState<string | null>(null);
   /** Which side of the window the panel stands at: whichever is not in the
@@ -200,7 +223,7 @@ export default function TableEditor({
       ware,
       x: Math.round(at.x),
       y: Math.round(at.y),
-      length: kind === "knife" ? 160 : 145,
+      length: LENGTH[kind] ?? 145,
       rotate: 0,
     };
     commit({ ...draft, cutlery: [...draft.cutlery, piece] });
@@ -210,6 +233,35 @@ export default function TableEditor({
   const remove = () => {
     commit({ ...draft, cutlery: draft.cutlery.filter((_, j) => j !== i) });
     setSelected(null);
+  };
+
+  /** Gives the selected setting a hand, or another one where its hand was.
+   *  A new one comes in from the nearer side, fingertips just over the rim. */
+  const lend = (ware: string) => {
+    if (!p) return;
+    const length = LENGTH.hand!;
+    const left = p.x < TABLE_WIDTH / 2;
+    const hand = p.hand
+      ? { ...p.hand, ware }
+      : {
+          ware,
+          x: Math.round((left ? -1 : 1) * (p.plateWidth / 2 + length / 2 - 25)),
+          y: 0,
+          length,
+          rotate: left ? 90 : -90,
+        };
+    change({ hand });
+    setHands(true);
+    setSelected({ part: "hand", i });
+  };
+
+  const changeHand = (patch: Partial<HandPlacement>) => {
+    if (p?.hand) change({ hand: { ...p.hand, ...patch } });
+  };
+
+  const unhand = () => {
+    change({ hand: undefined });
+    setSelected({ part: "plate", i });
   };
 
   return (
@@ -264,11 +316,33 @@ export default function TableEditor({
                 <Num label="rotate" value={p.plateRotate ?? 0} onChange={(v) => change({ plateRotate: v })} />
               </div>
             </section>
+
+            <section>
+              <h4>Hand</h4>
+              <Pick items={handDrawings} chosen={p.hand?.ware} onPick={lend} />
+              {p.hand ? (
+                <>
+                  <div className={styles.grid}>
+                    <Num label="x from plate" value={p.hand.x} onChange={(v) => changeHand({ x: v })} />
+                    <Num label="y from plate" value={p.hand.y} onChange={(v) => changeHand({ y: v })} />
+                    <Num label="length" value={p.hand.length} onChange={(v) => changeHand({ length: v })} />
+                    <Num label="rotate" value={p.hand.rotate} onChange={(v) => changeHand({ rotate: v })} />
+                  </div>
+                  <p className={styles.sub}>
+                    <button type="button" onClick={unhand}>
+                      Remove hand
+                    </button>
+                  </p>
+                </>
+              ) : (
+                <p className={styles.sub}>No hand: it slides in from the nearer side on its own.</p>
+              )}
+            </section>
           </>
         ) : c ? (
           <>
             <h3>
-              Cutlery {i + 1} <span>· {c.ware}</span>
+              {c.ware.toLowerCase().startsWith("flower") ? "Flower" : "Cutlery"} {i + 1} <span>· {c.ware}</span>
             </h3>
             <section>
               <Pick items={wares} chosen={c.ware} onPick={(ware) => changeWare({ ware })} />
@@ -286,17 +360,35 @@ export default function TableEditor({
           </>
         ) : (
           <p className={styles.hint}>
-            Click a plate, dessert or piece of cutlery to choose it. Drag to move, drag the corner to
-            size, drag the stalk to turn (hold shift for 15°).
+            Click a plate, dessert, flower or piece of cutlery to choose it. Drag to move, drag the
+            corner to size, drag the stalk to turn (hold shift for 15°).
             <br />
             <br />
-            Arrows nudge (shift: 10), [ and ] turn, Delete removes cutlery, ⌘Z undoes, ⌘S saves.
+            Arrows nudge (shift: 10), [ and ] turn, Delete removes cutlery, flowers and hands, ⌘Z
+            undoes, ⌘S saves.
           </p>
         )}
 
         <section>
-          <h4>Add cutlery</h4>
+          <h4>Add cutlery or flowers</h4>
           <Pick items={wares} onPick={add} />
+        </section>
+
+        <section>
+          <h4>Hands</h4>
+          <p className={styles.sub}>
+            They push the first plates in as the table is laid, then go — never on the finished
+            table. Show them to place them where they leave their plates; the plate is pushed
+            straight away from its hand.
+          </p>
+          <div className={styles.row}>
+            <button type="button" data-on={hands || undefined} onClick={() => setHands(!hands)}>
+              {hands ? "Hide hands" : "Show hands"}
+            </button>
+            <button type="button" disabled={playing} onClick={play}>
+              {playing ? "Playing…" : "▶ Play arrival"}
+            </button>
+          </div>
         </section>
       </div>
 

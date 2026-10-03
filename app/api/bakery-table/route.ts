@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { Table } from "@/components/bakeryLayout";
-import type { CutleryPlacement, Placement } from "@/content";
+import type { CutleryPlacement, HandPlacement, Placement } from "@/content";
 
 /**
  * Where the table editor saves to, while `next dev` is running and never
@@ -19,6 +19,11 @@ const END = "\n];\n";
 const num = (v: unknown) => typeof v === "number" && Number.isFinite(v);
 const str = (v: unknown) => typeof v === "string" && /^[\w-]+$/.test(v);
 
+/** A piece of cutlery, a flower or a hand: a drawing, where it is, how long
+ *  and how it is turned. */
+const ware = (c: Record<string, unknown> | undefined) =>
+  !!c && str(c.ware) && ["x", "y", "length", "rotate"].every((k) => num(c[k]));
+
 const valid = (t: Table | null): t is Table =>
   !!t &&
   Array.isArray(t.settings) &&
@@ -28,17 +33,16 @@ const valid = (t: Table | null): t is Table =>
       str(p.dessert) &&
       str(p.plate) &&
       ["x", "y", "plateWidth", "dessertWidth"].every((k) => num(p[k])) &&
-      ["dessertX", "dessertY", "plateRotate", "dessertRotate"].every((k) => p[k] === undefined || num(p[k])),
+      ["dessertX", "dessertY", "plateRotate", "dessertRotate"].every((k) => p[k] === undefined || num(p[k])) &&
+      (p.hand === undefined || ware(p.hand as Record<string, unknown>)),
   ) &&
   Array.isArray(t.cutlery) &&
-  t.cutlery.every(
-    (c: Record<string, unknown>) => c && str(c.ware) && ["x", "y", "length", "rotate"].every((k) => num(c[k])),
-  );
+  t.cutlery.every((c: Record<string, unknown>) => ware(c));
 
 /** Whole pixels and degrees, the way the file was written by hand. */
 const n = (v: number) => String(Math.round(v * 10) / 10);
 
-const cutlery = (c: CutleryPlacement) =>
+const cutlery = (c: CutleryPlacement | HandPlacement) =>
   `{ ware: "${c.ware}", x: ${n(c.x)}, y: ${n(c.y)}, length: ${n(c.length)}, rotate: ${n(c.rotate)} }`;
 
 const entry = (p: Placement) => {
@@ -55,6 +59,7 @@ const entry = (p: Placement) => {
     const v = p[k];
     if (v !== undefined && Math.round(v * 10) !== 0) lines.push(`${k}: ${n(v)},`);
   }
+  if (p.hand) lines.push(`hand: ${cutlery(p.hand)},`);
   return ["  {", ...lines.map((l) => `    ${l}`), "  },"].join("\n");
 };
 

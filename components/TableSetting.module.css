@@ -1,10 +1,12 @@
 /* Over the cloth, the length of the table — see .table in
    SideQuestsBody.module.css. Nothing on it is a control yet, so it lets the
-   page have the pointer. */
+   page have the pointer. What comes in from off the window, and the hands
+   going back off it, are cut off at its edges rather than widening the page. */
 .table {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  overflow: clip;
 }
 
 .setting {
@@ -15,14 +17,41 @@
   position: absolute;
 }
 
-.arrive {
+.slide,
+.set,
+.retreat {
   width: 100%;
   height: 100%;
 }
 
-/* Set down one after another once the cloth is lying still: from a little
+/* Each setting slides in from off the window once the cloth is lying still —
+   from --from-x, --from-y, which TableSetting works out — picking up speed and
+   settling where it goes, its hand with it. */
+.slide[data-arrive] {
+  animation: slideIn var(--slide) cubic-bezier(0.55, 0, 0.25, 1) both;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translate(var(--from-x), var(--from-y));
+  }
+}
+
+/* …and the hand, once the plate is down, goes back the way it came: to
+   --to-x, --to-y, off the window, and stays there. */
+.retreat[data-arrive] {
+  animation: retreat var(--retreat) cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+@keyframes retreat {
+  to {
+    transform: translate(var(--to-x), var(--to-y));
+  }
+}
+
+/* The cutlery and the flowers are set down after their plate: from a little
    above the table, and a little larger for it. */
-.arrive[data-arrive] {
+.set[data-arrive] {
   animation: setDown 560ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
@@ -38,8 +67,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .arrive[data-arrive] {
+  .slide[data-arrive],
+  .set[data-arrive],
+  .retreat[data-arrive] {
     animation: none;
+  }
+
+  /* Nothing to push: the plates are simply there. */
+  .slide[data-arrive][data-hand] {
+    visibility: hidden;
   }
 }
 

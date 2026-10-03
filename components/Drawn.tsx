@@ -17,14 +17,56 @@ const WORK = 480;
 const GAP = 0.022;
 
 /**
+ * Closes a drawing that is open at its foot — a hand, whose arm is two lines
+ * running off the bottom of it — with a line from the end of one to the end of
+ * the other, so the arm is filled with the hand. The ends are the lowest ink
+ * there is, and the lowest ink at least a tenth of the drawing away from it
+ * sideways: the other line, rather than more of the same one.
+ */
+const seal = (ink: Uint8Array, w: number, h: number) => {
+  const low = new Int32Array(w).fill(-1);
+  for (let x = 0; x < w; x++) {
+    for (let y = h - 1; y >= 0; y--) {
+      if (ink[y * w + x]) {
+        low[x] = y;
+        break;
+      }
+    }
+  }
+  let a = 0;
+  for (let x = 1; x < w; x++) if (low[x] > low[a]) a = x;
+  if (low[a] < 0) return;
+  const apart = Math.round(Math.max(w, h) * 0.1);
+  let b = -1;
+  for (let x = 0; x < w; x++) {
+    if (Math.abs(x - a) > apart && low[x] >= 0 && (b < 0 || low[x] > low[b])) b = x;
+  }
+  if (b < 0) return;
+  const steps = Math.max(Math.abs(b - a), Math.abs(low[b] - low[a]));
+  for (let s = 0; s <= steps; s++) {
+    const x = Math.round(a + ((b - a) * s) / steps);
+    const y = Math.round(low[a] + ((low[b] - low[a]) * s) / steps);
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const px = x + dx;
+        const py = y + dy;
+        if (px >= 0 && px < w && py >= 0 && py < h) ink[py * w + px] = 1;
+      }
+    }
+  }
+};
+
+/**
  * Everything inside a line drawing's outline, as a mask: the drawing's own
  * strokes, thickened by `close` pixels to bridge the gaps a crayon leaves in
  * them, then everything the outside cannot reach, then thinned by the same
- * amount again so the edge is back under the line it came from.
+ * amount again so the edge is back under the line it came from. `openFoot`
+ * closes it at the bottom first — see seal.
  */
-const silhouette = (alpha: Uint8ClampedArray, w: number, h: number, close: number) => {
+const silhouette = (alpha: Uint8ClampedArray, w: number, h: number, close: number, openFoot: boolean) => {
   let ink = new Uint8Array(w * h);
   for (let i = 0; i < w * h; i++) ink[i] = alpha[i * 4 + 3] > 40 ? 1 : 0;
+  if (openFoot) seal(ink, w, h);
 
   // A square window either way, one axis at a time: `grow` takes the max of
   // it, and a shrink is the same pass over the inverse.
@@ -95,15 +137,24 @@ const silhouette = (alpha: Uint8ClampedArray, w: number, h: number, close: numbe
 };
 
 /**
- * One of the uploaded line drawings — a plate, a fork — filled with the cloth's
+ * One of the uploaded line drawings — a plate, a fork, a hand — filled with the cloth's
  * colour inside its outline, so it lies on top of the tablecloth rather than
  * the grid showing through it.
  *
  * The drawings are outlines only, so the fill is worked out from the lines
  * themselves (see silhouette) rather than drawn: any drawing added to the
- * folder is filled the same way.
+ * folder is filled the same way. A hand's arm runs off the bottom of its
+ * drawing, open, so it is closed there first — `openFoot`.
  */
-export default function Drawn({ image, width }: { image: StaticImageData; width: number }) {
+export default function Drawn({
+  image,
+  width,
+  openFoot = false,
+}: {
+  image: StaticImageData;
+  width: number;
+  openFoot?: boolean;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
   const height = (width * image.height) / image.width;
 
@@ -128,7 +179,7 @@ export default function Drawn({ image, width }: { image: StaticImageData; width:
       if (!wc) return;
       wc.drawImage(img, pad, pad, w - pad * 2, h - pad * 2);
       const px = wc.getImageData(0, 0, w, h);
-      const inside = silhouette(px.data, w, h, close);
+      const inside = silhouette(px.data, w, h, close, openFoot);
 
       const [r, g, b] = [1, 3, 5].map((i) => parseInt(CLOTH.slice(i, i + 2), 16));
       for (let i = 0; i < w * h; i++) {
@@ -145,7 +196,7 @@ export default function Drawn({ image, width }: { image: StaticImageData; width:
     return () => {
       gone = true;
     };
-  }, [image]);
+  }, [image, openFoot]);
 
   return (
     <span className={styles.drawn} style={{ width, height }}>
