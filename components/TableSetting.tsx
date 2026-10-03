@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Drawn from "@/components/Drawn";
 import type { Laid, Piece } from "@/components/bakeryLayout";
 import type { Shift } from "@/components/RecipeReveal";
@@ -190,7 +190,16 @@ export default function TableSetting({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const moving = arrive && !done;
-  const picking = !!pick && !edit && !moving;
+  const picking = !!pick && !edit;
+
+  /** Whether setting `i` is down yet, and so can be clicked: as soon as its
+   *  own plate is, not once the whole table is — which, the length of it,
+   *  is seconds after the ones in the window have landed. */
+  const laidAt = useRef(0);
+  useEffect(() => {
+    laidAt.current = performance.now();
+  }, []);
+  const landed = (i: number) => !moving || performance.now() - laidAt.current >= start(i) + SLIDE;
 
   /** The top of the table, as much of it as is in the window, in the
    *  table's own pixels. */
@@ -314,7 +323,7 @@ export default function TableSetting({
                     className={styles.pick}
                     data-recipe-keep=""
                     aria-label={s.bake.title}
-                    onClick={() => pick?.(i)}
+                    onClick={() => landed(i) && pick?.(i)}
                   />
                 ) : null}
                 <Image
