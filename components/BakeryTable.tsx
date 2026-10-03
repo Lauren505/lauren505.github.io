@@ -2,10 +2,10 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import RecipeReveal, { type Shift } from "@/components/RecipeReveal";
+import RecipeReveal from "@/components/RecipeReveal";
 import Tablecloth from "@/components/Tablecloth";
 import TableSetting, { type Edit, type Grip, type Part } from "@/components/TableSetting";
-import { laidOut, layTable, placements, type Table } from "@/components/bakeryLayout";
+import { laidOut, layTable, placements, type Shift, type Table } from "@/components/bakeryLayout";
 import { TABLE_WIDTH, lostLine, recipes } from "@/content";
 import styles from "./SideQuestsBody.module.css";
 
@@ -92,7 +92,8 @@ const tidy = (t: Table): Table => {
  * that below the nav, so it hangs the table from above itself.
  *
  * Once it is laid, a dessert clicked brings its recipe — see RecipeReveal —
- * the rest of the table cleared away for it, one at a time: another clicked, or anywhere else, and it is put away first.
+ * the rest of the table cleared away for it. One at a time: click another, or
+ * anywhere else, and it is put away first.
  *
  * In development there is also the editor — see TableEditor — which lays the
  * table from a draft instead of from content/bakeryTable.ts, and saves the
@@ -297,14 +298,14 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
   // Put away by anything but the paper or another dessert, and by Escape.
   useEffect(() => {
     if (want === null) return;
-    const away = (e: PointerEvent) => {
+    const elsewhere = (e: PointerEvent) => {
       if (!(e.target as Element | null)?.closest?.("[data-recipe-keep]")) setWant(null);
     };
     const key = (e: KeyboardEvent) => e.key === "Escape" && setWant(null);
-    document.addEventListener("pointerdown", away);
+    document.addEventListener("pointerdown", elsewhere);
     window.addEventListener("keydown", key);
     return () => {
-      document.removeEventListener("pointerdown", away);
+      document.removeEventListener("pointerdown", elsewhere);
       window.removeEventListener("keydown", key);
     };
   }, [want]);
@@ -318,19 +319,18 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
     setAway(false);
   }, [editing, plays, win?.width]);
 
-  /** Where the window, and the section below the nav, are on the table. */
+  /** Where the window, and the section below the nav, are on the table, as
+   *  a recipe is brought: it is laid in the window. */
   const tableRef = useRef<HTMLDivElement>(null);
-  const where = () => {
-    const t = tableRef.current?.getBoundingClientRect();
-    const s = tableRef.current?.parentElement?.getBoundingClientRect();
-    return { top: t ? -t.top : 0, least: t && s ? s.top - t.top : 0 };
-  };
   const [at, setAt] = useState({ top: 0, least: 0 });
   useLayoutEffect(() => {
-    if (shown !== null) setAt(where());
+    const t = tableRef.current?.getBoundingClientRect();
+    const s = tableRef.current?.parentElement?.getBoundingClientRect();
+    if (shown !== null && t && s) setAt({ top: -t.top, least: s.top - t.top });
   }, [shown]);
 
   const open = shown === null ? undefined : layout.laid[shown];
+  const recipe = open && recipes[open.id];
 
   /* -------------------------------------------------------------- size */
 
@@ -368,10 +368,10 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
               onArrived={played}
               pick={editing ? undefined : pick}
               shift={shown !== null && shift ? { ...shift, i: shown } : undefined}
-              away={shown !== null && recipes[layout.laid[shown]?.id] ? { except: shown, out: away } : undefined}
+              away={shown !== null && recipe ? { except: shown, out: away } : undefined}
             />
           ) : null}
-          {showing && down && open && win ? (
+          {showing && down && open ? (
             <RecipeReveal
               key={`${shown}-${open.id}`}
               setting={open}
@@ -380,7 +380,7 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
               length={clothLength.current}
               top={at.top}
               least={at.least}
-              recipe={recipes[open.id]}
+              recipe={recipe}
               line={lostLine(open.id, open.bake.title)}
               leave={want !== shown}
               onShift={setShift}

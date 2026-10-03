@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { StaticImageData } from "next/image";
 import Drawn from "@/components/Drawn";
 import RecipePaper from "@/components/RecipePaper";
-import type { Laid } from "@/components/bakeryLayout";
+import { outOf, type Laid, type Shift, type Vec } from "@/components/bakeryLayout";
 import { hand as handwriting } from "@/components/recipeFonts";
 import { TABLE_WIDTH, decorations, type Recipe } from "@/content";
 import styles from "./RecipeReveal.module.css";
@@ -25,11 +25,6 @@ const HAUL = "cubic-bezier(0.55, 0, 0.3, 1)";
 const PER_LETTER = 42;
 const LETTER = 460;
 
-/** The plate and what is on it, moved, in window pixels: TableSetting moves
- *  them, in step with the hand. */
-export type Shift = { dx: number; dy: number; ms: number; ease: string };
-
-type Vec = { x: number; y: number };
 type Pose = { x: number; y: number; r: number; ms: number; ease: string };
 
 const handDrawing = (id: string): StaticImageData | undefined =>
@@ -41,17 +36,6 @@ const at = (p: Pose): React.CSSProperties => ({
 });
 
 const along = (c: Vec, v: Vec, k: number): Vec => ({ x: c.x + v.x * k, y: c.y + v.y * k });
-
-/** How far from `from` along `way` the window — `box` — is left behind, by
- *  `pad` more. */
-const exit = (from: Vec, way: Vec, box: { x0: number; y0: number; x1: number; y1: number }, pad: number) => {
-  const go: number[] = [];
-  if (way.x < -1e-6) go.push((from.x - box.x0 + pad) / -way.x);
-  if (way.x > 1e-6) go.push((box.x1 - from.x + pad) / way.x);
-  if (way.y < -1e-6) go.push((from.y - box.y0 + pad) / -way.y);
-  if (way.y > 1e-6) go.push((box.y1 - from.y + pad) / way.y);
-  return go.length ? Math.max(0, Math.min(...go)) : 0;
-};
 
 /**
  * What clicking a dessert brings: its recipe, if it has one, or else a
@@ -161,9 +145,9 @@ export default function RecipeReveal({
     const turn = (Math.atan2(m.x, -m.y) * 180) / Math.PI;
     const reach = R * 0.86 + pushL / 2;
     const behind = along({ x: px, y: py }, m, -reach);
-    const behindOut = exit(behind, { x: -m.x, y: -m.y }, box, pushL / 2 + 40);
+    const behindOut = outOf(box, behind, { x: -m.x, y: -m.y }, pushL / 2 + 40);
     const ahead = along({ x: plateX, y: plateY }, m, reach);
-    const aheadOut = exit(ahead, m, box, pushL / 2 + 40);
+    const aheadOut = outOf(box, ahead, m, pushL / 2 + 40);
 
     // The carrying hand: from below, its fingers on the foot of the paper.
     const carry = handDrawing(CARRY);
@@ -177,7 +161,7 @@ export default function RecipeReveal({
     const lean = side < 0 ? 1.2 : -1.2;
 
     /** Out of the window from `c`, along `v`, for the pushing hand. */
-    const off = (c: Vec, v: Vec) => along(c, v, exit(c, v, box, pushL / 2 + 40));
+    const off = (c: Vec, v: Vec) => along(c, v, outOf(box, c, v, pushL / 2 + 40));
 
     return {
       d,

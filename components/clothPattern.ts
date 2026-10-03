@@ -18,9 +18,8 @@ const SEED = 0x5eed;
  *  cloth is the window less this much at the left and at the right. */
 export const FRINGE = 30;
 
-/** Mulberry32: small, fast, and the same numbers in every browser. The table
- *  setting draws from it too. */
-export const rng = (seed: number) => () => {
+/** Mulberry32: small, fast, and the same numbers in every browser. */
+const rng = (seed: number) => () => {
   seed = (seed + 0x6d2b79f5) | 0;
   let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
   t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;

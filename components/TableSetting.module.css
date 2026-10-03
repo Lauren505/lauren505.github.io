@@ -1,6 +1,6 @@
 /* Over the cloth, the length of the table — see .table in
-   SideQuestsBody.module.css. Nothing on it is a control yet, so it lets the
-   page have the pointer. What comes in from off the window, and the hands
+   SideQuestsBody.module.css. It lets the page have the pointer, but for the
+   desserts, which can be clicked (see .pick). What comes in from off the window, and the hands
    going back off it, are cut off at its edges rather than widening the page. */
 .table {
   position: absolute;

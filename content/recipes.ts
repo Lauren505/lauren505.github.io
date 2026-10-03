@@ -44,7 +44,7 @@ const PORTION = /^(?:portions?|serves|servings|makes|yield)\s*:\s*(.+)$/i;
 
 /** One recipe file, read leniently: whatever it has of a name, a portion,
  *  ingredients and steps. */
-export const parseRecipe = (id: string, text: string): Recipe => {
+const parseRecipe = (id: string, text: string): Recipe => {
   const recipe: Recipe = { id, name: "", ingredients: [], steps: [], notes: [] };
   let section: Section = "intro";
   let heading: string | undefined;

@@ -3,8 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import Drawn from "@/components/Drawn";
-import type { Laid, Piece } from "@/components/bakeryLayout";
-import type { Shift } from "@/components/RecipeReveal";
+import { outOf, type Laid, type Piece, type Shift, type Vec } from "@/components/bakeryLayout";
 import { TABLE_WIDTH } from "@/content";
 import styles from "./TableSetting.module.css";
 
@@ -12,7 +11,7 @@ import styles from "./TableSetting.module.css";
  *  or the hand of setting `i`, or piece `i` of the cutlery. */
 export type Part = { part: "plate" | "dessert" | "hand" | "cutlery"; i: number };
 
-export const samePart = (a: Part | null, b: Part | null) =>
+const samePart = (a: Part | null, b: Part | null) =>
   !!a && !!b && a.i === b.i && a.part === b.part;
 
 /** What taking hold of it does: drag it, size it from the corner, or turn it
@@ -55,21 +54,10 @@ const place = (p: Piece, scale: number, shift?: Moved): React.CSSProperties => (
   transition: shift?.ms ? `transform ${shift.ms}ms ${shift.ease} ${shift.delay ?? 0}ms` : undefined,
 });
 
-type Vec = { x: number; y: number };
-
-/**
- * How far something at `from`, `r` across from its middle to its furthest
- * edge, has to go along `way` to be off the window altogether — which, as the
- * table is laid, is the top of it: TABLE_WIDTH wide and `high` long.
- */
-const offWindow = (from: Vec, way: Vec, r: number, high: number) => {
-  const go: number[] = [];
-  if (way.x < 0) go.push((from.x + r) / -way.x);
-  if (way.x > 0) go.push((TABLE_WIDTH - from.x + r) / way.x);
-  if (way.y < 0) go.push((from.y + r) / -way.y);
-  if (way.y > 0) go.push((high - from.y + r) / way.y);
-  return go.length ? Math.max(0, Math.min(...go)) : 0;
-};
+/** How far a piece has to go along `way` to be off the window as the table
+ *  is laid — the top of it, TABLE_WIDTH wide and `high` long. */
+const offWindow = (from: Vec, way: Vec, r: number, high: number) =>
+  outOf({ x0: 0, y0: 0, x1: TABLE_WIDTH, y1: high }, from, way, r);
 
 /** A move across the window, as a translate inside a piece turned `rotate`
  *  degrees: the turn is undone first, so it moves straight across all the

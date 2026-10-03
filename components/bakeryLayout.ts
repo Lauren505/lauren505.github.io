@@ -43,6 +43,27 @@ export type Laid = {
   hand?: Piece;
 };
 
+/** A point, or a direction, on the table. */
+export type Vec = { x: number; y: number };
+
+/** A plate and what is on it moved from where they are laid, in the window's
+ *  pixels — see RecipeReveal. */
+export type Shift = { dx: number; dy: number; ms: number; ease: string };
+
+/**
+ * How far something at `from`, `r` across from its middle to its furthest
+ * edge, has to go along `way` to be out of `box` altogether — which is the
+ * window, wherever it is on the table.
+ */
+export const outOf = (box: { x0: number; y0: number; x1: number; y1: number }, from: Vec, way: Vec, r: number) => {
+  const go: number[] = [];
+  if (way.x < -1e-6) go.push((from.x - box.x0 + r) / -way.x);
+  if (way.x > 1e-6) go.push((box.x1 - from.x + r) / way.x);
+  if (way.y < -1e-6) go.push((from.y - box.y0 + r) / -way.y);
+  if (way.y > 1e-6) go.push((box.y1 - from.y + r) / way.y);
+  return go.length ? Math.max(0, Math.min(...go)) : 0;
+};
+
 /** Both lists in content/bakeryTable.ts: what the editor works on and saves. */
 export type Table = { settings: Placement[]; cutlery: CutleryPlacement[] };
 
@@ -121,7 +142,7 @@ const bottom = (p: Piece) => p.y + p.height / 2;
  * also where the editor starts from, so saving from it lists every dessert by
  * name.
  */
-export const complete = (table: Table): Table => ({
+const complete = (table: Table): Table => ({
   settings: completeSettings(table.settings),
   cutlery: table.cutlery,
 });
