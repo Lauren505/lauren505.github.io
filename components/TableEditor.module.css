@@ -1,0 +1,177 @@
+/* Development only — see TableEditor. Plain and small, and over everything,
+   the nav and the turns included: it is a tool, not part of the page. */
+
+.toggle,
+.panel button {
+  font: inherit;
+  font-size: 0.8rem;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: #fff;
+  color: #222;
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+}
+
+.panel button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.toggle {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 80;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+}
+
+.panel {
+  position: fixed;
+  right: 16px;
+  left: auto;
+  top: 16px;
+  bottom: 16px;
+  width: 300px;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.97);
+  color: #222;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.15);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.panel[data-side="left"] {
+  left: 16px;
+  right: auto;
+}
+
+.head,
+.foot {
+  padding: 0.7rem 0.9rem;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.body {
+  flex: 1;
+  overflow: auto;
+  padding: 0.7rem 0.9rem;
+}
+
+.hint {
+  color: #555;
+  margin-bottom: 1rem;
+}
+
+.body h3 {
+  font-size: 0.9rem;
+  margin-bottom: 0.6rem;
+}
+
+.body h3 span {
+  font-weight: 400;
+  color: #777;
+}
+
+.body section {
+  margin-bottom: 1rem;
+}
+
+.body h4 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #777;
+  margin-bottom: 0.35rem;
+}
+
+.body select {
+  font: inherit;
+  width: 100%;
+  padding: 0.25rem;
+  margin-bottom: 0.4rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem 0.5rem;
+}
+
+.num {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  color: #666;
+  font-size: 0.72rem;
+}
+
+.num input {
+  font: inherit;
+  font-size: 0.8rem;
+  width: 100%;
+  padding: 0.2rem 0.3rem;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  color: #222;
+}
+
+.pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.panel .swatch {
+  width: 40px;
+  height: 40px;
+  padding: 3px;
+  display: grid;
+  place-items: center;
+  background: #f8f4ec;
+}
+
+.swatch img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.panel .swatch[data-chosen] {
+  border: 2px solid rgb(60, 90, 200);
+}
+
+.sub {
+  color: #777;
+  margin: 0.4rem 0 0.25rem;
+}
+
+.foot {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.row {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.panel .primary {
+  background: rgb(60, 90, 200);
+  border-color: rgb(60, 90, 200);
+  color: #fff;
+}
+
+.status {
+  margin-top: 0.4rem;
+  color: #777;
+}

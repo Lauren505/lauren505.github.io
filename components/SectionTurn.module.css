@@ -1,0 +1,126 @@
+/* The fold's stage, with the crease at the foot of the window — see
+   PageFold.module.css, which this follows line for line.
+
+   Under the nav rather than over it: the nav is not on either face here, it is
+   what the reader is pressing. */
+.stage {
+  --st-top: 0px;
+  --st-camera: 1600px;
+  --st-theta: 0deg;
+  --st-top-z: 0px;
+  --st-tilt: 0deg;
+  --st-edge-y: 100vh;
+  --st-above-s: 1;
+  --st-below-s: 0;
+  --st-shade-top: 0;
+  --st-shade-bottom: 0;
+  --st-veil-top: 0;
+  --st-veil-bottom: 0;
+  --st-edge: 0;
+
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Hinged along the top of the window and seen through a camera, with its near
+   edge carried back onto the camera plane — so the crease lands at
+   height * cos(theta). */
+.top {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg);
+  transform-origin: 50% 0;
+  transform: perspective(var(--st-camera)) translateZ(var(--st-top-z))
+    rotateX(var(--st-theta));
+  will-change: transform;
+}
+
+/* Hung from the same edge and leaning away from it. */
+.bottom {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg);
+  transform-origin: 50% 0;
+  transform: translateY(var(--st-edge-y)) perspective(var(--st-camera))
+    rotateX(var(--st-tilt));
+  will-change: transform;
+}
+
+/* The page's column starts below the nav, and so does each face's. */
+.inner {
+  padding-top: var(--st-top);
+}
+
+.tint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  pointer-events: none;
+}
+
+.shadeAbove {
+  composes: tint;
+  transform-origin: 50% 0;
+  transform: scaleY(var(--st-above-s));
+}
+
+.shadeBelow {
+  composes: tint;
+  transform-origin: 50% 100%;
+  transform: scaleY(var(--st-below-s));
+}
+
+.veilTop {
+  background: linear-gradient(to bottom, var(--bg) 0%, transparent 55%);
+  opacity: var(--st-veil-top);
+}
+
+.veilBottom {
+  background: linear-gradient(to bottom, transparent 45%, var(--bg) 100%);
+  opacity: var(--st-veil-bottom);
+}
+
+.shadeTop {
+  background: linear-gradient(
+    to bottom,
+    rgba(72, 54, 34, 0) 60%,
+    rgba(72, 54, 34, 0.7) 100%
+  );
+  opacity: var(--st-shade-top);
+}
+
+.shadeBottom {
+  background: linear-gradient(
+    to bottom,
+    rgba(74, 56, 34, 1) 0%,
+    rgba(74, 56, 34, 0.8) 42%,
+    rgba(74, 56, 34, 0.62) 100%
+  );
+  opacity: var(--st-shade-bottom);
+}
+
+.edge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  transform: translateY(var(--st-edge-y));
+  background: linear-gradient(
+    to right,
+    rgba(60, 44, 26, 0) 0%,
+    rgba(60, 44, 26, 0.3) 8%,
+    rgba(60, 44, 26, 0.3) 92%,
+    rgba(60, 44, 26, 0) 100%
+  );
+  opacity: var(--st-edge);
+  pointer-events: none;
+}

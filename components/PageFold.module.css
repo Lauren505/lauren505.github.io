@@ -1,0 +1,334 @@
+.root {
+  --fold-split: 50vh;
+  --fold-scroll: 0px;
+  --fold-offset: 0px;
+  --fold-land: 0px;
+  --fold-camera: 1600px;
+}
+
+/* ------------------------------------------------------------------ stage */
+
+/* A frozen copy of the viewport, laid over the live page for the length of the
+   turn. The page underneath never moves. */
+.stage {
+  --fold-theta: 0deg;
+  --fold-top-z: 0px;
+  --fold-tilt: 0deg;
+  --fold-edge-y: 50vh;
+  --fold-above-s: 1;
+  --fold-below-s: 1;
+  --fold-shade-top: 0;
+  --fold-shade-bottom: 0;
+  --fold-veil-top: 0;
+  --fold-veil-bottom: 0;
+  --fold-edge: 0;
+
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg);
+  z-index: 50;
+}
+
+/* About + News. Hinged along the top of the viewport and seen through a
+   camera, so the far end of the face draws smaller — a flat projection turns
+   out to read as a squash rather than a turn. The vanishing point is the
+   element's own transform-origin, so the face converges on the top of the
+   screen, which is where it is going.
+
+   --fold-top-z carries the near edge back onto the camera plane, so it keeps
+   its size and the crease still lands at height * cos(theta). Everything the
+   fold measures hangs off that. */
+.top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--fold-split);
+  overflow: hidden;
+  background: var(--bg);
+  transform-origin: 50% 0;
+  transform: perspective(var(--fold-camera)) translateZ(var(--fold-top-z))
+    rotateX(var(--fold-theta));
+  will-change: transform;
+}
+
+.topInner {
+  transform: translateY(var(--fold-scroll));
+}
+
+/* The other face: hung from the same edge and leaning away from it, so it
+   converges downwards while the first face converges up. Square on at both
+   ends of the turn, where it has a real page to match. */
+/* Full height and carried down to the edge, rather than hung off it by `top`:
+   moving a face by `top` re-lays-out and repaints its whole subtree every
+   frame, and this face holds most of the page. */
+.bottom {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  transform-origin: 50% 0;
+  transform: translateY(var(--fold-edge-y)) perspective(var(--fold-camera))
+    rotateX(var(--fold-tilt));
+  will-change: transform;
+
+  /* Progress lives on this face, since everything that reads it is inside it.
+     The rows default to 1 so the real publications page renders finished; here
+     the turn has to start from nothing. */
+  --fold-p: 0;
+  --fold-q: 0;
+}
+
+/* Starts where the block really sits on the live page and ends clear of the
+   nav, which is where the publications page puts it — so both ends of the
+   turn line up with a real page and nothing jumps at the hand-off. */
+.bottomInner {
+  transform: translateY(
+    calc(var(--fold-offset) * (1 - var(--fold-p)) + var(--fold-land) * var(--fold-p))
+  );
+}
+
+/* Printed on the same face, at its top edge, so it rides up as the face comes
+   round and is only fully there once the face is. */
+.bottomNav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  opacity: var(--fold-p);
+  pointer-events: none;
+}
+
+/* Shading and haze are laid over the window rather than over the faces. A
+   face that has turned no longer reaches the sides of the screen, and tinting
+   the face alone would draw its silhouette — a slanted edge where the tint
+   stops. Painted across the full width instead, against a background of the
+   same colour as the faces, only the type gives the turn away. */
+.shade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+/* Both are the full height of the window and squashed into their region, so
+   the edge moves them with a scale rather than a resize — a gradient this
+   large is expensive to rasterise again every frame. */
+.shadeAbove {
+  composes: shade;
+  top: 0;
+  height: 100%;
+  transform-origin: 50% 0;
+  transform: scaleY(var(--fold-above-s));
+}
+
+.shadeBelow {
+  composes: shade;
+  top: 0;
+  height: 100%;
+  transform-origin: 50% 100%;
+  transform: scaleY(var(--fold-below-s));
+}
+
+/* ------------------------------------------------------------------ depth */
+
+/* Distance, not shadow: the end of each face that has swung away from the
+   viewer loses itself in the page rather than going dark. Nothing else in an
+   orthographic projection says the face is turning instead of squashing.
+   The edge is the near corner, the one closest to the reader, so each face
+   recedes away from it — the top face over the top of the screen, the bottom
+   face down past the foot of it. Both sit under the shading, so the crease
+   still reads as a crease. */
+
+/* Rotating up and away: its top edge is the far one. */
+.veilTop {
+  background: linear-gradient(to bottom, var(--bg) 0%, transparent 55%);
+  opacity: var(--fold-veil-top);
+}
+
+/* Coming up from below: its bottom edge is the far one. */
+.veilBottom {
+  background: linear-gradient(to bottom, transparent 45%, var(--bg) 100%);
+  opacity: var(--fold-veil-bottom);
+}
+
+/* ---------------------------------------------------------------- shading */
+
+/* The folding face turns up into the light, so it only darkens where it
+   creases into the edge. */
+.shadeTop {
+  background: linear-gradient(
+    to bottom,
+    rgba(72, 54, 34, 0) 60%,
+    rgba(72, 54, 34, 0.7) 100%
+  );
+  opacity: var(--fold-shade-top);
+}
+
+/* The other face starts in shadow and lifts out of it as it comes round. */
+.shadeBottom {
+  background: linear-gradient(
+    to bottom,
+    rgba(74, 56, 34, 1) 0%,
+    rgba(74, 56, 34, 0.8) 42%,
+    rgba(74, 56, 34, 0.62) 100%
+  );
+  opacity: var(--fold-shade-bottom);
+}
+
+/* The edge itself, riding up as the face above it folds away. */
+.edge {
+  position: absolute;
+  top: 0;
+  transform: translateY(var(--fold-edge-y));
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(60, 44, 26, 0) 0%,
+    rgba(60, 44, 26, 0.3) 8%,
+    rgba(60, 44, 26, 0.3) 92%,
+    rgba(60, 44, 26, 0) 100%
+  );
+  opacity: var(--fold-edge);
+  pointer-events: none;
+}
+
+/* ----------------------------------------------------------------- handle */
+
+/* No pill: a line and a word, standing on the page. The line is the gesture's
+   own meter — it fills as the pull builds and is full at the moment the fold
+   takes over, so "scroll until the line is full" is the whole instruction. */
+.handle {
+  position: fixed;
+  left: 50%;
+  /* Up in the page's own bottom band rather than down on the window's edge, so
+     the words sit under the last row of cards rather than adrift below it. The
+     band is --frame deep; this takes the handle's own height out of it (which
+     CSS cannot measure, and which only has to be close) and leaves the rest as
+     air above. The floor is for windows too short to have a band to speak of. */
+  --handle-h: 2.4rem;
+  --handle-edge: max(1rem, calc(var(--frame) - var(--handle-h) - 0.1rem));
+  /* Inherited, so the lift can ask for a shorter line without reaching across
+     module boundaries for the class. */
+  --line-w: min(4.33rem, 15.3vw);
+  bottom: var(--handle-edge);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 10px);
+  transition: opacity 260ms ease, transform 260ms ease, visibility 0s linear 260ms;
+}
+
+.handle[data-show] {
+  visibility: visible;
+  opacity: 1;
+  transform: translate(-50%, 0);
+  transition: opacity 260ms ease, transform 260ms ease, visibility 0s;
+}
+
+/* Out of the way the moment the turn starts. */
+.root:has(.stage) .handle {
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+/* An upright window is read by scrolling — see the root size in globals.css —
+   so there the line stands over the page rather than under the end of it, and
+   needs something to stand on. It is the page's own colour, not a card's, so
+   the text dissolves into the page rather than meeting a pill.
+
+   Only there: in a window on its side the home page ends above the line with
+   nothing behind it, and a wash would reach the last row of cards. */
+@media (orientation: portrait) {
+  .handle::before {
+    content: "";
+    /* The handle is moved by a transform, which makes it the containing block
+       for anything fixed inside it — so this is measured from the handle's own
+       box back out to the window's edge rather than from the window. */
+    position: fixed;
+    left: calc(50% - 50vw);
+    width: 100vw;
+    bottom: calc(-1 * var(--handle-edge));
+    height: 9rem;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(to top, var(--bg) 62%, transparent);
+  }
+}
+
+.handleLabel {
+  white-space: nowrap;
+  color: var(--ink-muted);
+  transition: color 180ms ease;
+}
+
+.handle:hover .handleLabel {
+  color: var(--accent);
+}
+
+/* ------------------------------------------------------------ charge line */
+
+.line {
+  display: block;
+  width: var(--line-w);
+  height: auto;
+  overflow: visible;
+  fill: none;
+  stroke-linecap: round;
+  stroke-width: 6.3;
+}
+
+/* Pointing back the way it came. */
+.lineUp {
+  transform: scaleY(-1);
+}
+
+/* The line at rest, and what is still to be charged. */
+.track {
+  stroke: var(--accent-soft);
+}
+
+/* Drawn from the start of the line to exactly --pull of the way along it: the
+   path is declared one unit long, so the same offset means the same fraction
+   at every size. */
+.charge {
+  stroke: var(--accent);
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--pull, 0));
+  /* A dash of no length still draws its round cap, so an uncharged line would
+     otherwise carry a dot at the end of it. */
+  opacity: clamp(0, calc(var(--pull, 0) * 30), 1);
+}
+
+@media (max-width: 640px) {
+  .handle {
+    --line-w: min(3.67rem, 19.3vw);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .handle,
+  .handle[data-show] {
+    transition: opacity 160ms ease;
+    transform: translate(-50%, 0);
+  }
+}

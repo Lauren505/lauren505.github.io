@@ -1,0 +1,25 @@
+/* Both on the table — see .table in SideQuestsBody.module.css — which is the
+   whole page, under the nav. Nothing to press and nothing to scroll: it is the
+   table, not a control. */
+.flat,
+.live {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  touch-action: auto;
+}
+
+/* The whole length of the table. */
+.flat {
+  top: 0;
+  height: 100%;
+}
+
+/* A window's worth, put wherever the window was when it was thrown — its top
+   and height are set when it is. Over the flat one, which is empty until this
+   has landed. */
+.live {
+  top: 0;
+  height: 100vh;
+}

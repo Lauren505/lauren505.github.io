@@ -1,0 +1,312 @@
+.rows {
+  --rows-gap: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--rows-gap);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 5.625rem 15.625rem minmax(0, 1fr);
+  column-gap: clamp(2rem, 9.5vw, 7.5rem);
+  align-items: center;
+}
+
+/* The year column is a run of years rather than a list of them. Entries that
+   share a year are strung on one line, and only one of them says the year out
+   loud — the row being read, or the first of the run when the row being read
+   is somewhere else. The rest are circles on the line, so the eye has
+   something to follow down a year without reading the same four digits three
+   times.
+
+   Everything hangs off the middle of the column and off --mark-y, so the line,
+   the circles and the year are all on one axis, and the year can grow on hover
+   without moving anything. The cell is the full height of the row, which is
+   what lets the line run into the gaps either side of it — the join to the
+   next entry has to happen there. */
+.year {
+  /* The circle's size, and how far down the row the line's furniture sits. */
+  --dot: 0.58rem;
+  --mark-y: 50%;
+  /* How far the line stops short of whatever is on the axis — the same air
+     around the circle as around the year, which is this same measure taken as
+     the year's padding. */
+  --mark-gap: 0.3rem;
+  align-self: stretch;
+  position: relative;
+  opacity: var(--row-fade, 1);
+}
+
+/* Painted on the page colour, so it covers the line rather than the line
+   being cut to fit around it: the year and the circle can then trade places
+   by fading, with no geometry to animate. */
+.yearText {
+  position: absolute;
+  z-index: 1;
+  top: var(--mark-y);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: var(--mark-gap) 0.45rem;
+  background: var(--bg);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0.75;
+  transition: font-size 220ms ease, opacity 220ms ease;
+}
+
+.row[data-active="true"] .yearText {
+  font-size: 1.85rem;
+  opacity: 1;
+}
+
+/* Still in the page, and still spoken: the year of a row that isn't saying it
+   is hidden rather than dropped. */
+.year[data-says="false"] .yearText {
+  opacity: 0;
+}
+
+/* Two reaches, up to the entry above and down to the one below, each running
+   half the gap past the row so the two meet — and each stopping --mark-gap
+   short of the circle, so the line is never drawn under it. The year is wider
+   than that clearance and paints over the rest itself. */
+.railUp,
+.railDown {
+  position: absolute;
+  left: 50%;
+  margin-left: -0.5px;
+  width: 1px;
+  background: currentColor;
+  opacity: 0.2;
+}
+
+.railUp {
+  top: calc(var(--rows-gap) / -2);
+  height: calc(
+    var(--mark-y) + var(--rows-gap) / 2 - var(--dot) / 2 - var(--mark-gap)
+  );
+}
+
+.railDown {
+  top: calc(var(--mark-y) + var(--dot) / 2 + var(--mark-gap));
+  bottom: calc(var(--rows-gap) / -2);
+}
+
+/* Nothing that way: the ends of a run, and a year that stands alone. */
+.year[data-run="solo"] .railUp,
+.year[data-run="solo"] .railDown,
+.year[data-run="start"] .railUp,
+.year[data-run="end"] .railDown {
+  display: none;
+}
+
+.dot {
+  position: absolute;
+  top: var(--mark-y);
+  left: 50%;
+  width: var(--dot);
+  height: var(--dot);
+  margin: calc(var(--dot) / -2) 0 0 calc(var(--dot) / -2);
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.year[data-says="false"] .dot {
+  opacity: 0.34;
+}
+
+/* Scaled rather than resized: the layout box always reserves the full-size
+   text, so hovering a row never reflows the ones below it. */
+.details {
+  align-self: center;
+  transform: scale(0.9);
+  transform-origin: left center;
+  opacity: 0.78;
+  transition: transform 260ms ease, opacity 220ms ease;
+}
+
+.row[data-active="true"] .details {
+  transform: none;
+  opacity: 1;
+}
+
+.figure {
+  opacity: var(--row-fade, 1);
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  aspect-ratio: 3 / 2;
+  transition: transform 260ms ease;
+  transform-origin: center;
+}
+
+.row[data-active="true"] .figure {
+  transform: scale(1.3);
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  background: var(--card);
+  object-fit: cover;
+  display: block;
+}
+
+/* A landing slot: it holds the space and is measured, but the flying card
+   image is what you actually see arrive. */
+.slot {
+  visibility: hidden;
+}
+
+/* Timings for the home page's fold. --fold-p is unset everywhere else, where
+   these resolve to 1 and the rows render normally.
+
+   The row-only parts (year, authors, brackets) arrive through --row-fade,
+   which the rules below multiply into whatever opacity they already carry —
+   setting opacity on them directly would lose the active row's emphasis. */
+.slots {
+  --row-fade: clamp(0, calc((var(--fold-p, 1) - 0.4) * 3), 1);
+}
+
+/* The year's hover transition would smooth every frame of the fold and arrive
+   late; inside the fold the progress is the only thing driving it. */
+.slots .year,
+.slots .year * {
+  transition: none;
+}
+
+.lateSlot {
+  opacity: clamp(0, calc((var(--fold-p, 1) - 0.68) * 5), 1);
+}
+
+/* Papers the home page never shows: they belong to the other face alone, so
+   they arrive with it rather than being there from the start. */
+.slots .row[data-extra="true"] {
+  opacity: clamp(0, calc((var(--fold-p, 1) - 0.7) * 4), 1);
+}
+
+.brackets {
+  position: absolute;
+  inset: -7px;
+  opacity: 0;
+  transition: opacity 220ms ease;
+  pointer-events: none;
+}
+
+.row[data-active="true"] .brackets {
+  opacity: 1;
+}
+
+.brackets span {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--accent);
+}
+
+.brackets span:nth-child(1) {
+  top: 0;
+  left: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.brackets span:nth-child(2) {
+  top: 0;
+  right: 0;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+.brackets span:nth-child(3) {
+  bottom: 0;
+  left: 0;
+  border-right: 0;
+  border-top: 0;
+}
+
+.brackets span:nth-child(4) {
+  bottom: 0;
+  right: 0;
+  border-left: 0;
+  border-top: 0;
+}
+
+.title {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.authors {
+  margin-top: 0.85rem;
+  font-size: 1.15rem;
+  opacity: var(--row-fade, 1);
+}
+
+.self {
+  font-weight: 700;
+}
+
+.venue {
+  margin-top: 0.3rem;
+  color: var(--ink-muted);
+}
+
+.tags {
+  margin-top: 1.1rem;
+}
+
+@media (max-width: 900px) {
+  /* The entry is two grid rows here — figure above, details below — so the
+     year spans both of them and the line carries on past the image. It sits
+     beside the first line of the entry rather than half way down it. */
+  .year {
+    --mark-y: 1.1rem;
+    grid-row: 1 / span 2;
+  }
+
+  /* One size: there is no hover to answer here, and the larger year would
+     reach past the column into the page's margin. */
+  .yearText,
+  .row[data-active="true"] .yearText {
+    font-size: 1.35rem;
+  }
+
+  .row {
+    grid-template-columns: 62px 1fr;
+    column-gap: 1.25rem;
+    row-gap: 1rem;
+    align-items: start;
+  }
+
+  .row[data-active="true"] .brackets {
+    opacity: 0;
+  }
+
+  .figure,
+  .row[data-active="true"] .figure {
+    transform: none;
+    cursor: default;
+  }
+
+  .details {
+    grid-column: 2;
+    transform: none;
+    opacity: 1;
+  }
+
+  .title {
+    font-size: 1.3rem;
+  }
+
+  .authors {
+    font-size: 1rem;
+  }
+}

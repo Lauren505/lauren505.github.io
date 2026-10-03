@@ -1,0 +1,79 @@
+/* One column of the same width as every other page, so the turn hands one to
+   the other without anything shifting. */
+.body {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: var(--nav-gap) var(--edge) var(--frame);
+}
+
+/* The gallery takes what is left of the window between the two bands the frame
+   keeps at the top and the foot of every page — see --frame in globals.css.
+   The wall inside is fitted to it, so the section's shape is the gallery's
+   shape and there is nothing below the fold to scroll to.
+
+   The floor is for short windows, where a wall squeezed into a couple of
+   inches would be six thumbnails rather than a gallery; there the page scrolls
+   instead. */
+.gallery {
+  position: relative;
+  height: calc(100dvh - var(--frame) * 2);
+  min-height: 22rem;
+}
+
+/* Wherever the row of tabs has not crossed to the left margin, this page's own
+   sections take a second line in the nav — see .atSide in Nav.module.css — and
+   the band above the gallery is that much taller than --frame. Three measures,
+   all the nav's: the gap the row wraps by, the line itself, and the margin the
+   sections carry. */
+@media (max-width: 1280px), (aspect-ratio < 17 / 12) {
+  .gallery {
+    height: calc(100dvh - var(--frame) * 2 - var(--nav-gap-x) - var(--nav-h) - 0.15rem);
+  }
+}
+
+/* An upright window has far more height than a wall this shape can use, and a
+   band of empty page above and below it is not the same thing as air around a
+   picture. So the section stops at the height the wall actually wants — it is
+   always the width that runs out first here — plus room for the line
+   underneath, and the page simply ends sooner. */
+@media (orientation: portrait) and (max-width: 760px) {
+  .gallery {
+    height: min(
+      calc(100dvh - var(--frame) * 2 - var(--nav-gap-x) - var(--nav-h) - 0.15rem),
+      calc((100vw - var(--edge) * 2) / var(--wall-pad) / var(--wall-aspect) + 4rem)
+    );
+  }
+}
+
+/* The bakery's table is the whole page, from its very top to its foot — the
+   cloth runs under the nav, and down as far as there is anything on it (see
+   Bakery in SideQuestsBody.tsx, which sets --table-h). The section is only the
+   part of the page below the nav, so it hangs the table from above itself, by
+   exactly the height of the band above it: --frame, as everywhere, and the
+   second line the nav takes wherever its row of tabs has not crossed to the
+   left margin — see .gallery.
+
+   Its own height is what makes the page as long as the table: the band above
+   it, and main's padding below it, take the rest. */
+.bakery {
+  --bakery-top: var(--frame);
+  position: relative;
+  height: calc(var(--table-h, 100dvh) - var(--bakery-top) - var(--frame));
+}
+
+@media (max-width: 1280px), (aspect-ratio < 17 / 12) {
+  .bakery {
+    --bakery-top: calc(var(--frame) + var(--nav-gap-x) + var(--nav-h) + 0.15rem);
+  }
+}
+
+/* The window's width, centred on the column — which is centred on the
+   window — and the table's length. Its width and the margin that centres it
+   are set with the rest of its size. */
+.table {
+  position: absolute;
+  top: calc(-1 * var(--bakery-top));
+  left: 50%;
+  height: var(--table-h, 100dvh);
+  z-index: 0;
+}

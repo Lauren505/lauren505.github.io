@@ -1,0 +1,195 @@
+/* The page in flow, and the face of the cube that is about to replace it.
+
+   The vertical fold puts copies of both faces on a fixed stage and leaves the
+   live page alone. This one cannot: the face turning away is a whole route,
+   and the only place a route is laid out is where it is mounted. So the live
+   page *is* the near face — it is rotated where it stands — and the stage
+   holds nothing but the far one. */
+
+/* Untouched at rest: no transform, so nothing inside it has a new containing
+   block and `position: fixed` still means the window. The turn sets transform
+   and transform-origin inline, and clears them when it is done.
+
+   It is never clipped at the crease. The page runs the full width of the
+   window and the crease falls inside it, so cutting there would take a strip
+   of what is being read away the instant the tab was pressed. The far face is
+   opaque and covers everything past the crease anyway — it just takes a frame
+   or two to get there. */
+.page {
+  transform-origin: 0 50%;
+}
+
+/* The crease runs between two tabs, so the nav is the one thing on the page
+   that cannot belong to either face. It is handed over instead: this one
+   dissolves as the turn begins and the copy on the face coming round, which
+   stands in the same place, takes over. Unset outside a turn, where the
+   fallback leaves the nav alone. */
+.page header {
+  opacity: calc(1 - clamp(0, calc(var(--turn-face, 0) * 4), 1));
+}
+
+/* The far face and the shading, over the window for the length of the turn.
+   Transparent, unlike the fold's stage: the near half of the window is the
+   live page showing through. */
+.stage {
+  --turn-edge-x: 100vw;
+  --turn-face: 0;
+  --turn-camera: 1600px;
+  --turn-tilt: 0deg;
+  --turn-near-s: 1;
+  --turn-far-s: 0;
+  --turn-shade-near: 0;
+  --turn-shade-far: 0;
+  --turn-veil-near: 0;
+  --turn-veil-far: 0;
+  --turn-edge: 0;
+  --turn-nav-x: 0px;
+  --turn-subs: 0;
+
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 60;
+}
+
+/* Hung from the crease and leaning away from it, so it converges to the right
+   while the near face converges to the left — the two halves of one corner
+   pointing at the reader.
+
+   Carried to the crease by translateX rather than by `left`: moving a face by
+   a length re-lays-out and repaints its whole subtree on every frame, and a
+   transform costs the compositor nothing. */
+.face {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  transform-origin: 0 50%;
+  transform: translateX(var(--turn-edge-x)) perspective(var(--turn-camera))
+    rotateY(var(--turn-tilt));
+  /* Comes up over the first sliver of the turn rather than at the first frame:
+     see --turn-face. At rest the window is the page, untouched. */
+  opacity: var(--turn-face);
+  will-change: transform, opacity;
+}
+
+/* The nav is chrome, not page: the crease runs between two of its tabs, so it
+   belongs to neither face. It rides above the shading and clear of the crease
+   for the whole turn, and hands over from the live one at the start — the two
+   stand in the same place, so all that changes is which tab is lit.
+
+   It is drawn as side quests draws it, with the row of tabs standing in the
+   left margin, and carried back to where the page being left puts it by
+   --turn-nav-x: full at rest, nothing at a full turn, so it crosses the window
+   by the same law as the crease and reads as part of the cube rather than as
+   something laid over it. At either end of the turn it is exactly where the
+   page it lands on puts it. */
+.chrome {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  transform: translateX(var(--turn-nav-x));
+  /* Side quests brings its own sections with it. They belong to the place the
+     row is going, not the place it is leaving, so they unfurl over the last of
+     the journey — see .subs in Nav.module.css. */
+  --nav-subs: var(--turn-subs);
+  will-change: transform;
+  /* Four times the face's own ramp, so the hand-over is over while the page
+     beneath has turned barely a degree: the two navs stand in the same place,
+     and any longer would show them both. */
+  opacity: clamp(0, calc(var(--turn-face) * 4), 1);
+}
+
+/* Shading and haze are laid over the window rather than over the faces. A
+   face that has turned no longer reaches the top and bottom of the screen, and
+   tinting the face alone would draw its silhouette. Painted full height
+   instead, against a background the same colour as the faces, only the type
+   gives the turn away. */
+.tint {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+}
+
+/* Both are the full width of the window and squashed into their half, so the
+   crease moves them with a scale rather than a resize. */
+.near {
+  composes: tint;
+  transform-origin: 0 50%;
+  transform: scaleX(var(--turn-near-s));
+}
+
+.far {
+  composes: tint;
+  transform-origin: 100% 50%;
+  transform: scaleX(var(--turn-far-s));
+}
+
+/* ------------------------------------------------------------------ depth */
+
+/* Distance, not shadow: the end of each face that has swung away from the
+   reader loses itself in the page rather than going dark. The crease is the
+   near corner, so each face recedes away from it — the near face off the left
+   of the screen, the far one off the right. */
+
+.veilNear {
+  background: linear-gradient(to right, var(--bg) 0%, transparent 55%);
+  opacity: var(--turn-veil-near);
+}
+
+.veilFar {
+  background: linear-gradient(to right, transparent 45%, var(--bg) 100%);
+  opacity: var(--turn-veil-far);
+}
+
+/* ---------------------------------------------------------------- shading */
+
+/* The near face turns away into the light, so it only darkens where it creases
+   into the edge. */
+.shadeNear {
+  background: linear-gradient(
+    to right,
+    rgba(72, 54, 34, 0) 60%,
+    rgba(72, 54, 34, 0.7) 100%
+  );
+  opacity: var(--turn-shade-near);
+}
+
+/* The far face starts in shadow and lifts out of it as it comes round. */
+.shadeFar {
+  background: linear-gradient(
+    to right,
+    rgba(74, 56, 34, 1) 0%,
+    rgba(74, 56, 34, 0.8) 42%,
+    rgba(74, 56, 34, 0.62) 100%
+  );
+  opacity: var(--turn-shade-far);
+}
+
+/* The edge itself, sweeping left as the face beside it turns away. */
+.edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  transform: translateX(var(--turn-edge-x));
+  background: linear-gradient(
+    to bottom,
+    rgba(60, 44, 26, 0) 0%,
+    rgba(60, 44, 26, 0.3) 8%,
+    rgba(60, 44, 26, 0.3) 92%,
+    rgba(60, 44, 26, 0) 100%
+  );
+  opacity: var(--turn-edge);
+  pointer-events: none;
+}

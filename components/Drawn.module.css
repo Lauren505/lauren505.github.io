@@ -1,0 +1,17 @@
+/* The fill and the line on the same box, the line on top. */
+.drawn {
+  position: relative;
+  display: block;
+}
+
+.fill,
+.line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.line {
+  user-select: none;
+}
