@@ -92,7 +92,7 @@ const tidy = (t: Table): Table => {
  * that below the nav, so it hangs the table from above itself.
  *
  * Once it is laid, a dessert clicked brings its recipe — see RecipeReveal —
- * one at a time: another clicked, or anywhere else, and it is put away first.
+ * the rest of the table cleared away for it, one at a time: another clicked, or anywhere else, and it is put away first.
  *
  * In development there is also the editor — see TableEditor — which lays the
  * table from a draft instead of from content/bakeryTable.ts, and saves the
@@ -282,9 +282,12 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
   const [want, setWant] = useState<number | null>(null);
   const [shown, setShown] = useState<number | null>(null);
   const [shift, setShift] = useState<Shift | null>(null);
+  /** Whether the rest of the table is off the window, for a recipe. */
+  const [away, setAway] = useState(false);
   const pick = useCallback((i: number) => setWant((w) => (w === i ? null : i)), []);
   const gone = useCallback(() => {
     setShift(null);
+    setAway(false);
     setShown(null);
   }, []);
   useEffect(() => {
@@ -312,6 +315,7 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
     setWant(null);
     setShown(null);
     setShift(null);
+    setAway(false);
   }, [editing, plays, win?.width]);
 
   /** Where the window, and the section below the nav, are on the table. */
@@ -364,6 +368,7 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
               onArrived={played}
               pick={editing ? undefined : pick}
               shift={shown !== null && shift ? { ...shift, i: shown } : undefined}
+              away={shown !== null && recipes[layout.laid[shown]?.id] ? { except: shown, out: away } : undefined}
             />
           ) : null}
           {showing && down && open && win ? (
@@ -379,6 +384,7 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
               line={lostLine(open.id, open.bake.title)}
               leave={want !== shown}
               onShift={setShift}
+              onAway={setAway}
               onGone={gone}
             />
           ) : null}
