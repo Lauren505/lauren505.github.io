@@ -1,0 +1,58 @@
+/* Over the table and everything on it, the length of it, cut off at the
+   window's edges like the table is — the hands come from beyond them. It
+   lets the pointer through to the table, but for the paper, which can be
+   read, and copied from. */
+.reveal {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  pointer-events: none;
+}
+
+.paper,
+.hand {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+
+.paper {
+  pointer-events: auto;
+}
+
+/* ------------------------------------------------- written round a plate */
+
+.ring {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+  transition: opacity 450ms ease;
+}
+
+.ring[data-leaving] {
+  opacity: 0;
+}
+
+.words {
+  fill: #6f5049;
+  font-style: italic;
+  letter-spacing: 0.06em;
+}
+
+/* The pen going round, from the first letter to the last. */
+.pen {
+  stroke-dashoffset: var(--circ);
+  animation: write 1.6s cubic-bezier(0.4, 0, 0.3, 1) 0.1s forwards;
+}
+
+.pen[data-calm] {
+  animation: none;
+  stroke-dashoffset: 0;
+}
+
+@keyframes write {
+  to {
+    stroke-dashoffset: 0;
+  }
+}

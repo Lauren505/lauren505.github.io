@@ -2,10 +2,11 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import RecipeReveal, { type Shift } from "@/components/RecipeReveal";
 import Tablecloth from "@/components/Tablecloth";
 import TableSetting, { type Edit, type Grip, type Part } from "@/components/TableSetting";
 import { laidOut, layTable, placements, type Table } from "@/components/bakeryLayout";
-import { TABLE_WIDTH } from "@/content";
+import { TABLE_WIDTH, lostLine, recipes } from "@/content";
 import styles from "./SideQuestsBody.module.css";
 
 /** The editor is for laying the table while the site is being worked on, and
@@ -89,6 +90,9 @@ const tidy = (t: Table): Table => {
  * The table is the whole page, from its very top — under the nav — to its
  * foot, and the page is as long as the table: the section is only the part of
  * that below the nav, so it hangs the table from above itself.
+ *
+ * Once it is laid, a dessert clicked brings its recipe — see RecipeReveal —
+ * one at a time: another clicked, or anywhere else, and it is put away first.
  *
  * In development there is also the editor — see TableEditor — which lays the
  * table from a draft instead of from content/bakeryTable.ts, and saves the
@@ -271,6 +275,59 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
     [editing, selected, grab],
   );
 
+  /* ----------------------------------------------------------- recipes */
+
+  /** The dessert asked for, and the one whose recipe is out — which, while
+   *  one is being put away for another, is not the same one. */
+  const [want, setWant] = useState<number | null>(null);
+  const [shown, setShown] = useState<number | null>(null);
+  const [shift, setShift] = useState<Shift | null>(null);
+  const pick = useCallback((i: number) => setWant((w) => (w === i ? null : i)), []);
+  const gone = useCallback(() => {
+    setShift(null);
+    setShown(null);
+  }, []);
+  useEffect(() => {
+    if (shown === null && want !== null) setShown(want);
+  }, [want, shown]);
+
+  // Put away by anything but the paper or another dessert, and by Escape.
+  useEffect(() => {
+    if (want === null) return;
+    const away = (e: PointerEvent) => {
+      if (!(e.target as Element | null)?.closest?.("[data-recipe-keep]")) setWant(null);
+    };
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setWant(null);
+    document.addEventListener("pointerdown", away);
+    window.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("pointerdown", away);
+      window.removeEventListener("keydown", key);
+    };
+  }, [want]);
+
+  // Put straight back — no hands — for the editor, a play, or a window of
+  // another size, which would have the plate somewhere else.
+  useEffect(() => {
+    setWant(null);
+    setShown(null);
+    setShift(null);
+  }, [editing, plays, win?.width]);
+
+  /** Where the window, and the section below the nav, are on the table. */
+  const tableRef = useRef<HTMLDivElement>(null);
+  const where = () => {
+    const t = tableRef.current?.getBoundingClientRect();
+    const s = tableRef.current?.parentElement?.getBoundingClientRect();
+    return { top: t ? -t.top : 0, least: t && s ? s.top - t.top : 0 };
+  };
+  const [at, setAt] = useState({ top: 0, least: 0 });
+  useLayoutEffect(() => {
+    if (shown !== null) setAt(where());
+  }, [shown]);
+
+  const open = shown === null ? undefined : layout.laid[shown];
+
   /* -------------------------------------------------------------- size */
 
   const length = win ? Math.ceil(Math.max(win.height, layout.length * scale)) : 0;
@@ -289,6 +346,7 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
     >
       {win ? (
         <div
+          ref={tableRef}
           className={styles.table}
           style={{ width: win.width, marginLeft: -win.width / 2 }}
           onPointerDown={editing ? () => setSelected(null) : undefined}
@@ -304,6 +362,24 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
               edit={playing ? undefined : edit}
               hands={editing && hands && !playing}
               onArrived={played}
+              pick={editing ? undefined : pick}
+              shift={shown !== null && shift ? { ...shift, i: shown } : undefined}
+            />
+          ) : null}
+          {showing && down && open && win ? (
+            <RecipeReveal
+              key={`${shown}-${open.id}`}
+              setting={open}
+              scale={scale}
+              view={win}
+              length={clothLength.current}
+              top={at.top}
+              least={at.least}
+              recipe={recipes[open.id]}
+              line={lostLine(open.id, open.bake.title)}
+              leave={want !== shown}
+              onShift={setShift}
+              onGone={gone}
             />
           ) : null}
         </div>

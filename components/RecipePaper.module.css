@@ -1,0 +1,117 @@
+/* A menu card: everything centred, the name in wide capitals, the rest in a
+   small italic — and the steps, which are read rather than glanced at, set
+   flush left under their numbers. Warm black ink, not quite black. */
+.paper {
+  position: relative;
+  color: #3b3431;
+  font-size: 15px;
+  line-height: 1.55;
+  text-align: center;
+  cursor: auto;
+  user-select: text;
+}
+
+.sheet {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.words {
+  position: relative;
+  padding: calc(var(--bleed) + 2.6em) calc(var(--bleed) + 2.4em) calc(var(--bleed) + 2.8em);
+}
+
+.the {
+  margin: 0;
+  font-size: 2.6em;
+  line-height: 0.9;
+  color: #4a403c;
+}
+
+.name {
+  margin: 0.15em 0 0;
+  font-weight: 400;
+  font-size: 1.45em;
+  letter-spacing: 0.32em;
+  /* The spacing trails the last letter too: this puts it back in the middle. */
+  margin-right: -0.32em;
+  text-transform: uppercase;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.portion {
+  margin: 0.7em 0 0;
+  font-style: italic;
+  letter-spacing: 0.04em;
+}
+
+.heading {
+  margin: 1.9em 0 0.6em;
+  font-weight: 400;
+  font-size: 0.86em;
+  letter-spacing: 0.22em;
+  margin-right: -0.22em;
+  text-transform: uppercase;
+}
+
+.group + .group {
+  margin-top: 0.75em;
+}
+
+.sub {
+  margin: 0 0 0.15em;
+  font-weight: 400;
+  font-size: 0.8em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6d625c;
+}
+
+.items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-style: italic;
+  letter-spacing: 0.03em;
+}
+
+.steps {
+  margin: 0;
+  padding: 0 0 0 1.6em;
+  text-align: left;
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+.steps li + li {
+  margin-top: 0.45em;
+}
+
+.steps li::marker {
+  font-style: normal;
+  font-size: 0.85em;
+  color: #6d625c;
+}
+
+.note {
+  margin: 0.4em 0 0;
+  font-style: italic;
+}
+
+.paper em {
+  font-style: italic;
+}
+
+.items em,
+.steps em,
+.portion em,
+.note em {
+  font-style: normal;
+}
+
+.paper strong {
+  font-weight: 600;
+}

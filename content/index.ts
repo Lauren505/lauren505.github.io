@@ -6,3 +6,5 @@ export * from "./posts";
 export * from "./gallery";
 export * from "./bakery";
 export * from "./bakeryTable";
+export * from "./lostRecipes";
+export * from "./recipes";

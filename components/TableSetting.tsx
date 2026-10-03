@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import Drawn from "@/components/Drawn";
 import type { Laid, Piece } from "@/components/bakeryLayout";
+import type { Shift } from "@/components/RecipeReveal";
 import { TABLE_WIDTH } from "@/content";
 import styles from "./TableSetting.module.css";
 
@@ -30,13 +31,16 @@ const SLIDE = 950;
 const REST = 160;
 const RETREAT = 700;
 
-/** One piece, placed by its middle and scaled to the window. */
-const place = (p: Piece, scale: number): React.CSSProperties => ({
+/** One piece, placed by its middle and scaled to the window — and moved
+ *  aside, `shift`, in the window's pixels. */
+const place = (p: Piece, scale: number, shift?: Shift): React.CSSProperties => ({
   left: (p.x - p.width / 2) * scale,
   top: (p.y - p.height / 2) * scale,
   width: p.width * scale,
   height: p.height * scale,
-  transform: p.rotate ? `rotate(${p.rotate}deg)` : undefined,
+  transform:
+    [shift ? `translateX(${shift.dx}px)` : "", p.rotate ? `rotate(${p.rotate}deg)` : ""].join(" ").trim() || undefined,
+  transition: shift?.ms ? `transform ${shift.ms}ms ${shift.ease}` : undefined,
 });
 
 type Vec = { x: number; y: number };
@@ -74,19 +78,21 @@ function Hold({
   piece,
   scale,
   edit,
+  shift,
   children,
 }: {
   part: Part;
   piece: Piece;
   scale: number;
   edit?: Edit;
+  shift?: Shift;
   children: React.ReactNode;
 }) {
   const on = samePart(edit?.selected ?? null, part);
   return (
     <div
       className={styles.piece}
-      style={place(piece, scale)}
+      style={place(piece, scale, shift)}
       data-editing={edit ? "" : undefined}
       data-selected={on || undefined}
       onPointerDown={edit ? (e) => edit.grab(part, "move", e) : undefined}
@@ -118,6 +124,10 @@ function Hold({
  * With `edit`, in development only, every piece can be picked up — see
  * TableEditor — and with `hands` too, the hands, standing where they leave
  * their plates. `onArrived` is told once the table is laid.
+ *
+ * Otherwise, once it is laid, every dessert can be clicked — `pick` is told
+ * which — and `shift` moves one setting's plate and dessert aside: see
+ * RecipeReveal.
  */
 export default function TableSetting({
   laid,
@@ -127,6 +137,8 @@ export default function TableSetting({
   edit,
   hands = false,
   onArrived,
+  pick,
+  shift,
 }: {
   laid: Laid[];
   cutlery: Piece[];
@@ -135,6 +147,8 @@ export default function TableSetting({
   edit?: Edit;
   hands?: boolean;
   onArrived?: () => void;
+  pick?: (i: number) => void;
+  shift?: Shift & { i: number };
 }) {
   /** Where each setting comes, top of the page first: in the order they are
    *  set down, and in which their pictures are fetched. */
@@ -161,6 +175,7 @@ export default function TableSetting({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const moving = arrive && !done;
+  const picking = !!pick && !edit && !moving;
 
   /** The top of the table, as much of it as is in the window, in the
    *  table's own pixels. */
@@ -242,15 +257,24 @@ export default function TableSetting({
 
       {[...rank.keys()].map((i) => [laid[i], i] as const).map(([s, i]) => (
         <div key={`${s.id}-${i}`} className={styles.setting}>
-          <Hold part={{ i, part: "plate" }} piece={s.plate} scale={scale} edit={edit}>
+          <Hold part={{ i, part: "plate" }} piece={s.plate} scale={scale} edit={edit} shift={shift?.i === i ? shift : undefined}>
             <div {...slide(i, s.plate)}>
               <Drawn image={s.plate.image} width={s.plate.width * scale} />
             </div>
           </Hold>
 
-          <Hold part={{ i, part: "dessert" }} piece={s.dessert} scale={scale} edit={edit}>
+          <Hold part={{ i, part: "dessert" }} piece={s.dessert} scale={scale} edit={edit} shift={shift?.i === i ? shift : undefined}>
             <div {...slide(i, s.dessert)}>
               <div className={styles.bake}>
+                {picking ? (
+                  <button
+                    type="button"
+                    className={styles.pick}
+                    data-recipe-keep=""
+                    aria-label={s.bake.title}
+                    onClick={() => pick?.(i)}
+                  />
+                ) : null}
                 <Image
                   src={s.dessert.image}
                   alt={s.bake.title}
