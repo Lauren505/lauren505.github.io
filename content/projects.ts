@@ -183,3 +183,21 @@ export const projects: Project[] = [
     ],
   },
 ];
+
+/**
+ * Where one piece of a project's spread sits, in units of 1/48 of the
+ * window's width, across and down alike — so the page is one drawing at any
+ * width. `key` names the piece: "title", "dek", "cover", "p0"… for the
+ * paragraphs and "m0"… for the other pictures and videos, in the order the
+ * blocks list them. A picture's `crop` is the point of it kept in view and
+ * how far it is zoomed; a text's `size` scales its type.
+ */
+export type LayoutItem = {
+  key: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  crop?: { x: number; y: number; zoom: number };
+  size?: number;
+};

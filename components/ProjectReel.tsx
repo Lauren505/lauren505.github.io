@@ -120,11 +120,64 @@ export default function ProjectReel({ still = false }: { still?: boolean }) {
   // New slots come in at the wrong place until they are laid out.
   useLayoutEffect(layout, [base, layout]);
 
-  const openAt = useCallback((k: number) => {
-    const node = slots.current.get(k);
-    if (!node) return;
-    setOpen({ index: wrap(k), from: node.getBoundingClientRect() });
+  const root = useRef<HTMLDivElement>(null);
+  /** The shove that sent the other covers off, kept to play backwards. */
+  const shoved = useRef<Animation[]>([]);
+
+  /** The other covers shoved off either side, out of the way of the pictures
+   *  coming in, and the words round the reel faded. */
+  const scatter = useCallback((k: number) => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const vw = window.innerWidth;
+    const runs: Animation[] = [];
+    for (const [j, node] of slots.current) {
+      if (j === k) continue;
+      const dir = Math.sign(j - k);
+      // The nearer ones are hit first and go furthest.
+      const near = 1 / Math.abs(j - k);
+      const lift = (Math.random() - 0.5) * 120;
+      const spin = dir * (8 + Math.random() * 14);
+      const timing = { duration: 820, delay: 90 + (1 - near) * 160, easing: "cubic-bezier(0.5, 0, 0.2, 1)", fill: "both" } as const;
+      // Added to the transform the layout gives each cover, not in place of it.
+      runs.push(
+        node.animate(
+          [{ transform: "translate(0, 0)" }, { transform: `translate(${dir * vw * (0.45 + near * 0.3)}px, ${lift}px) rotate(${spin}deg)` }],
+          { ...timing, composite: "add" },
+        ),
+        // Seen going, and only gone once well on its way.
+        node.animate([{ opacity: 1 }, { opacity: 1, offset: 0.55 }, { opacity: 0 }], timing),
+      );
+    }
+    root.current?.querySelectorAll<HTMLElement>("[data-chrome]").forEach((el) =>
+      runs.push(el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "both" })),
+    );
+    shoved.current = runs;
   }, []);
+
+  /** And back, as the project closes. */
+  const gather = useCallback(() => {
+    for (const a of shoved.current) {
+      a.reverse();
+      a.finished.then(() => a.cancel(), () => {});
+    }
+    shoved.current = [];
+  }, []);
+
+  const openAt = useCallback(
+    (k: number) => {
+      const node = slots.current.get(k);
+      if (!node) return;
+      target.current = p.current = k;
+      layout();
+      scatter(k);
+      setOpen({ index: wrap(k), from: node.getBoundingClientRect() });
+    },
+    [layout, scatter],
+  );
+
+  const step = (by: number) => {
+    target.current = Math.round(target.current) + by;
+  };
 
   // Wheel and trackpad, either axis, and a settle onto the nearest slot once
   // they stop.
@@ -214,10 +267,11 @@ export default function ProjectReel({ still = false }: { still?: boolean }) {
   for (let k = base - REACH; k <= base + REACH; k++) ks.push(k);
 
   return (
-    <div className={styles.reel}>
-      <h2 key={`t${active}`} className={styles.title}>
+    <div ref={root} className={styles.reel}>
+      <h2 key={`t${active}`} className={styles.title} data-chrome>
         {project.title}
       </h2>
+      <div className={styles.track}>
       <div
         ref={stage}
         className={`${styles.stage} ${ready ? styles.ready : ""}`}
@@ -261,11 +315,26 @@ export default function ProjectReel({ still = false }: { still?: boolean }) {
           );
         })}
       </div>
-      <p key={`d${active}`} className={styles.description}>
+      {still ? null : (
+        <>
+          <button type="button" className={`${styles.arrow} ${styles.prev}`} onClick={() => step(-1)} aria-label="Previous project" data-chrome>
+            <svg viewBox="0 0 24 24" aria-hidden>
+              <path d="M15 4 7 12l8 8" />
+            </svg>
+          </button>
+          <button type="button" className={`${styles.arrow} ${styles.next}`} onClick={() => step(1)} aria-label="Next project" data-chrome>
+            <svg viewBox="0 0 24 24" aria-hidden>
+              <path d="m9 4 8 8-8 8" />
+            </svg>
+          </button>
+        </>
+      )}
+      </div>
+      <p key={`d${active}`} className={styles.description} data-chrome>
         {project.description}
       </p>
       {still ? null : (
-        <p className={styles.hint}>
+        <p className={styles.hint} data-chrome>
           <span>
             {String(active + 1).padStart(2, "0")} / {String(N).padStart(2, "0")}
           </span>
@@ -281,6 +350,7 @@ export default function ProjectReel({ still = false }: { still?: boolean }) {
           from={open.from}
           // Back to wherever the cover is now, which is where it was.
           home={() => slots.current.get(base)?.getBoundingClientRect() ?? open.from}
+          onClosing={gather}
           onClosed={() => {
             setOpen(null);
             stage.current?.focus({ preventScroll: true });

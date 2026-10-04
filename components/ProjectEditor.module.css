@@ -1,0 +1,147 @@
+/* Development only — see ProjectEditor. The panel and the toggle are the
+   bakery editor's (TableEditor.module.css); these are the boxes the editor
+   lays over the page, in the page's own units. */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  /* The grid the pieces land on, faintly. */
+  background-image:
+    linear-gradient(to right, rgba(60, 90, 200, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(60, 90, 200, 0.07) 1px, transparent 1px);
+  background-size: var(--u) var(--u);
+}
+
+.box {
+  position: absolute;
+  left: calc(var(--u) * var(--x));
+  top: calc(var(--u) * var(--y));
+  width: calc(var(--u) * var(--w));
+  height: calc(var(--u) * var(--h));
+  outline: 1px dashed rgba(60, 90, 200, 0.45);
+  outline-offset: -1px;
+  cursor: move;
+  touch-action: none;
+}
+
+.box:hover {
+  outline-style: solid;
+}
+
+.box[data-on] {
+  outline: 2px solid rgb(60, 90, 200);
+  outline-offset: -2px;
+  z-index: 2;
+}
+
+.box[data-crop] {
+  outline: 2px dashed rgb(220, 120, 30);
+  cursor: grab;
+  box-shadow: 0 0 0 9999px rgba(240, 236, 231, 0.35);
+}
+
+.box[data-spill] {
+  outline: 2px solid rgb(210, 50, 50);
+}
+
+.tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 1px 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #fff;
+  background: rgba(60, 90, 200, 0.85);
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.box:hover .tag,
+.box[data-on] .tag {
+  opacity: 1;
+}
+
+.box[data-crop] .tag {
+  background: rgb(220, 120, 30);
+}
+
+.handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  background: #fff;
+  border: 2px solid rgb(60, 90, 200);
+  border-radius: 2px;
+}
+
+.handle[data-h="nw"] { left: 0; top: 0; cursor: nwse-resize; }
+.handle[data-h="n"] { left: 50%; top: 0; cursor: ns-resize; }
+.handle[data-h="ne"] { left: 100%; top: 0; cursor: nesw-resize; }
+.handle[data-h="e"] { left: 100%; top: 50%; cursor: ew-resize; }
+.handle[data-h="se"] { left: 100%; top: 100%; cursor: nwse-resize; }
+.handle[data-h="s"] { left: 50%; top: 100%; cursor: ns-resize; }
+.handle[data-h="sw"] { left: 0; top: 100%; cursor: nesw-resize; }
+.handle[data-h="w"] { left: 0; top: 50%; cursor: ew-resize; }
+
+/* Drawn while an edge or a middle lines up with another's. */
+.guideX,
+.guideY {
+  position: absolute;
+  background: rgb(230, 60, 120);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.guideX {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  left: calc(var(--u) * var(--at));
+}
+
+.guideY {
+  left: 0;
+  right: 0;
+  height: 1px;
+  top: calc(var(--u) * var(--at));
+}
+
+.panel {
+  z-index: 10;
+}
+
+.wrap {
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.slider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  font-size: 0.72rem;
+  margin-bottom: 0.4rem;
+}
+
+.slider input {
+  flex: 1;
+}
+
+.toggle {
+  z-index: 10;
+}
+
+/* The single column a narrow window gets is not the layout; there is nothing
+   here to edit. */
+@media (max-width: 900px) {
+  .overlay,
+  .panel,
+  .toggle {
+    display: none;
+  }
+}
