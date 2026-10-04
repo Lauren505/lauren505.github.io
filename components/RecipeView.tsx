@@ -25,11 +25,12 @@ const HOLD = 0.45;
 const REACH = 0.22;
 /** How much further the table seems to come as it falls away. */
 const FALL = 1.25;
-/** How long the hand takes to let go, or come back for the plate — and the
- *  card to come in, or go, as it does. */
+/** How long the hand takes to let go, or come back for the plate. The card
+ *  comes up as the hand reaches in, arriving with the plate, and goes as
+ *  the hand comes back for it, gone as the hand is. */
 const LET_GO = 750;
 /** Coming in: quick, then slowing to a stop. Going: off at once, and on
- *  out of sight — so the hand and the card visibly go, and come, together. */
+ *  out of sight. */
 const COME = [0.2, 0.7, 0.3, 1] as const;
 const GO = [0.3, 0.25, 0.6, 1] as const;
 const css = (c: readonly number[]) => `cubic-bezier(${c.join(", ")})`;
@@ -56,6 +57,18 @@ const bezier = ([x1, y1, x2, y2]: readonly number[]) => {
   };
 };
 const ease = bezier(CURVE);
+/** When, as a fraction of the time, the hand starts reaching in: where the
+ *  curve comes to HOLD - REACH. The card starts coming up then too. */
+const REACHED_AT = (() => {
+  let lo = 0;
+  let hi = 1;
+  for (let n = 0; n < 24; n++) {
+    const mid = (lo + hi) / 2;
+    if (ease(mid) < HOLD - REACH) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+})();
 const clamp = (v: number) => Math.min(1, Math.max(0, v));
 /** From 0 to 1 and still at both ends. */
 const smooth = (v: number) => {
@@ -301,6 +314,7 @@ export default function RecipeView({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [paperUp, setPaperUp] = useState(false);
+  const card = useRef<HTMLDivElement>(null);
   const [paperH, setPaperH] = useState(0);
   /** Whether the card is dressed in its paper yet: not in the first frames,
    *  as drawing the paper is slow — once the movement is under way, which the
@@ -318,12 +332,26 @@ export default function RecipeView({
       await frame();
       if (off.current) return;
       const up = play(BRING, (u) => ({ s: ease(u) }));
-      await wait(300);
-      if (!off.current) setDressed(true);
+      // The card coming up as the hand reaches in, and arriving with the
+      // plate: on the same clock as the rest, so however long the paper takes
+      // to draw, it is where it should be by then.
+      const c = card.current?.animate([{ transform: `translateY(${rise}px)` }, { transform: "translateY(0px)" }], {
+        duration: calm ? 0 : BRING * (1 - REACHED_AT),
+        delay: calm ? 0 : BRING * REACHED_AT,
+        easing: css(COME),
+        fill: "both",
+      });
+      if (c) playing.current.push(c);
+      // The paper drawn once the movement is under way — the browser has it
+      // then, to play on its own — and before the card is in sight.
+      await frame();
+      await frame();
+      if (off.current) return;
+      setDressed(true);
       await up;
       if (off.current) return;
-      // …and let go of, as the recipe is brought to it.
       setPaperUp(true);
+      // Then let go of.
       await play(LET_GO, (u) => ({ s: 1, back: bezier(GO)(u) }));
       if (!off.current) setStage("open");
     })();
@@ -338,7 +366,9 @@ export default function RecipeView({
     setStage("closing");
     setHome(locate());
     (async () => {
-      // The card goes as the hand comes back for the plate.
+      // The card starts going as the hand comes back for the plate, and is
+      // gone as the hand is.
+      for (const a of card.current?.getAnimations() ?? []) if (!(a instanceof CSSTransition)) a.cancel();
       setPaperUp(false);
       await play(LET_GO, (u) => ({ s: 1, back: 1 - bezier(COME)(u) }));
       if (off.current) return;
@@ -411,13 +441,14 @@ export default function RecipeView({
       >
         <div className={styles.reach} style={{ height: reach }} />
         <div
+          ref={card}
           className={styles.card}
           data-card=""
           style={{
             left: paper.x,
             top: paper.y,
             transform: `translateY(${paperUp ? 0 : rise}px)`,
-            transition: calm ? "none" : `transform ${LET_GO}ms ${css(paperUp ? COME : GO)}`,
+            transition: calm || stage === "opening" ? "none" : `transform ${LET_GO + BRING * (1 - REACHED_AT)}ms ${css(GO)}`,
           }}
         >
           <RecipePaper
