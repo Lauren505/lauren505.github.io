@@ -1,0 +1,133 @@
+/* Title, reel, line under it, stacked in the middle of the section. */
+.reel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem;
+}
+
+.title,
+.description {
+  text-align: center;
+  animation: arrive 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.title {
+  font-size: 1.65rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.description {
+  font-size: 1.15rem;
+  max-width: 34rem;
+  min-height: 1.5em;
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+}
+
+/* The row runs the window's whole width, out past the column, and fades into
+   the page at both ends rather than stopping at them. */
+.stage {
+  position: relative;
+  width: 100vw;
+  height: clamp(13rem, 38dvh, 24rem);
+  overflow: hidden;
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+  outline: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+}
+
+.stage:active {
+  cursor: grabbing;
+}
+
+/* The thread the covers hang on. */
+.line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--accent-soft);
+  opacity: 0.8;
+}
+
+/* Placed and sized every frame — see layout() in ProjectReel.tsx. */
+.slot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--card);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  opacity: 0;
+  transition: opacity 0.4s ease, box-shadow 0.4s ease;
+  will-change: transform, width, height;
+}
+
+.ready .slot {
+  opacity: 1;
+}
+
+.centre {
+  cursor: zoom-in;
+  box-shadow: 0 14px 34px -18px rgba(40, 25, 10, 0.45);
+}
+
+.cover {
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.stage:focus-visible .centre {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Where you are, and the open control for anyone not about to guess that the
+   middle picture is a button. */
+.hint {
+  display: flex;
+  gap: 1.1rem;
+  align-items: baseline;
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+.open {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+.open:hover {
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title,
+  .description {
+    animation: none;
+  }
+}

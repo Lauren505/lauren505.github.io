@@ -20,13 +20,22 @@
   min-height: 22rem;
 }
 
+/* The projects reel sits in the middle of the same band, so it has the same
+   height — and the same second line of nav to make room for below. */
+.projects {
+  position: relative;
+  height: calc(100dvh - var(--frame) * 2);
+  min-height: 30rem;
+}
+
 /* Wherever the row of tabs has not crossed to the left margin, this page's own
    sections take a second line in the nav — see .atSide in Nav.module.css — and
    the band above the gallery is that much taller than --frame. Three measures,
    all the nav's: the gap the row wraps by, the line itself, and the margin the
    sections carry. */
 @media (max-width: 1280px), (aspect-ratio < 17 / 12) {
-  .gallery {
+  .gallery,
+  .projects {
     height: calc(100dvh - var(--frame) * 2 - var(--nav-gap-x) - var(--nav-h) - 0.15rem);
   }
 }

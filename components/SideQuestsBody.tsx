@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import BakeryTable from "@/components/BakeryTable";
 import GalleryPortals from "@/components/GalleryPortals";
 import PortalWall from "@/components/PortalWall";
+import ProjectReel from "@/components/ProjectReel";
 import SectionTurn from "@/components/SectionTurn";
 import { WALL_PAD, wall } from "@/content";
 import styles from "./SideQuestsBody.module.css";
@@ -20,6 +21,14 @@ type Turn = { from: string; to: string; lift: number };
  * thrown onto yet — the face a turn arrives on, before the live one throws it.
  */
 function Section({ id, still, laid = true }: { id: string; still: boolean; laid?: boolean }) {
+  if (id === "projects") {
+    return (
+      <section id="projects" className={styles.projects} aria-label="Projects">
+        <ProjectReel still={still} />
+      </section>
+    );
+  }
+
   if (id === "gallery") {
     return (
       <section
@@ -48,9 +57,9 @@ function Section({ id, still, laid = true }: { id: string; still: boolean; laid?
 /**
  * The side quests page, which is a page of sections rather than a page: which
  * one is open is the hash and nothing else, the same thing the nav reads to
- * light a tab. Gallery and Bakery have something in them so far — content/
- * posts.ts is still empty — so the other two, and no hash at all, are a blank
- * page, which is what this page was before the gallery went in it.
+ * light a tab. Projects, Gallery and Bakery have something in them so far —
+ * content/posts.ts is still empty — so Life lately, and no hash at all, are a
+ * blank page, which is what this page was before the gallery went in it.
  *
  * Moving between sections turns the cube they are faces of, the way home turns
  * into publications — see SectionTurn.
