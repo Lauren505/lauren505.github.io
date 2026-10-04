@@ -129,21 +129,27 @@ function PieceView({
 const EASE_OUT = "cubic-bezier(0.16, 1, 0.3, 1)";
 const EASE_IN = "cubic-bezier(0.55, 0, 0.75, 0.2)";
 
-/** Where a picture landing at `r` starts from: just off whichever edge of
- *  the window it lands nearest, level with where it lands, so it comes
- *  straight in to its place. A picture across most of the window's width
- *  comes from above or below rather than from one side of it. */
+/** Where a picture landing at `r` starts from: off whichever edge of the
+ *  window it lands nearest — roughly. The way in leans to one side or the
+ *  other by up to half a right angle's worth, and starts a little further out
+ *  or a little nearer, at random, so the pictures do not all arrive square;
+ *  but it is always the short way, never across the window. A picture across
+ *  most of the window's width comes from above or below rather than from one
+ *  side of it. */
 function offEdge(r: DOMRect, vw: number, vh: number) {
-  const clear = 40;
+  const clear = 40 + Math.random() * 120;
   // Below the fold, where only scrolling would show it: up from under it.
-  if (r.top >= vh) return { x: 0, y: vh * 0.5 };
+  if (r.top >= vh) return { x: (Math.random() - 0.5) * vw * 0.3, y: vh * 0.5 };
   const sides = [
     { d: r.top, x: 0, y: -(r.bottom + clear) },
     { d: vh - r.bottom, x: 0, y: vh - r.top + clear },
   ];
   if (r.width < vw * 0.8)
     sides.push({ d: r.left, x: -(r.right + clear), y: 0 }, { d: vw - r.right, x: vw - r.left + clear, y: 0 });
-  return sides.reduce((a, b) => (b.d < a.d ? b : a));
+  const { x, y } = sides.reduce((a, b) => (b.d < a.d ? b : a));
+  // Leaned off square, along the edge it comes through: tan of up to 28°.
+  const lean = (Math.random() - 0.5) * 1.06;
+  return x ? { x, y: Math.abs(x) * lean } : { x: Math.abs(y) * lean, y };
 }
 
 /** Moves and sizes an element from the window rectangle `a` to `b` — by its
@@ -293,7 +299,7 @@ export default function ProjectSpread({
     const vh = window.innerHeight;
     root.current?.querySelectorAll("[data-fly]").forEach((el, i) => {
       const { x, y } = offEdge(el.getBoundingClientRect(), vw, vh);
-      const tilt = (Math.random() - 0.5) * 16;
+      const tilt = (Math.random() - 0.5) * 24;
       const out = `translate(${x}px, ${y}px) rotate(${tilt}deg)`;
       offsets.current.set(el, out);
       el.animate(
