@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import RecipeRing from "@/components/RecipeRing";
-import RecipeView from "@/components/RecipeView";
+import RecipeView, { ZOOM_EASE, ZOOM_MS } from "@/components/RecipeView";
 import Tablecloth from "@/components/Tablecloth";
 import TableSetting, { type Edit, type Grip, type Part } from "@/components/TableSetting";
 import { laidOut, layTable, placements, type Table } from "@/components/bakeryLayout";
@@ -320,15 +320,20 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
   const open = shown === null ? undefined : layout.laid[shown];
   const recipe = open && recipes[open.id];
 
-  /** Where the open plate is in the window, now. */
+  /** Where the open plate is in the window, now — on the table as it is
+   *  laid, not as it is zoomed: measured from the section, which does not
+   *  zoom, and the table's place in it, which a transform does not move. */
   const tableRef = useRef<HTMLDivElement>(null);
   const openRef = useRef(open);
   openRef.current = open;
   const locate = useCallback(() => {
-    const t = tableRef.current?.getBoundingClientRect();
+    const t = tableRef.current;
+    const box = t?.parentElement?.getBoundingClientRect();
     const p = openRef.current?.plate;
     const s = scaleRef.current;
-    return t && p ? { x: t.left + p.x * s, y: t.top + p.y * s } : { x: 0, y: 0 };
+    return t && box && p
+      ? { x: box.left + t.offsetLeft + p.x * s, y: box.top + t.offsetTop + p.y * s }
+      : { x: 0, y: 0 };
   }, []);
 
   /* -------------------------------------------------------------- size */
@@ -357,7 +362,7 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
             // Zoomed in after the plate brought up close, about where it was.
             transform: zoomed ? "scale(1.3)" : undefined,
             transformOrigin: open ? `${open.plate.x * scale}px ${open.plate.y * scale}px` : undefined,
-            transition: open ? "transform 1100ms cubic-bezier(0.55, 0, 0.25, 1)" : undefined,
+            transition: open ? `transform ${ZOOM_MS}ms ${ZOOM_EASE}` : undefined,
           }}
           onPointerDown={editing ? () => setSelected(null) : undefined}
         >

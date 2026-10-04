@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { Fragment, useId, useLayoutEffect, useRef, useState } from "react";
 import Drawn from "@/components/Drawn";
-import { garamond, script } from "@/components/recipeFonts";
+import { garamond } from "@/components/recipeFonts";
 import { decorations, type Recipe } from "@/content";
 import styles from "./RecipePaper.module.css";
 
@@ -123,7 +123,7 @@ function Twine({ width, at, knot }: { width: number; at: number; knot: number })
 /** The recipe's photos, each on a square of kraft card, tied to the card
  *  with twine and a sprig, hanging off it on the side `toward`. */
 function Photos({ photos, width, toward }: { photos: Recipe["photos"]; width: number; toward: "left" | "right" }) {
-  const w = Math.round(width * 0.56);
+  const w = Math.round(Math.min(width * 0.42, 300));
   const h = Math.round(w * 0.8);
   const over = w * 0.24;
   const left = toward === "right" ? width - w + over : -over;
@@ -175,8 +175,8 @@ function Photos({ photos, width, toward }: { photos: Recipe["photos"]; width: nu
 }
 
 /**
- * A recipe, printed on a card of handmade paper the way a menu is: the name
- * under a flourish, what it makes, then the ingredients and the steps, and
+ * A recipe, printed on a card of handmade paper the way a menu is: the name,
+ * what it makes, then the ingredients and the steps, and
  * its photos tied on at the foot, hanging off the side `toward`. It is
  * `width` wide and as long as the recipe, or `minHeight` if that is longer;
  * `onHeight` is told how long it is.
@@ -186,6 +186,7 @@ export default function RecipePaper({
   title,
   width,
   minHeight = 0,
+  lead,
   toward = "right",
   onHeight,
 }: {
@@ -193,6 +194,8 @@ export default function RecipePaper({
   title: string;
   width: number;
   minHeight?: number;
+  /** How far down the card the words start, if not the usual. */
+  lead?: number;
   toward?: "left" | "right";
   onHeight?: (h: number) => void;
 }) {
@@ -224,10 +227,7 @@ export default function RecipePaper({
       style={{ width, minHeight, "--bleed": `${BLEED}px`, "--pad-x": `${PAD_X}px` } as React.CSSProperties}
     >
       {height ? <Sheet width={width} height={height} /> : null}
-      <div className={styles.words}>
-        <p className={`${styles.the} ${script.className}`} aria-hidden>
-          the
-        </p>
+      <div className={styles.words} style={lead === undefined ? undefined : { paddingTop: lead }}>
         <h2 className={styles.name}>{inline(recipe.name || title)}</h2>
         {recipe.portion ? <p className={styles.portion}>{inline(recipe.portion)}</p> : null}
 

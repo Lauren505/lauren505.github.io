@@ -30,15 +30,8 @@
   padding: calc(var(--bleed) + 4.2em) var(--pad-x) calc(var(--bleed) + 3.4em);
 }
 
-.the {
-  margin: 0;
-  font-size: 2.6em;
-  line-height: 0.9;
-  color: #4a403c;
-}
-
 .name {
-  margin: 0.15em 0 0;
+  margin: 0;
   font-weight: 400;
   font-size: 1.45em;
   letter-spacing: 0.32em;

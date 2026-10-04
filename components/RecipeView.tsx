@@ -13,12 +13,32 @@ import styles from "./RecipeView.module.css";
 /** The hand that takes hold of the plate and brings it up to the reader. */
 const GRAB = decorations.find((d) => d.id === "hand4")?.image ?? decorations.find((d) => d.kind === "hand")?.image;
 
-/** How things move. Zooming: slow away, then easing in to where it goes.
- *  Settling: quick, then slowing to a stop. Leaving: slow to start, then
+/** The zoom: the plate brought up close, and the table zooming in after it
+ *  — or both going back — as one movement, slow away and easing in to where
+ *  it goes. Its curve is kept as numbers too, to work out when the plate is
+ *  how far along. */
+export const ZOOM_MS = 1700;
+const CURVE = [0.6, 0, 0.3, 1] as const;
+export const ZOOM_EASE = `cubic-bezier(${CURVE.join(", ")})`;
+/** Settling: quick, then slowing to a stop. Leaving: slow to start, then
  *  away. */
-const ZOOM = "cubic-bezier(0.55, 0, 0.25, 1)";
 const SETTLE = "cubic-bezier(0.2, 0.7, 0.3, 1)";
 const LEAVE = "cubic-bezier(0.5, 0, 0.75, 0)";
+
+/** When, as a fraction of the zoom, it is `p` of the way there — the CSS
+ *  curve, solved backwards. */
+const timeAt = (p: number) => {
+  const [x1, y1, x2, y2] = CURVE;
+  const at = (a: number, b: number, s: number) => 3 * a * s * (1 - s) ** 2 + 3 * b * s * s * (1 - s) + s ** 3;
+  let lo = 0;
+  let hi = 1;
+  for (let n = 0; n < 30; n++) {
+    const mid = (lo + hi) / 2;
+    if (at(y1, y2, mid) < p) lo = mid;
+    else hi = mid;
+  }
+  return at(x1, x2, (lo + hi) / 2);
+};
 
 /** Below this the dessert and its card cannot sit side by side: the dessert
  *  goes at the top, the card under it. */
@@ -111,40 +131,99 @@ export default function RecipeView({
         paper: { x: 20, y: top, width: W - 40, min: H - top + RUN_OFF },
       };
     }
-    const D = Math.min(W * 0.36, H * 0.6);
-    const width = Math.round(Math.min(470, Math.max(300, W * 0.3)));
+    const D = Math.min(W * 0.32, H * 0.6);
+    const width = Math.round(Math.min(705, Math.max(450, W * 0.45)));
     return {
-      at: { x: side < 0 ? W * 0.3 : W * 0.7, y: H * 0.52 },
+      at: { x: side < 0 ? W * 0.27 : W * 0.73, y: H * 0.52 },
       k: D / (2 * R),
-      paper: { x: (side < 0 ? W * 0.68 : W * 0.32) - width / 2, y: -RUN_OFF, width, min: H + 2 * RUN_OFF },
+      paper: { x: (side < 0 ? W * 0.7 : W * 0.3) - width / 2, y: -RUN_OFF, width, min: H + 2 * RUN_OFF },
     };
   }, [narrow, W, H, R, side]);
 
-  /** The hand, in the plate's own pixels as it was on the table: its
-   *  fingertips over the near rim of the plate, the arm running down. */
-  const handL = 2 * R * 0.95;
-  const handW = GRAB ? handL * (GRAB.width / GRAB.height) : 0;
+  /* -------------------------------------------------------- the hand */
+
+  /** Where the plate is on the table, and so where it starts, and where it
+   *  comes back to. */
+  const [home, setHome] = useState(locate);
+  type Pose = { x: number; y: number; k: number };
+  /** The plate `p` of the way up from the table — as the zoom moves it,
+   *  straight, and growing evenly. */
+  const along = (p: number, from: Vec = home): Pose => ({
+    x: from.x + p * (g.at.x - from.x),
+    y: from.y + p * (g.at.y - from.y),
+    k: 1 + p * (g.k - 1),
+  });
+
+  /** Its fingertips over the plate's rim, `tip` from its middle, in the
+   *  plate's own pixels as it was on the table. */
   const tip = R * 0.78;
-  /** How far down it has to go, in those pixels, to be below the window,
-   *  with the plate at `y` and `k` times its size. */
-  const below = (y: number, k: number) => (H + 30 - (y + k * tip)) / k;
+
+  const h = useMemo(() => {
+    const final = along(1);
+    /** How far the fingertips are from the window's edge, with the plate at
+     *  `q`, coming from the edge `e` is towards. */
+    const gap = (q: Pose, e: Vec) => {
+      const x = q.x + e.x * q.k * tip;
+      const y = q.y + e.y * q.k * tip;
+      return e.x < 0 ? x : e.x > 0 ? W - x : e.y > 0 ? H - y : y;
+    };
+    // From the edge nearest the plate where it ends up, which is where it is
+    // held longest.
+    const edges: Vec[] = [
+      { x: -1, y: 0 },
+      { x: 1, y: 0 },
+      { x: 0, y: 1 },
+      { x: 0, y: -1 },
+    ];
+    const e = edges.reduce((a, b) => (gap(final, b) < gap(final, a) ? b : a));
+    // Long enough to reach that edge, at least by the end.
+    const length = Math.max(2 * R * 0.95, (gap(final, e) + 60) / final.k);
+    /** Whether its arm runs off the window, with the plate at `q`. */
+    const reaches = (q: Pose) => gap(q, e) + 30 <= length * q.k;
+    // How far up the plate has to be, for that to hold from then on: the
+    // hand takes hold there, and not before.
+    let from = 1;
+    for (let p = 0; p <= 1; p += 0.02) {
+      let ok = true;
+      for (let q = p; q <= 1 && ok; q += 0.05) ok = reaches(along(q));
+      if (ok && reaches(final)) {
+        from = p;
+        break;
+      }
+    }
+    /** How far back it has to be, in the plate's pixels, to be off the
+     *  window altogether, with the plate anywhere from the table to `upTo`. */
+    const out = (upTo: number) => {
+      let most = 0;
+      for (let q = 0; q <= upTo + 1e-6; q += 0.05) {
+        const pose = along(q);
+        most = Math.max(most, (gap(pose, e) + 40) / pose.k);
+      }
+      return most;
+    };
+    return {
+      e,
+      length,
+      width: GRAB ? length * (GRAB.width / GRAB.height) : 0,
+      turn: (Math.atan2(-e.x, e.y) * 180) / Math.PI,
+      from,
+      off: Math.max(out(1), (gap(final, e) + 40) / final.k),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [g, home, W, H, R, tip]);
 
   /* -------------------------------------------------------- the moves */
 
-  type Pose = { at: Vec; k: number } & Move;
-  const [plateAt, setPlateAt] = useState<Pose>(() => ({ at: locate(), k: 1, ms: 0, ease: SETTLE }));
-  const [handDown, setHandDown] = useState<{ dy: number } & Move>(() => ({
-    dy: below(plateAt.at.y, 1),
-    ms: 0,
-    ease: SETTLE,
-  }));
+  const [plateAt, setPlateAt] = useState<Pose & Move>(() => ({ ...home, k: 1, ms: 0, ease: SETTLE }));
+  /** How far the hand is back from the plate, the way it came. */
+  const [handOff, setHandOff] = useState<{ by: number } & Move>({ by: h.off, ms: 0, ease: SETTLE });
   const [ground, setGround] = useState<{ on: boolean } & Move>({ on: false, ms: 0, ease: SETTLE });
   const [paperUp, setPaperUp] = useState<{ up: boolean } & Move>({ up: false, ms: 0, ease: SETTLE });
   const [paperH, setPaperH] = useState(0);
   const [stage, setStage] = useState<"opening" | "open" | "closing">("opening");
 
-  const gRef = useRef(g);
-  gRef.current = g;
+  const now = useRef({ g, h });
+  now.current = { g, h };
   const timers = useRef<number[]>([]);
   const later = (ms: number, f: () => void) => {
     timers.current.push(window.setTimeout(f, ms * T));
@@ -155,40 +234,46 @@ export default function RecipeView({
   const gone = useRef(onGone);
   gone.current = onGone;
 
-  // Brought up.
+  // Brought up: the zoom starts, and the hand comes in from the nearest edge
+  // to take hold just as the plate is far enough up for its arm to run off
+  // the window — then brings it the rest of the way, and lets go.
   useEffect(() => {
-    const s = gRef.current;
-    // The hand reaches up and takes hold…
-    later(40, () => setHandDown({ dy: 0, ms: 600 * T, ease: SETTLE }));
-    // …and brings it up close, the table falling away behind…
-    later(700, () => {
-      setPlateAt({ at: s.at, k: s.k, ms: 1100 * T, ease: ZOOM });
-      setGround({ on: true, ms: 900 * T, ease: "ease-in", delay: 120 * T });
+    const { g, h } = now.current;
+    const reach = 450;
+    const held = 40 + ZOOM_MS * timeAt(h.from);
+    later(40, () => {
+      setPlateAt({ ...g.at, k: g.k, ms: ZOOM_MS * T, ease: ZOOM_EASE });
+      setGround({ on: true, ms: 1000 * T, ease: "ease-in" });
       zoom.current(true);
     });
-    // …and lets go; the recipe comes up beside it.
-    later(1850, () => setHandDown({ dy: below(s.at.y, s.k), ms: 600 * T, ease: LEAVE }));
-    later(1950, () => setPaperUp({ up: true, ms: 900 * T, ease: SETTLE }));
-    later(2850, () => setStage("open"));
+    later(Math.max(40, held - reach), () => setHandOff({ by: 0, ms: Math.min(reach, held - 40) * T, ease: SETTLE }));
+    later(40 + ZOOM_MS + 60, () => setHandOff({ by: h.off, ms: 500 * T, ease: LEAVE }));
+    later(40 + ZOOM_MS + 220, () => setPaperUp({ up: true, ms: 900 * T, ease: SETTLE }));
+    later(40 + ZOOM_MS + 1120, () => setStage("open"));
     // Once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Put back, once it is all there.
+  // Put back, the same way round: the card taken away, the hand takes hold
+  // and brings the plate back down, letting go as it gets too far for its arm
+  // to reach, and the plate lands where it was, as the table zooms back out
+  // under it.
   useEffect(() => {
     if (!leave || stage !== "open") return;
     setStage("closing");
-    const s = gRef.current;
+    const { h } = now.current;
+    const back = locate();
+    setHome(back);
     later(0, () => setPaperUp({ up: false, ms: 600 * T, ease: LEAVE }));
-    later(400, () => setHandDown({ dy: 0, ms: 600 * T, ease: SETTLE }));
-    later(1050, () => {
-      const home = locate();
-      setPlateAt({ at: home, k: 1, ms: 1000 * T, ease: ZOOM });
-      setGround({ on: false, ms: 900 * T, ease: "ease-out" });
+    later(450, () => setHandOff({ by: 0, ms: 450 * T, ease: SETTLE }));
+    const down = 950;
+    later(down, () => {
+      setPlateAt({ ...back, k: 1, ms: ZOOM_MS * T, ease: ZOOM_EASE });
+      setGround({ on: false, ms: 1100 * T, ease: "ease-out", delay: (ZOOM_MS - 1100) * T });
       zoom.current(false);
-      later(1050, () => setHandDown({ dy: below(home.y, 1), ms: 550 * T, ease: LEAVE }));
     });
-    later(2700, () => gone.current());
+    later(down + ZOOM_MS * timeAt(1 - h.from) - 150, () => setHandOff({ by: h.off, ms: 450 * T, ease: LEAVE }));
+    later(down + ZOOM_MS + 40, () => gone.current());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leave, stage]);
 
@@ -216,7 +301,7 @@ export default function RecipeView({
       <div
         className={styles.dish}
         style={{
-          transform: `translate(${plateAt.at.x}px, ${plateAt.at.y}px) scale(${plateAt.k})`,
+          transform: `translate(${plateAt.x}px, ${plateAt.y}px) scale(${plateAt.k})`,
           transition: moving(plateAt),
         }}
       >
@@ -227,15 +312,15 @@ export default function RecipeView({
           <div
             className={styles.piece}
             style={{
-              left: R * 0.12 - handW / 2,
-              top: tip - handL * 0.04,
-              width: handW,
-              height: handL,
-              transform: `translateY(${handDown.dy}px)`,
-              transition: moving(handDown),
+              left: h.e.x * (tip + h.length / 2) - h.width / 2,
+              top: h.e.y * (tip + h.length / 2) - h.length / 2,
+              width: h.width,
+              height: h.length,
+              transform: `translate(${h.e.x * handOff.by}px, ${h.e.y * handOff.by}px) rotate(${h.turn}deg)`,
+              transition: moving(handOff),
             }}
           >
-            <Drawn image={GRAB} width={handW} openFoot />
+            <Drawn image={GRAB} width={h.width} openFoot />
           </div>
         ) : null}
         <div
@@ -274,6 +359,7 @@ export default function RecipeView({
             title={setting.bake.title}
             width={paper.width}
             minHeight={paper.min}
+            lead={narrow ? undefined : RUN_OFF + H * 0.15}
             toward={narrow ? "right" : side < 0 ? "left" : "right"}
             onHeight={setPaperH}
           />
