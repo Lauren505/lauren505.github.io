@@ -14,9 +14,10 @@ import styles from "./RecipeView.module.css";
 const GRAB = decorations.find((d) => d.id === "hand4")?.image ?? decorations.find((d) => d.kind === "hand")?.image;
 
 /** The whole of it, from the table to the plate up close, in milliseconds:
- *  one movement, on one curve — slow away, then gathering, then settling. */
+ *  one movement, on one curve — away at once, and slowing all the way in, so
+ *  the hand is soon there. */
 const BRING = 2800;
-const CURVE = [0.42, 0, 0.22, 1] as const;
+const CURVE = [0.25, 0.6, 0.3, 1] as const;
 /** Where along it — as a fraction of the way, after the curve — the hand
  *  has hold and the plate starts to come up, the table falling away; and how
  *  long before that the hand starts reaching in. */
@@ -24,10 +25,14 @@ const HOLD = 0.45;
 const REACH = 0.22;
 /** How much further the table seems to come as it falls away. */
 const FALL = 1.25;
-/** How long the hand takes to let go, or come back for the plate. */
-const LET_GO = 500;
-const SETTLE = "cubic-bezier(0.2, 0.7, 0.3, 1)";
-const LEAVE = "cubic-bezier(0.5, 0, 0.75, 0)";
+/** How long the hand takes to let go, or come back for the plate — and the
+ *  card to come in, or go, as it does. */
+const LET_GO = 750;
+/** Coming in: quick, then slowing to a stop. Going: off at once, and on
+ *  out of sight — so the hand and the card visibly go, and come, together. */
+const COME = [0.2, 0.7, 0.3, 1] as const;
+const GO = [0.3, 0.25, 0.6, 1] as const;
+const css = (c: readonly number[]) => `cubic-bezier(${c.join(", ")})`;
 
 /** Below this the dessert and its card cannot sit side by side: the dessert
  *  goes at the top, the card under it. */
@@ -297,9 +302,9 @@ export default function RecipeView({
 
   const [paperUp, setPaperUp] = useState(false);
   const [paperH, setPaperH] = useState(0);
-  /** Whether the card is dressed in its paper yet: not until the plate is
-   *  up, as drawing the paper is slow, and nothing should be moving while it
-   *  is drawn. */
+  /** Whether the card is dressed in its paper yet: not in the first frames,
+   *  as drawing the paper is slow — once the movement is under way, which the
+   *  browser plays on its own, it can take its time. */
   const [dressed, setDressed] = useState(false);
   const [stage, setStage] = useState<"opening" | "open" | "closing">("opening");
   const gone = useRef(onGone);
@@ -312,16 +317,14 @@ export default function RecipeView({
       await frame();
       await frame();
       if (off.current) return;
-      await play(BRING, (u) => ({ s: ease(u) }));
+      const up = play(BRING, (u) => ({ s: ease(u) }));
+      await wait(300);
+      if (!off.current) setDressed(true);
+      await up;
       if (off.current) return;
-      setDressed(true);
-      // …let go of…
-      await play(LET_GO, (u) => ({ s: 1, back: bezier([0.5, 0, 0.75, 0])(u) }));
-      // …and the recipe brought to it.
-      await frame();
-      if (off.current) return;
+      // …and let go of, as the recipe is brought to it.
       setPaperUp(true);
-      await wait(900);
+      await play(LET_GO, (u) => ({ s: 1, back: bezier(GO)(u) }));
       if (!off.current) setStage("open");
     })();
     // Once.
@@ -335,10 +338,9 @@ export default function RecipeView({
     setStage("closing");
     setHome(locate());
     (async () => {
+      // The card goes as the hand comes back for the plate.
       setPaperUp(false);
-      await wait(450);
-      if (off.current) return;
-      await play(LET_GO, (u) => ({ s: 1, back: 1 - bezier([0.2, 0.7, 0.3, 1])(u) }));
+      await play(LET_GO, (u) => ({ s: 1, back: 1 - bezier(COME)(u) }));
       if (off.current) return;
       await play(BRING, (u) => ({ s: ease(1 - u) }));
       if (off.current) return;
@@ -415,7 +417,7 @@ export default function RecipeView({
             left: paper.x,
             top: paper.y,
             transform: `translateY(${paperUp ? 0 : rise}px)`,
-            transition: calm ? "none" : paperUp ? `transform 900ms ${SETTLE}` : `transform 600ms ${LEAVE}`,
+            transition: calm ? "none" : `transform ${LET_GO}ms ${css(paperUp ? COME : GO)}`,
           }}
         >
           <RecipePaper
