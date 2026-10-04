@@ -69,7 +69,9 @@ export default function RecipeRing({
 
   const box = 2 * (r + size * 2);
   const c = box / 2;
-  const path = `M ${c - r} ${c} A ${r} ${r} 0 1 1 ${c + r} ${c} A ${r} ${r} 0 1 1 ${c - r} ${c}`;
+  // Round from the foot of the plate, clockwise, so the words — centred
+  // over the top — have the whole way round to run either side.
+  const path = `M ${c} ${c + r} A ${r} ${r} 0 1 1 ${c} ${c - r} A ${r} ${r} 0 1 1 ${c} ${c + r}`;
   const id = `ring-${setting.id}`;
   return (
     <div className={styles.layer}>
@@ -88,7 +90,7 @@ export default function RecipeRing({
           <path id={`${id}-path`} d={path} />
         </defs>
         <text ref={text} className={styles.words} fontSize={size} aria-hidden>
-          <textPath href={`#${id}-path`} startOffset="25%" textAnchor="middle">
+          <textPath href={`#${id}-path`} startOffset="50%" textAnchor="middle">
             {letters.map((ch, k) => (
               <tspan key={k} className={styles.letter} style={{ animationDelay: `${k * PER_LETTER}ms` }}>
                 {ch}
