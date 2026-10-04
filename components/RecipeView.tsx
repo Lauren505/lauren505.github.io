@@ -16,8 +16,8 @@ const GRAB = decorations.find((d) => d.id === "hand4")?.image ?? decorations.fin
 /** The whole of it, from the table to the plate up close, in milliseconds:
  *  one movement, on one curve — away at once, and slowing all the way in, so
  *  the hand is soon there. */
-const BRING = 2800;
-const CURVE = [0.25, 0.6, 0.3, 1] as const;
+const BRING = 2500;
+const CURVE = [0.25, 0.6, 0.45, 1] as const;
 /** Where along it — as a fraction of the way, after the curve — the hand
  *  has hold and the plate starts to come up, the table falling away; and how
  *  long before that the hand starts reaching in. */
