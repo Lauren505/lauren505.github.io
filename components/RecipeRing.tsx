@@ -13,8 +13,8 @@ const FADE = 450;
 
 /**
  * What clicking a dessert with no recipe brings: a sentence, written around
- * its plate by hand — clockwise over the top, one letter at a time, each drawn
- * round its outline and then inked in. `leave` fades it, written or not, and
+ * its plate by hand — clockwise over the top, one letter at a time, each
+ * inked in. `leave` fades it, written or not, and
  * `onGone` is told when it has.
  */
 export default function RecipeRing({
