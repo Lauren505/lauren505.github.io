@@ -46,10 +46,6 @@ export type Laid = {
 /** A point, or a direction, on the table. */
 export type Vec = { x: number; y: number };
 
-/** A plate and what is on it moved from where they are laid, in the window's
- *  pixels — see RecipeReveal. */
-export type Shift = { dx: number; dy: number; ms: number; ease: string };
-
 /**
  * How far something at `from`, `r` across from its middle to its furthest
  * edge, has to go along `way` to be out of `box` altogether — which is the

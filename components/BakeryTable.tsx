@@ -2,10 +2,11 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import RecipeReveal from "@/components/RecipeReveal";
+import RecipeRing from "@/components/RecipeRing";
+import RecipeView from "@/components/RecipeView";
 import Tablecloth from "@/components/Tablecloth";
 import TableSetting, { type Edit, type Grip, type Part } from "@/components/TableSetting";
-import { laidOut, layTable, placements, type Shift, type Table } from "@/components/bakeryLayout";
+import { laidOut, layTable, placements, type Table } from "@/components/bakeryLayout";
 import { TABLE_WIDTH, lostLine, recipes } from "@/content";
 import styles from "./SideQuestsBody.module.css";
 
@@ -91,9 +92,9 @@ const tidy = (t: Table): Table => {
  * foot, and the page is as long as the table: the section is only the part of
  * that below the nav, so it hangs the table from above itself.
  *
- * Once it is laid, a dessert clicked brings its recipe — see RecipeReveal —
- * the rest of the table cleared away for it. One at a time: click another, or
- * anywhere else, and it is put away first.
+ * Once it is laid, a dessert clicked brings its recipe, up close — see
+ * RecipeView — or, if it has none, a sentence around its plate (RecipeRing).
+ * One at a time: click another, or anywhere else, and it is put away first.
  *
  * In development there is also the editor — see TableEditor — which lays the
  * table from a draft instead of from content/bakeryTable.ts, and saves the
@@ -282,13 +283,12 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
    *  one is being put away for another, is not the same one. */
   const [want, setWant] = useState<number | null>(null);
   const [shown, setShown] = useState<number | null>(null);
-  const [shift, setShift] = useState<Shift | null>(null);
-  /** Whether the rest of the table is off the window, for a recipe. */
-  const [away, setAway] = useState(false);
+  /** Whether the table is zoomed in after a plate brought up close. */
+  const [zoomed, setZoomed] = useState(false);
   const pick = useCallback((i: number) => setWant((w) => (w === i ? null : i)), []);
+  const close = useCallback(() => setWant(null), []);
   const gone = useCallback(() => {
-    setShift(null);
-    setAway(false);
+    setZoomed(false);
     setShown(null);
   }, []);
   useEffect(() => {
@@ -310,27 +310,26 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
     };
   }, [want]);
 
-  // Put straight back — no hands — for the editor, a play, or a window of
-  // another size, which would have the plate somewhere else.
+  // Put straight back — no hands — for the editor, or a play.
   useEffect(() => {
     setWant(null);
     setShown(null);
-    setShift(null);
-    setAway(false);
-  }, [editing, plays, win?.width]);
-
-  /** Where the window, and the section below the nav, are on the table, as
-   *  a recipe is brought: it is laid in the window. */
-  const tableRef = useRef<HTMLDivElement>(null);
-  const [at, setAt] = useState({ top: 0, least: 0 });
-  useLayoutEffect(() => {
-    const t = tableRef.current?.getBoundingClientRect();
-    const s = tableRef.current?.parentElement?.getBoundingClientRect();
-    if (shown !== null && t && s) setAt({ top: -t.top, least: s.top - t.top });
-  }, [shown]);
+    setZoomed(false);
+  }, [editing, plays]);
 
   const open = shown === null ? undefined : layout.laid[shown];
   const recipe = open && recipes[open.id];
+
+  /** Where the open plate is in the window, now. */
+  const tableRef = useRef<HTMLDivElement>(null);
+  const openRef = useRef(open);
+  openRef.current = open;
+  const locate = useCallback(() => {
+    const t = tableRef.current?.getBoundingClientRect();
+    const p = openRef.current?.plate;
+    const s = scaleRef.current;
+    return t && p ? { x: t.left + p.x * s, y: t.top + p.y * s } : { x: 0, y: 0 };
+  }, []);
 
   /* -------------------------------------------------------------- size */
 
@@ -352,7 +351,14 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
         <div
           ref={tableRef}
           className={styles.table}
-          style={{ width: win.width, marginLeft: -win.width / 2 }}
+          style={{
+            width: win.width,
+            marginLeft: -win.width / 2,
+            // Zoomed in after the plate brought up close, about where it was.
+            transform: zoomed ? "scale(1.3)" : undefined,
+            transformOrigin: open ? `${open.plate.x * scale}px ${open.plate.y * scale}px` : undefined,
+            transition: open ? "transform 1100ms cubic-bezier(0.55, 0, 0.25, 1)" : undefined,
+          }}
           onPointerDown={editing ? () => setSelected(null) : undefined}
         >
           {showing ? <Tablecloth still={still} length={clothLength.current} onDown={onDown} /> : null}
@@ -367,28 +373,34 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
               hands={editing && hands && !playing}
               onArrived={played}
               pick={editing ? undefined : pick}
-              shift={shown !== null && shift ? { ...shift, i: shown } : undefined}
-              away={shown !== null && recipe ? { except: shown, out: away } : undefined}
+              hide={recipe ? (shown ?? undefined) : undefined}
             />
           ) : null}
-          {showing && down && open ? (
-            <RecipeReveal
+          {showing && down && open && !recipe ? (
+            <RecipeRing
               key={`${shown}-${open.id}`}
               setting={open}
               scale={scale}
-              view={win}
-              length={clothLength.current}
-              top={at.top}
-              least={at.least}
-              recipe={recipe}
               line={lostLine(open.id, open.bake.title)}
               leave={want !== shown}
-              onShift={setShift}
-              onAway={setAway}
               onGone={gone}
             />
           ) : null}
         </div>
+      ) : null}
+
+      {showing && down && open && recipe ? (
+        <RecipeView
+          key={`${shown}-${open.id}`}
+          setting={open}
+          scale={scale}
+          recipe={recipe}
+          locate={locate}
+          leave={want !== shown}
+          onClose={close}
+          onZoom={setZoomed}
+          onGone={gone}
+        />
       ) : null}
 
       {TableEditor && !still && showing ? (

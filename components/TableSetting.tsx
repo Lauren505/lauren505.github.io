@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import Drawn from "@/components/Drawn";
-import { outOf, type Laid, type Piece, type Shift, type Vec } from "@/components/bakeryLayout";
+import { outOf, type Laid, type Piece, type Vec } from "@/components/bakeryLayout";
 import { TABLE_WIDTH } from "@/content";
 import styles from "./TableSetting.module.css";
 
@@ -30,28 +30,13 @@ const SLIDE = 950;
 const REST = 160;
 const RETREAT = 700;
 
-/** A piece moved from where it is laid, in the window's pixels — see
- *  RecipeReveal — after `delay`. */
-type Moved = Shift & { delay?: number };
-
-/** How long the rest of the table takes to go off the window, or come back,
- *  when a recipe is brought; one piece starting after another, outwards from
- *  the plate the recipe is for. */
-const AWAY = 800;
-const RIPPLE = 320;
-
-/** One piece, placed by its middle and scaled to the window — and moved,
- *  `shift`. */
-const place = (p: Piece, scale: number, shift?: Moved): React.CSSProperties => ({
+/** One piece, placed by its middle and scaled to the window. */
+const place = (p: Piece, scale: number): React.CSSProperties => ({
   left: (p.x - p.width / 2) * scale,
   top: (p.y - p.height / 2) * scale,
   width: p.width * scale,
   height: p.height * scale,
-  transform:
-    [shift ? `translate(${shift.dx}px, ${shift.dy}px)` : "", p.rotate ? `rotate(${p.rotate}deg)` : ""]
-      .join(" ")
-      .trim() || undefined,
-  transition: shift?.ms ? `transform ${shift.ms}ms ${shift.ease} ${shift.delay ?? 0}ms` : undefined,
+  transform: p.rotate ? `rotate(${p.rotate}deg)` : undefined,
 });
 
 /** How far a piece has to go along `way` to be off the window as the table
@@ -78,21 +63,21 @@ function Hold({
   piece,
   scale,
   edit,
-  shift,
+  hidden = false,
   children,
 }: {
   part: Part;
   piece: Piece;
   scale: number;
   edit?: Edit;
-  shift?: Moved;
+  hidden?: boolean;
   children: React.ReactNode;
 }) {
   const on = samePart(edit?.selected ?? null, part);
   return (
     <div
       className={styles.piece}
-      style={place(piece, scale, shift)}
+      style={{ ...place(piece, scale), visibility: hidden ? "hidden" : undefined }}
       data-editing={edit ? "" : undefined}
       data-selected={on || undefined}
       onPointerDown={edit ? (e) => edit.grab(part, "move", e) : undefined}
@@ -126,8 +111,8 @@ function Hold({
  * their plates. `onArrived` is told once the table is laid.
  *
  * Otherwise, once it is laid, every dessert can be clicked — `pick` is told
- * which — and `shift` moves one setting's plate and dessert, and `away`
- * everything else on the table off the window, and back: see RecipeReveal.
+ * which — and `hide` takes one setting off the table while its recipe is
+ * out: see RecipeView, which has it up close instead.
  */
 export default function TableSetting({
   laid,
@@ -138,8 +123,7 @@ export default function TableSetting({
   hands = false,
   onArrived,
   pick,
-  shift,
-  away,
+  hide,
 }: {
   laid: Laid[];
   cutlery: Piece[];
@@ -149,9 +133,7 @@ export default function TableSetting({
   hands?: boolean;
   onArrived?: () => void;
   pick?: (i: number) => void;
-  shift?: Shift & { i: number };
-  /** Everything but setting `except` off the window, or on its way back. */
-  away?: { except: number; out: boolean };
+  hide?: number;
 }) {
   /** Where each setting comes, top of the page first: in the order they are
    *  set down, and in which their pictures are fetched. */
@@ -241,26 +223,6 @@ export default function TableSetting({
     style: { animationDelay: `${start(i) + SLIDE * 0.8}ms` },
   });
 
-  /** Off the window to the nearer side, for everything but the plate a
-   *  recipe is for — and back, the nearest to it first out and last in. */
-  const from = away ? laid[away.except]?.plate : undefined;
-  const sweep = (p: Piece, r: number): Moved | undefined => {
-    if (!away || !from) return undefined;
-    const ripple = Math.min(RIPPLE, Math.hypot(p.x - from.x, p.y - from.y) * 0.3);
-    const dx = p.x < TABLE_WIDTH / 2 ? -(p.x + r + 40) : TABLE_WIDTH - p.x + r + 40;
-    return away.out
-      ? { dx: dx * scale, dy: 0, ms: AWAY, ease: "cubic-bezier(0.5, 0, 0.6, 1)", delay: ripple }
-      : { dx: 0, dy: 0, ms: AWAY, ease: "cubic-bezier(0.25, 0.7, 0.3, 1)", delay: RIPPLE - ripple };
-  };
-  const moved = (i: number) => {
-    if (shift?.i === i) return shift;
-    if (away && away.except !== i) {
-      const s = laid[i];
-      return sweep(s.plate, Math.max(reach(s.plate, s.plate), reach(s.dessert, s.plate)));
-    }
-    return undefined;
-  };
-
   /** Which setting a piece of cutlery comes with, as it is set down: the one
    *  whose plate is nearest. */
   const nearest = (c: Piece) => {
@@ -286,7 +248,6 @@ export default function TableSetting({
           piece={c}
           scale={scale}
           edit={edit}
-          shift={sweep(c, Math.hypot(c.width, c.height) / 2)}
         >
           <div {...set(nearest(c))}>
             <Drawn image={c.image} width={c.width * scale} />
@@ -296,13 +257,13 @@ export default function TableSetting({
 
       {[...rank.keys()].map((i) => [laid[i], i] as const).map(([s, i]) => (
         <div key={`${s.id}-${i}`} className={styles.setting}>
-          <Hold part={{ i, part: "plate" }} piece={s.plate} scale={scale} edit={edit} shift={moved(i)}>
+          <Hold part={{ i, part: "plate" }} piece={s.plate} scale={scale} edit={edit} hidden={hide === i}>
             <div {...slide(i, s.plate)}>
               <Drawn image={s.plate.image} width={s.plate.width * scale} />
             </div>
           </Hold>
 
-          <Hold part={{ i, part: "dessert" }} piece={s.dessert} scale={scale} edit={edit} shift={moved(i)}>
+          <Hold part={{ i, part: "dessert" }} piece={s.dessert} scale={scale} edit={edit} hidden={hide === i}>
             <div {...slide(i, s.dessert)}>
               <div className={styles.bake}>
                 {picking ? (

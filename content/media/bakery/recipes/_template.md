@@ -12,6 +12,9 @@
                            or a "## Portion" section of its own)
     ## Ingredients         a list; "### Sub-headings" split it into groups
     ## Steps               a numbered list, in order ("## Method" works too)
+    ![A caption](photo.jpg) a photo, tied to the card with twine — put the
+                           picture in this folder, or a folder of its own
+                           ("matcha_roll/photo.jpg"); name as many as you like
   Any other "## Section" is printed after the steps as notes. *Italic* and
   **bold** work anywhere. Comments like this one are left out.
 -->

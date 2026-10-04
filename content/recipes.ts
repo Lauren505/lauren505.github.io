@@ -1,10 +1,12 @@
+import type { StaticImageData } from "next/image";
 import { anyLost, lost } from "./lostRecipes";
 
 /**
  * The bakery's recipes, read straight off media/bakery/recipes/: one markdown
  * file per dessert, named for it — matcha_roll.md for matcha_roll.png. See
  * _template.md there for what goes in one; anything starting with an
- * underscore is left out.
+ * underscore is left out. Photos for a recipe go in the same folder, or one
+ * of its own, and the recipe names them: ![The roll, sliced](matcha_roll.jpg).
  */
 
 export type Recipe = {
@@ -18,7 +20,12 @@ export type Recipe = {
   /** Any other section, as paragraphs, each under its heading if it opens
    *  one. */
   notes: { heading?: string; text: string }[];
+  /** Photos, tied to the recipe card, in the order the file names them. */
+  photos: { image: StaticImageData; alt: string }[];
 };
+
+/** A recipe as its file has it: the photos only named, not yet looked up. */
+type Parsed = Omit<Recipe, "photos"> & { named: { src: string; alt: string }[] };
 
 /** Each file's text: next.config.mjs has markdown read as a string (see
  *  markdown-loader.cjs). */
@@ -27,6 +34,17 @@ const files = import.meta.glob("./media/bakery/recipes/*.md", {
   import: "default",
   caseSensitive: false,
 }) as Record<string, string>;
+
+const pictures = import.meta.glob(
+  [
+    "./media/bakery/recipes/**/*.jpg",
+    "./media/bakery/recipes/**/*.jpeg",
+    "./media/bakery/recipes/**/*.png",
+    "./media/bakery/recipes/**/*.webp",
+    "./media/bakery/recipes/**/*.avif",
+  ],
+  { eager: true, import: "default", caseSensitive: false },
+) as Record<string, StaticImageData>;
 
 type Section = "intro" | "portion" | "ingredients" | "steps" | "notes";
 
@@ -39,13 +57,14 @@ const sectionOf = (heading: string): Section =>
         ? "portion"
         : "notes";
 
+const IMAGE = /^!\[([^\]]*)\]\(\s*<?([^)>]+?)>?(?:\s+"[^"]*")?\s*\)$/;
 const ITEM = /^(?:[-*+]|\d+[.)])\s+(.*)$/;
 const PORTION = /^(?:portions?|serves|servings|makes|yield)\s*:\s*(.+)$/i;
 
 /** One recipe file, read leniently: whatever it has of a name, a portion,
  *  ingredients and steps. */
-const parseRecipe = (id: string, text: string): Recipe => {
-  const recipe: Recipe = { id, name: "", ingredients: [], steps: [], notes: [] };
+const parseRecipe = (id: string, text: string): Parsed => {
+  const recipe: Parsed = { id, name: "", ingredients: [], steps: [], notes: [], named: [] };
   let section: Section = "intro";
   let heading: string | undefined;
   /** Where a line goes that carries on the one before it — an item or a
@@ -87,6 +106,11 @@ const parseRecipe = (id: string, text: string): Recipe => {
       carry = null;
       continue;
     }
+    if ((m = IMAGE.exec(line))) {
+      recipe.named.push({ alt: m[1], src: m[2].trim() });
+      carry = null;
+      continue;
+    }
     const portion = section !== "ingredients" && section !== "steps" && PORTION.exec(line.replace(/[*_]/g, ""));
     if (portion) {
       recipe.portion = portion[1].trim();
@@ -116,11 +140,25 @@ const parseRecipe = (id: string, text: string): Recipe => {
 
 const stem = (path: string) => path.replace(/^.*\//, "").replace(/\.[^.]+$/, "");
 
+/** A photo a recipe names, looked up in the recipes folder. */
+const photo = ({ src, alt }: Parsed["named"][number], id: string) => {
+  const want = `./media/bakery/recipes/${src.replace(/^\.?\//, "")}`.toLowerCase();
+  const path = Object.keys(pictures).find((p) => p.toLowerCase() === want);
+  if (!path && process.env.NODE_ENV !== "production") {
+    console.warn(`recipes: ${id}.md names a photo, "${src}", that is not in media/bakery/recipes/.`);
+  }
+  return path ? [{ image: pictures[path], alt }] : [];
+};
+
 /** Every recipe there is, by the dessert it is for. */
 export const recipes: Record<string, Recipe> = Object.fromEntries(
   Object.keys(files)
     .filter((path) => !stem(path).startsWith("_"))
-    .map((path) => [stem(path), parseRecipe(stem(path), files[path])]),
+    .map((path) => {
+      const id = stem(path);
+      const { named, ...recipe } = parseRecipe(id, files[path]);
+      return [id, { ...recipe, photos: named.flatMap((n) => photo(n, id)) }];
+    }),
 );
 
 /** What is written around the plate of a dessert with no recipe: its own

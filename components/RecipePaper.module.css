@@ -3,6 +3,8 @@
    flush left under their numbers. Warm black ink, not quite black. */
 .paper {
   position: relative;
+  display: flex;
+  flex-direction: column;
   color: #3b3431;
   font-size: 15px;
   line-height: 1.55;
@@ -18,9 +20,14 @@
   pointer-events: none;
 }
 
+/* The words start a little way down the card, as a menu's do, and the
+   photos, if there are any, sit at its foot. */
 .words {
   position: relative;
-  padding: calc(var(--bleed) + 2.6em) calc(var(--bleed) + 2.4em) calc(var(--bleed) + 2.8em);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--bleed) + 4.2em) var(--pad-x) calc(var(--bleed) + 3.4em);
 }
 
 .the {
@@ -114,4 +121,72 @@
 
 .paper strong {
   font-weight: 600;
+}
+
+/* ------------------------------------------------------- tied-on photos */
+
+.photos {
+  position: relative;
+  flex: none;
+  margin-top: auto;
+  padding-top: 2em;
+  box-sizing: content-box;
+}
+
+.kraft {
+  position: absolute;
+  margin: 0;
+  padding: 7%;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 240, 215, 0.25), transparent 60%),
+    #ad8a64;
+  box-shadow: 0 2px 6px rgba(60, 40, 25, 0.25);
+}
+
+.photo {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.photo img {
+  object-fit: cover;
+}
+
+.sprig {
+  position: absolute;
+  transform-origin: 50% 50%;
+  pointer-events: none;
+}
+
+.tie {
+  position: absolute;
+  top: 0;
+  pointer-events: none;
+}
+
+.twine {
+  display: block;
+  overflow: visible;
+}
+
+.strand {
+  fill: none;
+  stroke: #c9ad83;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.twist {
+  fill: none;
+  stroke: #8d7151;
+  stroke-width: 1;
+  stroke-dasharray: 1.4 3.2;
+  stroke-linecap: round;
+}
+
+.knot {
+  fill: #b3966d;
 }

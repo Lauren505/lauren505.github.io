@@ -1,28 +1,13 @@
-/* Over the table and everything on it, the length of it, cut off at the
-   window's edges like the table is — the hands come from beyond them. It
-   lets the pointer through to the table, but for the paper, which can be
-   read, and copied from. */
-.reveal {
+/* Over the table, the length of it, cut off at the window's edges like the
+   table is; the pointer goes through it to the table. */
+.layer {
   position: absolute;
   inset: 0;
   overflow: clip;
   pointer-events: none;
 }
 
-.paper,
-.hand {
-  position: absolute;
-  left: 0;
-  top: 0;
-  will-change: transform;
-}
-
-.paper {
-  pointer-events: auto;
-}
-
-/* ------------------------------------------------- written round a plate */
-
+/* The words around a plate with no recipe. */
 .ring {
   position: absolute;
   overflow: visible;

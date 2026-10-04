@@ -1,13 +1,20 @@
 "use client";
 
+import Image from "next/image";
 import { Fragment, useId, useLayoutEffect, useRef, useState } from "react";
+import Drawn from "@/components/Drawn";
 import { garamond, script } from "@/components/recipeFonts";
-import type { Recipe } from "@/content";
+import { decorations, type Recipe } from "@/content";
 import styles from "./RecipePaper.module.css";
 
 /** How far in from the box the sheet's edge is, in pixels: room for its torn
  *  edge to wander out, and for its shadow. */
 const BLEED = 12;
+/** How far in from the sheet's edge the words are, at the sides. */
+const PAD_X = BLEED + 36;
+
+/** The sprig tucked under the twine. */
+const SPRIG = decorations.find((d) => d.id === "flower3")?.image;
 
 /** *Italic* and **bold**, which is all a recipe needs of markdown in a line. */
 const inline = (text: string) =>
@@ -83,20 +90,110 @@ function Sheet({ width, height }: { width: number; height: number }) {
   );
 }
 
+/** A length of garden twine across the card, two strands twisted, tied in
+ *  a bow at `knot` — `width` long, its strands `at` down from the top. */
+function Twine({ width, at, knot }: { width: number; at: number; knot: number }) {
+  const y = at;
+  const strand = (dy: number, wob: number) =>
+    `M 0 ${y + dy} C ${width * 0.3} ${y + dy + wob}, ${width * 0.6} ${y + dy - wob}, ${width} ${y + dy + wob / 2}`;
+  const k = knot;
+  const loops = [
+    `M ${k} ${y} C ${k - 30} ${y - 26}, ${k - 40} ${y + 6}, ${k} ${y + 1}`,
+    `M ${k} ${y} C ${k + 30} ${y - 24}, ${k + 42} ${y + 8}, ${k} ${y + 1}`,
+  ];
+  const tails = [
+    `M ${k} ${y + 1} C ${k - 6} ${y + 16}, ${k - 16} ${y + 26}, ${k - 22} ${y + 44}`,
+    `M ${k} ${y + 1} C ${k + 8} ${y + 14}, ${k + 12} ${y + 30}, ${k + 24} ${y + 40}`,
+  ];
+  const all = [strand(-1.5, 3), strand(1.5, -2), ...loops, ...tails];
+  return (
+    <svg className={styles.twine} width={width} height={y + 60} aria-hidden>
+      {all.map((d, i) => (
+        <path key={`b${i}`} d={d} className={styles.strand} />
+      ))}
+      {/* The twist of it. */}
+      {all.map((d, i) => (
+        <path key={`t${i}`} d={d} className={styles.twist} />
+      ))}
+      <circle cx={k} cy={y + 1} r={3.2} className={styles.knot} />
+    </svg>
+  );
+}
+
+/** The recipe's photos, each on a square of kraft card, tied to the card
+ *  with twine and a sprig, hanging off it on the side `toward`. */
+function Photos({ photos, width, toward }: { photos: Recipe["photos"]; width: number; toward: "left" | "right" }) {
+  const w = Math.round(width * 0.56);
+  const h = Math.round(w * 0.8);
+  const over = w * 0.24;
+  const left = toward === "right" ? width - w + over : -over;
+  const fan = 16;
+  const high = h + 40 + (photos.length - 1) * fan;
+  const knot = toward === "right" ? left + w * 0.22 : left + w * 0.78;
+  const span = { x0: Math.min(left, BLEED), x1: Math.max(left + w, width - BLEED) };
+  return (
+    <div className={styles.photos} style={{ height: high, marginLeft: -PAD_X, width }}>
+      {[...photos].reverse().map((p, n) => {
+        const k = photos.length - 1 - n;
+        const inward = (toward === "right" ? -1 : 1) * k * w * 0.14;
+        return (
+          <figure
+            key={k}
+            className={styles.kraft}
+            style={{
+              left: left + inward,
+              top: 14 + (photos.length - 1 - k) * fan,
+              width: w,
+              height: h,
+              transform: `rotate(${[-2.5, 3, -1.2, 2][k % 4]}deg)`,
+            }}
+          >
+            <div className={styles.photo}>
+              <Image src={p.image} alt={p.alt} fill sizes={`${w}px`} />
+            </div>
+          </figure>
+        );
+      })}
+      {SPRIG ? (
+        <div
+          className={styles.sprig}
+          style={{
+            left: knot - h * 0.5,
+            top: 14 + h * 0.1,
+            width: h * 0.75,
+            transform: `rotate(${toward === "right" ? -38 : 38}deg) scaleX(${toward === "right" ? 1 : -1})`,
+          }}
+        >
+          <Drawn image={SPRIG} width={h * 0.75} />
+        </div>
+      ) : null}
+      <div className={styles.tie} style={{ left: span.x0 }}>
+        <Twine width={span.x1 - span.x0} at={14 + h * 0.46} knot={knot - span.x0} />
+      </div>
+    </div>
+  );
+}
+
 /**
  * A recipe, printed on a card of handmade paper the way a menu is: the name
- * under a flourish, what it makes, then the ingredients and the steps. It is
- * `width` wide and as long as the recipe; `onHeight` is told how long that is.
+ * under a flourish, what it makes, then the ingredients and the steps, and
+ * its photos tied on at the foot, hanging off the side `toward`. It is
+ * `width` wide and as long as the recipe, or `minHeight` if that is longer;
+ * `onHeight` is told how long it is.
  */
 export default function RecipePaper({
   recipe,
   title,
   width,
+  minHeight = 0,
+  toward = "right",
   onHeight,
 }: {
   recipe: Recipe;
   title: string;
   width: number;
+  minHeight?: number;
+  toward?: "left" | "right";
   onHeight?: (h: number) => void;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -124,7 +221,7 @@ export default function RecipePaper({
     <div
       ref={box}
       className={`${styles.paper} ${garamond.className}`}
-      style={{ width, "--bleed": `${BLEED}px` } as React.CSSProperties}
+      style={{ width, minHeight, "--bleed": `${BLEED}px`, "--pad-x": `${PAD_X}px` } as React.CSSProperties}
     >
       {height ? <Sheet width={width} height={height} /> : null}
       <div className={styles.words}>
@@ -171,6 +268,8 @@ export default function RecipePaper({
             ))}
           </section>
         ) : null}
+
+        {recipe.photos.length ? <Photos photos={recipe.photos} width={width} toward={toward} /> : null}
       </div>
     </div>
   );
