@@ -33,6 +33,9 @@ const LET_GO = 600;
  *  out of sight. */
 const COME = [0.2, 0.7, 0.3, 1] as const;
 const GO = [0.3, 0.25, 0.6, 1] as const;
+/** Putting it back is quicker than bringing it: every part of it, the hand,
+ *  the card and the table, takes this much of the time it took to come. */
+const PUT_BACK = 0.6;
 const css = (c: readonly number[]) => `cubic-bezier(${c.join(", ")})`;
 
 /** Below this the dessert and its card cannot sit side by side: the dessert
@@ -384,9 +387,9 @@ export default function RecipeView({
       // gone as the hand is.
       for (const a of card.current?.getAnimations() ?? []) if (!(a instanceof CSSTransition)) a.cancel();
       setPaperUp(false);
-      await play(LET_GO, (u) => ({ s: 1, back: 1 - bezier(COME)(u) }));
+      await play(LET_GO * PUT_BACK, (u) => ({ s: 1, back: 1 - bezier(COME)(u) }));
       if (off.current) return;
-      await play(BRING, (u) => ({ s: ease(1 - u) }));
+      await play(BRING * PUT_BACK, (u) => ({ s: ease(1 - u) }));
       if (off.current) return;
       gone.current();
     })();
@@ -462,7 +465,7 @@ export default function RecipeView({
             left: paper.x,
             top: paper.y,
             transform: `translateY(${paperUp ? 0 : rise}px)`,
-            transition: calm || stage === "opening" ? "none" : `transform ${LET_GO + BRING * (1 - REACHED_AT)}ms ${css(GO)}`,
+            transition: calm || stage === "opening" ? "none" : `transform ${(LET_GO + BRING * (1 - REACHED_AT)) * PUT_BACK}ms ${css(GO)}`,
           }}
         >
           <RecipePaper
