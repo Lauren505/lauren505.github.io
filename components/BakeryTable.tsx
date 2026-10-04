@@ -359,6 +359,18 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
             marginLeft: -win.width / 2,
           }}
           onPointerDown={editing ? () => setSelected(null) : undefined}
+          // Ready to be looked closer at, as soon as the pointer is over a
+          // dessert: a layer of its own for the zoom (see RecipeView), made
+          // now, not on the click — the first time, for the length of the
+          // cloth, that takes long enough to be seen.
+          onPointerOver={
+            editing
+              ? undefined
+              : (e) => {
+                  const t = tableRef.current;
+                  if (t && (e.target as Element).closest("button[data-recipe-keep]")) t.style.willChange = "transform";
+                }
+          }
         >
           {showing ? <Tablecloth still={still} length={clothLength.current} onDown={onDown} /> : null}
           {showing && down ? (

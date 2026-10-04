@@ -16,7 +16,7 @@ const GRAB = decorations.find((d) => d.id === "hand4")?.image ?? decorations.fin
 /** The whole of it, from the table to the plate up close, in milliseconds:
  *  one movement, on one curve — away at once, and slowing all the way in, so
  *  the hand is soon there. */
-const BRING = 2500;
+const BRING = 2000;
 const CURVE = [0.25, 0.6, 0.45, 1] as const;
 /** Where along it — as a fraction of the way, after the curve — the hand
  *  has hold and the plate starts to come up, the table falling away; and how
@@ -274,7 +274,9 @@ export default function RecipeView({
     });
     const how: KeyframeAnimationOptions = { duration: calm ? 0 : ms, fill: "forwards", easing: "linear" };
     const moves = [
-      dish.current?.animate(frames.map((f) => ({ transform: f.dish })), how),
+      // The plate only when it moves: one standing still is left as it is,
+      // drawn sharp at the size it is (see settle).
+      frames.some((f) => f.dish !== frames[0].dish) ? dish.current?.animate(frames.map((f) => ({ transform: f.dish })), how) : undefined,
       hold(true)?.animate(frames.map((f) => ({ transform: f.table })), how),
       ground.current?.animate(frames.map((f) => ({ opacity: f.ground })), how),
       hand.current?.animate(frames.map((f) => ({ transform: f.hand })), how),
@@ -284,6 +286,17 @@ export default function RecipeView({
       () => undefined,
       () => undefined,
     );
+  };
+  /** The plate, brought up, set down where it is: no longer played, nor a
+   *  layer of its own — so the browser draws it again at the size it is up
+   *  close, not the size it was on the table, which is what the movement
+   *  was drawn from. The next movement takes it up again from there. */
+  const settle = () => {
+    const d = dish.current;
+    if (!d) return;
+    d.style.transform = frameAt(1).dish;
+    for (const a of d.getAnimations()) a.cancel();
+    d.style.willChange = "auto";
   };
   const still = () => {
     for (const a of playing.current) a.cancel();
@@ -350,6 +363,7 @@ export default function RecipeView({
       setDressed(true);
       await up;
       if (off.current) return;
+      settle();
       setPaperUp(true);
       // Then let go of.
       await play(LET_GO, (u) => ({ s: 1, back: bezier(GO)(u) }));
