@@ -128,16 +128,23 @@ function PieceView({
 
 const EASE_OUT = "cubic-bezier(0.16, 1, 0.3, 1)";
 const EASE_IN = "cubic-bezier(0.55, 0, 0.75, 0.2)";
-/** Off-window directions the pictures come in from, taken in turn so they
- *  arrive from every side rather than all from one. */
-const SIDES = [
-  [-1, -0.2],
-  [1, 0.15],
-  [0.25, 1],
-  [-0.3, -1],
-  [-1, 0.6],
-  [1, -0.55],
-];
+
+/** Where a picture landing at `r` starts from: just off whichever edge of
+ *  the window it lands nearest, level with where it lands, so it comes
+ *  straight in to its place. A picture across most of the window's width
+ *  comes from above or below rather than from one side of it. */
+function offEdge(r: DOMRect, vw: number, vh: number) {
+  const clear = 40;
+  // Below the fold, where only scrolling would show it: up from under it.
+  if (r.top >= vh) return { x: 0, y: vh * 0.5 };
+  const sides = [
+    { d: r.top, x: 0, y: -(r.bottom + clear) },
+    { d: vh - r.bottom, x: 0, y: vh - r.top + clear },
+  ];
+  if (r.width < vw * 0.8)
+    sides.push({ d: r.left, x: -(r.right + clear), y: 0 }, { d: vw - r.right, x: vw - r.left + clear, y: 0 });
+  return sides.reduce((a, b) => (b.d < a.d ? b : a));
+}
 
 /** Moves and sizes an element from the window rectangle `a` to `b` — by its
  *  size rather than a scale, so the picture in it is cropped, not stretched,
@@ -151,8 +158,8 @@ const travel = (a: DOMRect, b: DOMRect) => [
  * A project, opened from the reel, as a newspaper page across the whole
  * window. The cover lifts off the reel to its place on the page, the reel's
  * other covers are shoved off either side, and the project's own pictures
- * gather in from every edge of the window, tilted, and straighten as they
- * settle into the page. Closing sends them back out the way they came and the
+ * gather in, each from the edge of the window nearest its place on the page,
+ * tilted a little, and straighten as they settle into it. Closing sends them back out the way they came and the
  * cover back to its place on the reel; `home` says where that is.
  *
  * The page fits the window, so nothing has to be scrolled to: it is laid out
@@ -285,24 +292,17 @@ export default function ProjectSpread({
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     root.current?.querySelectorAll("[data-fly]").forEach((el, i) => {
-      const r = el.getBoundingClientRect();
-      const [sx, sy] = SIDES[i % SIDES.length];
-      // Far enough out along that side to start off the window, from wherever
-      // the piece is going to land.
-      const far = Math.hypot(vw, vh) * (0.7 + Math.random() * 0.25);
-      const tx = sx * far - (r.left + r.width / 2 - vw / 2) * 0.3;
-      const ty = sy * far - (r.top + r.height / 2 - vh / 2) * 0.3;
-      const tilt = (Math.random() - 0.5) * 50;
-      const out = `translate(${tx}px, ${ty}px) rotate(${tilt}deg) scale(0.7)`;
+      const { x, y } = offEdge(el.getBoundingClientRect(), vw, vh);
+      const tilt = (Math.random() - 0.5) * 16;
+      const out = `translate(${x}px, ${y}px) rotate(${tilt}deg)`;
       offsets.current.set(el, out);
       el.animate(
         [
-          { transform: out, opacity: 0 },
-          { opacity: 1, offset: 0.25 },
+          { transform: out },
           // Over the mark a touch, as a pile of prints pushed together does,
           // and back.
           { transform: `rotate(${-tilt * 0.06}deg) scale(1.015)`, offset: 0.82 },
-          { transform: "none", opacity: 1 },
+          { transform: "none" },
         ],
         { duration: 1150, delay: 120 + i * 65, easing: EASE_OUT, fill: "backwards" },
       );
@@ -337,9 +337,9 @@ export default function ProjectSpread({
       runs.push(
         el.animate(
           [
-            { transform: "none", opacity: 1 },
-            { opacity: 1, offset: 0.7 },
-            { transform: out, opacity: 0 },
+            // Back out past the edge they came in from.
+            { transform: "none" },
+            { transform: out },
           ],
           { duration: 560, delay: i * 25, easing: EASE_IN, fill: "forwards" },
         ).finished,
