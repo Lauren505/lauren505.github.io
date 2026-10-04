@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import type { StaticImageData } from "next/image";
 import { CLOTH } from "@/components/clothPattern";
 import styles from "./Drawn.module.css";
@@ -136,6 +136,17 @@ const silhouette = (alpha: Uint8ClampedArray, w: number, h: number, close: numbe
   return inside;
 };
 
+/** Every drawing's fill, once worked out — it takes a moment — so the same
+ *  drawing shown again, as a plate's copy brought up close is, is filled from
+ *  its very first frame, and never shows the cloth through it. */
+const fills = new Map<string, ImageData>();
+
+const paint = (canvas: HTMLCanvasElement, fill: ImageData) => {
+  canvas.width = fill.width;
+  canvas.height = fill.height;
+  canvas.getContext("2d")?.putImageData(fill, 0, 0);
+};
+
 /**
  * One of the uploaded line drawings — a plate, a fork, a hand — filled with the cloth's
  * colour inside its outline, so it lies on top of the tablecloth rather than
@@ -158,9 +169,16 @@ export default function Drawn({
   const ref = useRef<HTMLCanvasElement>(null);
   const height = (width * image.height) / image.width;
 
-  useEffect(() => {
+  // Before it is first painted, if it has been worked out already.
+  useLayoutEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
+    const key = `${image.src}|${openFoot}`;
+    const known = fills.get(key);
+    if (known) {
+      paint(canvas, known);
+      return;
+    }
     let gone = false;
     const img = new Image();
     img.onload = () => {
@@ -188,9 +206,13 @@ export default function Drawn({
         px.data[i * 4 + 2] = b;
         px.data[i * 4 + 3] = inside[i] ? 255 : 0;
       }
-      canvas.width = w - pad * 2;
-      canvas.height = h - pad * 2;
-      canvas.getContext("2d")?.putImageData(px, -pad, -pad);
+      const fill = new ImageData(w - pad * 2, h - pad * 2);
+      for (let y = 0; y < fill.height; y++) {
+        const from = ((y + pad) * w + pad) * 4;
+        fill.data.set(px.data.subarray(from, from + fill.width * 4), y * fill.width * 4);
+      }
+      fills.set(key, fill);
+      paint(canvas, fill);
     };
     img.src = image.src;
     return () => {
