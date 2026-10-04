@@ -13,32 +13,30 @@ import styles from "./RecipeView.module.css";
 /** The hand that takes hold of the plate and brings it up to the reader. */
 const GRAB = decorations.find((d) => d.id === "hand4")?.image ?? decorations.find((d) => d.kind === "hand")?.image;
 
-/** The zoom: the plate brought up close, and the table zooming in after it
- *  — or both going back — as one movement, slow away and easing in to where
- *  it goes. Its curve is kept as numbers too, to work out when the plate is
- *  how far along. */
-export const ZOOM_MS = 1700;
-const CURVE = [0.6, 0, 0.3, 1] as const;
-export const ZOOM_EASE = `cubic-bezier(${CURVE.join(", ")})`;
-/** Settling: quick, then slowing to a stop. Leaving: slow to start, then
- *  away. */
+/** A zoom on the table, about the plate: TableSetting's table and the plate
+ *  brought up close are moved by the same one, so they keep together. */
+export type Zoom = { scale: number; ms: number; ease: string };
+
+/** How it goes, in milliseconds. First the table is looked at more closely —
+ *  zoomed in on the dessert, cloth and all — then the hand reaches in and
+ *  lifts the plate up to the reader, the table fading away behind it as it
+ *  does. */
+const LOOK = 1300;
+const REACH = 520;
+const LIFT = 1250;
+/** Looking closer: unhurried, either way. Lifting: slow away, and easing in
+ *  to where it goes. Settling: quick, then slowing to a stop. Leaving: slow
+ *  to start, then away. */
+const LOOK_EASE = "cubic-bezier(0.45, 0, 0.3, 1)";
+const LIFT_EASE = "cubic-bezier(0.55, 0, 0.25, 1)";
 const SETTLE = "cubic-bezier(0.2, 0.7, 0.3, 1)";
 const LEAVE = "cubic-bezier(0.5, 0, 0.75, 0)";
-
-/** When, as a fraction of the zoom, it is `p` of the way there — the CSS
- *  curve, solved backwards. */
-const timeAt = (p: number) => {
-  const [x1, y1, x2, y2] = CURVE;
-  const at = (a: number, b: number, s: number) => 3 * a * s * (1 - s) ** 2 + 3 * b * s * s * (1 - s) + s ** 3;
-  let lo = 0;
-  let hi = 1;
-  for (let n = 0; n < 30; n++) {
-    const mid = (lo + hi) / 2;
-    if (at(y1, y2, mid) < p) lo = mid;
-    else hi = mid;
-  }
-  return at(x1, x2, (lo + hi) / 2);
-};
+/** How close the table is looked at, at least and at most, before the hand
+ *  comes — as close as its arm needs to run off the window — and how much
+ *  closer still it seems to come as it falls away. */
+const LOOK_LEAST = 1.35;
+const LOOK_MOST = 2.2;
+const FALL = 1.2;
 
 /** Below this the dessert and its card cannot sit side by side: the dessert
  *  goes at the top, the card under it. */
@@ -52,11 +50,14 @@ const moving = (m: Move, what = "transform") =>
   m.ms ? `${what} ${m.ms}ms ${m.ease} ${m.delay ?? 0}ms` : "none";
 
 /**
- * A recipe, brought to the reader. A hand reaches up from the foot of the
- * window, takes hold of the plate and brings it up close — the plate growing
- * as it comes, gliding to its side of the window — while the table behind
- * zooms in after it and fades away, the cloth and every other plate with it,
- * to a plain ground. Then the recipe slides up beside it, on a tall card of
+ * A recipe, brought to the reader. First the table is looked at more closely
+ * — zoomed in on the dessert, cloth, plates and all. Then a hand reaches in
+ * from the nearest edge of the window, takes hold of the plate and brings it
+ * up close — the plate growing as it comes, gliding to its side of the window
+ * — and only then does the table fall away behind it, to a plain ground. The
+ * hand only comes once the plate is close enough for its arm to run off the
+ * window, so where it is cut off is never seen. Then the recipe slides up
+ * beside it, on a tall card of
  * handmade paper that runs off the top and the foot of the window, its photos
  * tied on facing the dessert. `leave` takes it all back the way it came;
  * `onGone` is told once the plate is down again.
@@ -81,8 +82,8 @@ export default function RecipeView({
   locate: () => Vec;
   leave: boolean;
   onClose: () => void;
-  /** Whether the table behind is to zoom in after the plate. */
-  onZoom: (on: boolean) => void;
+  /** How the table behind is zoomed, about the plate; null for not at all. */
+  onZoom: (z: Zoom | null) => void;
   onGone: () => void;
 }) {
   const calm = useMemo(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches, []);
@@ -146,20 +147,14 @@ export default function RecipeView({
    *  comes back to. */
   const [home, setHome] = useState(locate);
   type Pose = { x: number; y: number; k: number };
-  /** The plate `p` of the way up from the table — as the zoom moves it,
-   *  straight, and growing evenly. */
-  const along = (p: number, from: Vec = home): Pose => ({
-    x: from.x + p * (g.at.x - from.x),
-    y: from.y + p * (g.at.y - from.y),
-    k: 1 + p * (g.k - 1),
-  });
 
   /** Its fingertips over the plate's rim, `tip` from its middle, in the
    *  plate's own pixels as it was on the table. */
   const tip = R * 0.78;
 
   const h = useMemo(() => {
-    const final = along(1);
+    const final: Pose = { ...g.at, k: g.k };
+    const looked = (k: number): Pose => ({ ...home, k });
     /** How far the fingertips are from the window's edge, with the plate at
      *  `q`, coming from the edge `e` is towards. */
     const gap = (q: Pose, e: Vec) => {
@@ -167,47 +162,42 @@ export default function RecipeView({
       const y = q.y + e.y * q.k * tip;
       return e.x < 0 ? x : e.x > 0 ? W - x : e.y > 0 ? H - y : y;
     };
-    // From the edge nearest the plate where it ends up, which is where it is
-    // held longest.
     const edges: Vec[] = [
       { x: -1, y: 0 },
       { x: 1, y: 0 },
       { x: 0, y: 1 },
       { x: 0, y: -1 },
     ];
-    const e = edges.reduce((a, b) => (gap(final, b) < gap(final, a) ? b : a));
-    // Long enough to reach that edge, at least by the end.
-    const length = Math.max(2 * R * 0.95, (gap(final, e) + 60) / final.k);
-    /** Whether its arm runs off the window, with the plate at `q`. */
-    const reaches = (q: Pose) => gap(q, e) + 30 <= length * q.k;
-    // How far up the plate has to be, for that to hold from then on: the
-    // hand takes hold there, and not before.
-    let from = 1;
-    for (let p = 0; p <= 1; p += 0.02) {
-      let ok = true;
-      for (let q = p; q <= 1 && ok; q += 0.05) ok = reaches(along(q));
-      if (ok && reaches(final)) {
-        from = p;
+    const nearest = (q: Pose) => edges.reduce((a, b) => (gap(q, b) < gap(q, a) ? b : a));
+    const base = 2 * R * 0.95;
+    // As close as the table has to be looked at for the hand, from the
+    // nearest edge, to reach the plate with its arm still running off.
+    let look = LOOK_MOST;
+    for (let z = LOOK_LEAST; z <= LOOK_MOST + 1e-6; z += 0.05) {
+      const q = looked(z);
+      if (gap(q, nearest(q)) + 30 <= base * z) {
+        look = z;
         break;
       }
     }
-    /** How far back it has to be, in the plate's pixels, to be off the
-     *  window altogether, with the plate anywhere from the table to `upTo`. */
-    const out = (upTo: number) => {
-      let most = 0;
-      for (let q = 0; q <= upTo + 1e-6; q += 0.05) {
-        const pose = along(q);
-        most = Math.max(most, (gap(pose, e) + 40) / pose.k);
-      }
-      return most;
-    };
+    const from = looked(look);
+    const e = nearest(from);
+    /** Every pose it holds the plate in: where it takes hold, on the way up,
+     *  and where it lets go. */
+    const held = Array.from({ length: 11 }, (_, n): Pose => {
+      const p = n / 10;
+      return { x: from.x + p * (final.x - from.x), y: from.y + p * (final.y - from.y), k: from.k + p * (final.k - from.k) };
+    });
+    // Long enough for its arm to run off the window in all of them.
+    const length = Math.max(base, ...held.map((q) => (gap(q, e) + 40) / q.k));
     return {
+      look,
       e,
       length,
       width: GRAB ? length * (GRAB.width / GRAB.height) : 0,
       turn: (Math.atan2(-e.x, e.y) * 180) / Math.PI,
-      from,
-      off: Math.max(out(1), (gap(final, e) + 40) / final.k),
+      /** How far back it is, the way it came, when it is out of sight. */
+      off: Math.max(...held.map((q) => (gap(q, e) + 40) / q.k)),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [g, home, W, H, R, tip]);
@@ -233,47 +223,98 @@ export default function RecipeView({
   zoom.current = onZoom;
   const gone = useRef(onGone);
   gone.current = onGone;
+  const dish = useRef<HTMLDivElement>(null);
+  const hand = useRef<HTMLDivElement>(null);
 
-  // Brought up: the zoom starts, and the hand comes in from the nearest edge
-  // to take hold just as the plate is far enough up for its arm to run off
-  // the window — then brings it the rest of the way, and lets go.
+  /** The table and the plate on it looked at `k` times closer, about the
+   *  plate — the same move for both, so they keep together. */
+  const look = (k: number, at: Vec, ms: number, ease: string) => {
+    setPlateAt({ ...at, k, ms: ms * T, ease });
+    zoom.current({ scale: k, ms: ms * T, ease });
+  };
+
+  /** Once `el`'s own move has ended — not a move inside it — or, if it
+   *  never does (no motion, or the move already over), after `most`. */
+  const off = useRef(false);
+  useEffect(() => {
+    off.current = false;
+    return () => {
+      off.current = true;
+    };
+  }, []);
+  const ended = (el: React.RefObject<HTMLElement | null>, most: number) =>
+    new Promise<void>((resolve) => {
+      const node = el.current;
+      let t = 0;
+      const done = (e?: TransitionEvent) => {
+        if (e && (e.target !== node || e.propertyName !== "transform")) return;
+        node?.removeEventListener("transitionend", done);
+        window.clearTimeout(t);
+        if (!off.current) resolve();
+      };
+      if (!node || !T) return done();
+      node.addEventListener("transitionend", done);
+      t = window.setTimeout(() => done(), most);
+    });
+  const wait = (ms: number) => new Promise<void>((r) => later(ms, r));
+
+  // Brought up, each move after the last has ended — so they keep their
+  // order, however slow the frames.
   useEffect(() => {
     const { g, h } = now.current;
-    const reach = 450;
-    const held = 40 + ZOOM_MS * timeAt(h.from);
-    later(40, () => {
-      setPlateAt({ ...g.at, k: g.k, ms: ZOOM_MS * T, ease: ZOOM_EASE });
-      setGround({ on: true, ms: 1000 * T, ease: "ease-in" });
-      zoom.current(true);
-    });
-    later(Math.max(40, held - reach), () => setHandOff({ by: 0, ms: Math.min(reach, held - 40) * T, ease: SETTLE }));
-    later(40 + ZOOM_MS + 60, () => setHandOff({ by: h.off, ms: 500 * T, ease: LEAVE }));
-    later(40 + ZOOM_MS + 220, () => setPaperUp({ up: true, ms: 900 * T, ease: SETTLE }));
-    later(40 + ZOOM_MS + 1120, () => setStage("open"));
+    (async () => {
+      await wait(40);
+      // Looked at more closely, the hand reaching in as that slows…
+      look(h.look, home, LOOK, LOOK_EASE);
+      await wait(LOOK - REACH * 0.6);
+      setHandOff({ by: 0, ms: REACH * T, ease: SETTLE });
+      await ended(hand, REACH + 600);
+      await wait(60);
+      // …and once it has hold, lifting the plate up close, the table falling
+      // away behind it.
+      setPlateAt({ ...g.at, k: g.k, ms: LIFT * T, ease: LIFT_EASE });
+      zoom.current({ scale: h.look * FALL, ms: LIFT * T, ease: LIFT_EASE });
+      setGround({ on: true, ms: LIFT * 0.8 * T, ease: "ease-in-out" });
+      await ended(dish, LIFT + 600);
+      await wait(60);
+      setHandOff({ by: h.off, ms: 500 * T, ease: LEAVE });
+      await wait(160);
+      setPaperUp({ up: true, ms: 900 * T, ease: SETTLE });
+      await wait(900);
+      setStage("open");
+    })();
     // Once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Put back, the same way round: the card taken away, the hand takes hold
-  // and brings the plate back down, letting go as it gets too far for its arm
-  // to reach, and the plate lands where it was, as the table zooms back out
-  // under it.
+  // Put back, the same way round: the card taken away; the hand takes hold
+  // and sets the plate back down, the table coming back around it; and the
+  // table is looked at from where it was again — handed back to it once the
+  // plate is down.
   useEffect(() => {
     if (!leave || stage !== "open") return;
     setStage("closing");
     const { h } = now.current;
     const back = locate();
     setHome(back);
-    later(0, () => setPaperUp({ up: false, ms: 600 * T, ease: LEAVE }));
-    later(450, () => setHandOff({ by: 0, ms: 450 * T, ease: SETTLE }));
-    const down = 950;
-    later(down, () => {
-      setPlateAt({ ...back, k: 1, ms: ZOOM_MS * T, ease: ZOOM_EASE });
-      setGround({ on: false, ms: 1100 * T, ease: "ease-out", delay: (ZOOM_MS - 1100) * T });
-      zoom.current(false);
-    });
-    later(down + ZOOM_MS * timeAt(1 - h.from) - 150, () => setHandOff({ by: h.off, ms: 450 * T, ease: LEAVE }));
-    later(down + ZOOM_MS + 40, () => gone.current());
+    (async () => {
+      setPaperUp({ up: false, ms: 600 * T, ease: LEAVE });
+      await wait(450);
+      setHandOff({ by: 0, ms: REACH * T, ease: SETTLE });
+      await ended(hand, REACH + 600);
+      await wait(60);
+      setPlateAt({ ...back, k: h.look, ms: LIFT * T, ease: LIFT_EASE });
+      zoom.current({ scale: h.look, ms: LIFT * T, ease: LIFT_EASE });
+      setGround({ on: false, ms: LIFT * 0.8 * T, ease: "ease-in-out", delay: LIFT * 0.2 * T });
+      await ended(dish, LIFT + 600);
+      await wait(40);
+      setHandOff({ by: h.off, ms: 500 * T, ease: LEAVE });
+      await wait(300);
+      look(1, back, LOOK, LOOK_EASE);
+      await ended(dish, LOOK + 600);
+      zoom.current(null);
+      gone.current();
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leave, stage]);
 
@@ -299,6 +340,7 @@ export default function RecipeView({
       />
 
       <div
+        ref={dish}
         className={styles.dish}
         style={{
           transform: `translate(${plateAt.x}px, ${plateAt.y}px) scale(${plateAt.k})`,
@@ -310,6 +352,7 @@ export default function RecipeView({
         </div>
         {!calm && GRAB ? (
           <div
+            ref={hand}
             className={styles.piece}
             style={{
               left: h.e.x * (tip + h.length / 2) - h.width / 2,

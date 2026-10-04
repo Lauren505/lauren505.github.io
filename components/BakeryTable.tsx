@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import RecipeRing from "@/components/RecipeRing";
-import RecipeView, { ZOOM_EASE, ZOOM_MS } from "@/components/RecipeView";
+import RecipeView, { type Zoom } from "@/components/RecipeView";
 import Tablecloth from "@/components/Tablecloth";
 import TableSetting, { type Edit, type Grip, type Part } from "@/components/TableSetting";
 import { laidOut, layTable, placements, type Table } from "@/components/bakeryLayout";
@@ -283,12 +283,12 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
    *  one is being put away for another, is not the same one. */
   const [want, setWant] = useState<number | null>(null);
   const [shown, setShown] = useState<number | null>(null);
-  /** Whether the table is zoomed in after a plate brought up close. */
-  const [zoomed, setZoomed] = useState(false);
+  /** How the table is zoomed in on a plate brought up close. */
+  const [zoom, setZoom] = useState<Zoom | null>(null);
   const pick = useCallback((i: number) => setWant((w) => (w === i ? null : i)), []);
   const close = useCallback(() => setWant(null), []);
   const gone = useCallback(() => {
-    setZoomed(false);
+    setZoom(null);
     setShown(null);
   }, []);
   useEffect(() => {
@@ -314,7 +314,7 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
   useEffect(() => {
     setWant(null);
     setShown(null);
-    setZoomed(false);
+    setZoom(null);
   }, [editing, plays]);
 
   const open = shown === null ? undefined : layout.laid[shown];
@@ -359,10 +359,10 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
           style={{
             width: win.width,
             marginLeft: -win.width / 2,
-            // Zoomed in after the plate brought up close, about where it was.
-            transform: zoomed ? "scale(1.3)" : undefined,
-            transformOrigin: open ? `${open.plate.x * scale}px ${open.plate.y * scale}px` : undefined,
-            transition: open ? `transform ${ZOOM_MS}ms ${ZOOM_EASE}` : undefined,
+            // Zoomed in on a plate brought up close, about where it is.
+            transform: zoom ? `scale(${zoom.scale})` : undefined,
+            transformOrigin: zoom && open ? `${open.plate.x * scale}px ${open.plate.y * scale}px` : undefined,
+            transition: zoom?.ms ? `transform ${zoom.ms}ms ${zoom.ease}` : undefined,
           }}
           onPointerDown={editing ? () => setSelected(null) : undefined}
         >
@@ -403,7 +403,7 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
           locate={locate}
           leave={want !== shown}
           onClose={close}
-          onZoom={setZoomed}
+          onZoom={setZoom}
           onGone={gone}
         />
       ) : null}
