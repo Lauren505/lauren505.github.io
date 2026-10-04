@@ -8,11 +8,13 @@ import {
   COLS,
   FONT,
   LINE,
-  autoLayout,
   bottomOf,
+  fitLayout,
+  fitSaved,
+  makeMeasure,
   piecesOf,
-  readingOrder,
   type Piece,
+  type View,
 } from "@/components/projectLayout";
 import RichText from "@/components/RichText";
 import { projectLayouts, type LayoutItem, type Project } from "@/content";
@@ -47,13 +49,11 @@ function Video({ id, title }: { id: string; title: string }) {
 function PieceView({
   item,
   piece,
-  order,
   title,
   heroRef,
 }: {
   item: LayoutItem;
   piece: Piece;
-  order: number;
   title: string;
   heroRef: React.Ref<HTMLElement>;
 }) {
@@ -62,8 +62,6 @@ function PieceView({
     "--y": item.y,
     "--w": item.w,
     "--h": item.h,
-    "--ar": item.w / item.h,
-    order,
   } as React.CSSProperties;
 
   if (piece.kind === "media") {
@@ -85,7 +83,7 @@ function PieceView({
             className={styles.fill}
             src={m.image}
             alt={piece.cover ? title : (m.caption ?? "")}
-            sizes={`(max-width: 900px) 100vw, ${Math.ceil((item.w / COLS) * 100 * (crop.zoom ?? 1))}vw`}
+            sizes={`${Math.ceil((item.w / COLS) * 100 * (crop.zoom ?? 1))}vw`}
             placeholder="blur"
             preload={piece.cover}
             draggable={false}
@@ -106,6 +104,7 @@ function PieceView({
     ...place,
     "--font": FONT[kind] * (item.size ?? 1),
     "--line": LINE[kind],
+    columnCount: item.cols && item.cols > 1 ? item.cols : undefined,
   } as React.CSSProperties;
   const cls = `${styles.item} ${styles.text} ${styles[kind]}`;
   if (kind === "title")
@@ -156,9 +155,12 @@ const travel = (a: DOMRect, b: DOMRect) => [
  * settle into the page. Closing sends them back out the way they came and the
  * cover back to its place on the reel; `home` says where that is.
  *
- * Where each piece sits is the project's layout in content/projectLayouts.ts,
- * or one made up for it — see autoLayout. In development the page can be
- * rearranged in place — see ProjectEditor.
+ * The page fits the window, so nothing has to be scrolled to: it is laid out
+ * for the window it opens in, and again whenever that changes size — see
+ * fitLayout. A project arranged by hand in content/projectLayouts.ts is drawn
+ * as it was arranged, stretched to the window's height, on a wide window; an
+ * upright one is always laid out afresh, in one column. In development the
+ * page can be rearranged in place — see ProjectEditor.
  *
  * It is drawn over the whole window, nav and all, in a portal: the page's own
  * turns transform the tree it would otherwise be in.
@@ -191,19 +193,64 @@ export default function ProjectSpread({
 
   const pieces = useMemo(() => piecesOf(project), [project]);
   const fromFile = projectLayouts[project.slug];
-  /** The height each text came to, measured once it is on the page — for the
-   *  automatic layout, which can then fit its boxes to the words. A saved
-   *  layout is drawn as it was saved, so it has nothing to measure. */
-  const [fit, setFit] = useState<Record<string, number> | null>(fromFile ? {} : null);
-  const saved = useMemo(() => fromFile ?? autoLayout(project, fit ?? {}), [fromFile, project, fit]);
+  /** The window, as the page is fitted to it — measured, so unknown until
+   *  the page is up. */
+  const [view, setView] = useState<View | null>(null);
+  /** Counts the face finishing loading, which changes how long every text is. */
+  const [fonts, setFonts] = useState(0);
+  const measure = useMemo(
+    () => (mounted ? makeMeasure(getComputedStyle(document.body).fontFamily) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- measured again in the face once it is in
+    [mounted, fonts],
+  );
+  const auto = useMemo(
+    () => (view && measure ? fitLayout(project, view, measure) : null),
+    [project, view, measure],
+  );
+  const saved = useMemo(
+    () => (view ? (fromFile && !view.portrait ? fitSaved(fromFile, view.rows) : auto) : null),
+    [view, fromFile, auto],
+  );
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState<LayoutItem[]>(saved);
-  const layout = (editing ? draft : saved).filter((it) => pieces.has(it.key));
-  const order = readingOrder(layout);
-  // Room under the last piece — more while editing, to drag things into.
-  const rows = bottomOf(layout) + (editing ? 14 : 3);
+  const [draft, setDraft] = useState<LayoutItem[]>([]);
+  const layout = ((editing ? draft : saved) ?? []).filter((it) => pieces.has(it.key));
+  // The window's height — or more, where an upright window could not hold it
+  // all, and while editing, to drag things below the fold.
+  const rows = Math.max(view?.rows ?? 0, bottomOf(layout) + (editing ? 8 : 0));
 
   useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    document.fonts?.ready.then(() => setFonts((n) => n + 1));
+  }, []);
+
+  // The room the page has: the window under the masthead, less a margin at
+  // the foot, in units of the page's width.
+  useLayoutEffect(() => {
+    if (!mounted || !canvas) return;
+    const read = () => {
+      const box = canvas.getBoundingClientRect();
+      const u = box.width / COLS;
+      const top = box.top + (root.current?.scrollTop ?? 0);
+      const rows = Math.max(12, (window.innerHeight - top - Math.max(16, u * 1.2)) / u);
+      const portrait = window.innerHeight > window.innerWidth;
+      setView((v) =>
+        v && Math.abs(v.u - u) < 0.01 && Math.abs(v.rows - rows) < 0.05 && v.portrait === portrait
+          ? v
+          : { u, rows, portrait },
+      );
+    };
+    read();
+    let raf = 0;
+    const onResize = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(read);
+    };
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [mounted, canvas]);
 
   // Nothing under the spread scrolls while it is open.
   useEffect(() => {
@@ -215,24 +262,11 @@ export default function ProjectSpread({
     };
   }, []);
 
-  // The texts measured, before anything is painted: the page is laid out a
-  // second time from what they came to, and only then does it come in.
-  useLayoutEffect(() => {
-    if (!mounted || fit || !canvas) return;
-    const u = canvas.getBoundingClientRect().width / COLS;
-    const out: Record<string, number> = {};
-    canvas.querySelectorAll<HTMLElement>("[data-key]").forEach((el) => {
-      if (el.tagName === "FIGURE") return;
-      el.style.height = "auto";
-      out[el.dataset.key!] = el.getBoundingClientRect().height / u + 0.3;
-      el.style.height = "";
-    });
-    setFit(out);
-  }, [mounted, fit, canvas]);
-
+  // In once there is somewhere for everything to land — before the first
+  // paint, which is the page laid out.
   const arrived = useRef(false);
   useLayoutEffect(() => {
-    if (!mounted || !fit || arrived.current) return;
+    if (!mounted || !saved || arrived.current) return;
     arrived.current = true;
     closeBtn.current?.focus({ preventScroll: true });
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -283,7 +317,7 @@ export default function ProjectSpread({
         { duration: 700, delay: 380 + i * 80, easing: EASE_OUT, fill: "backwards" },
       );
     });
-  }, [mounted, fit, from]);
+  }, [mounted, saved, from]);
 
   const close = useCallback(() => {
     if (closing.current) return;
@@ -345,7 +379,7 @@ export default function ProjectSpread({
 
   const startEditing = useCallback(
     (on: boolean) => {
-      if (on) setDraft(saved);
+      if (on && saved) setDraft(saved);
       setEditing(on);
     },
     [saved],
@@ -376,7 +410,6 @@ export default function ProjectSpread({
                 key={it.key}
                 item={it}
                 piece={pieces.get(it.key)!}
-                order={order.get(it.key) ?? 0}
                 title={project.title}
                 heroRef={hero}
               />
@@ -384,13 +417,8 @@ export default function ProjectSpread({
           </div>
         </article>
 
-        <footer className={styles.foot} data-rise>
-          <button type="button" className={styles.back} onClick={close}>
-            ← Back to all projects
-          </button>
-        </footer>
       </div>
-      {ProjectEditor ? (
+      {ProjectEditor && view && saved ? (
         <ProjectEditor
           project={project}
           pieces={pieces}
@@ -399,7 +427,8 @@ export default function ProjectSpread({
           draft={draft}
           setDraft={setDraft}
           saved={saved}
-          relayout={() => autoLayout(project, fit ?? {})}
+          rows={view.rows}
+          relayout={() => (measure ? fitLayout(project, view, measure) : saved)}
           hasFile={!!fromFile}
           canvas={canvas}
         />

@@ -1,16 +1,17 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { LayoutItem } from "@/content";
+import type { LayoutItem, SavedLayout } from "@/content";
 
 /**
  * Where the project editor saves to, while `next dev` is running and never
- * otherwise: it sets one project's spread in content/projectLayouts.ts — or,
+ * otherwise: it sets one project's spread, and the height of the window it
+ * was arranged in, in content/projectLayouts.ts — or,
  * sent `null`, takes it out, so the project goes back to being laid out
  * automatically — and writes the file again. Next reloads the page from it.
  */
 
 const FILE = path.join(process.cwd(), "content", "projectLayouts.ts");
-const START = "export const projectLayouts: Record<string, LayoutItem[]> = ";
+const START = "export const projectLayouts: Record<string, SavedLayout> = ";
 
 const num = (v: unknown) => typeof v === "number" && Number.isFinite(v);
 
@@ -20,6 +21,7 @@ const validItem = (it: Record<string, unknown>) =>
   /^(title|dek|cover|[pm]\d+)$/.test(it.key) &&
   ["x", "y", "w", "h"].every((k) => num(it[k])) &&
   (it.size === undefined || num(it.size)) &&
+  (it.cols === undefined || num(it.cols)) &&
   (it.crop === undefined ||
     (typeof it.crop === "object" &&
       it.crop !== null &&
@@ -37,14 +39,20 @@ const clean = (it: LayoutItem): LayoutItem => ({
     ? { crop: { x: r(it.crop.x), y: r(it.crop.y), zoom: r(it.crop.zoom) } }
     : {}),
   ...(it.size && it.size !== 1 ? { size: r(it.size) } : {}),
+  ...(it.cols && it.cols > 1 ? { cols: Math.round(it.cols) } : {}),
 });
 
 /** One piece to a line, so a change to the file reads as the pieces moved. */
-const write = (all: Record<string, LayoutItem[]>) => {
+const write = (all: Record<string, SavedLayout>) => {
   const slugs = Object.keys(all).sort();
   if (!slugs.length) return "{}";
   const body = slugs
-    .map((s) => `  ${JSON.stringify(s)}: [\n${all[s].map((it) => `    ${JSON.stringify(it)},`).join("\n")}\n  ],`)
+    .map(
+      (s) =>
+        `  ${JSON.stringify(s)}: {\n    "rows": ${all[s].rows},\n    "items": [\n${all[s].items
+          .map((it) => `      ${JSON.stringify(it)},`)
+          .join("\n")}\n    ],\n  },`,
+    )
     .join("\n");
   return `{\n${body}\n}`;
 };
@@ -55,11 +63,14 @@ export async function POST(request: Request) {
   }
   const body = await request.json().catch(() => null);
   const slug = body?.slug;
-  const layout = body?.layout;
+  const layout = body?.layout as SavedLayout | null | undefined;
   if (typeof slug !== "string" || !/^[\w-]+$/.test(slug)) {
     return Response.json({ error: "No project named." }, { status: 400 });
   }
-  if (layout !== null && !(Array.isArray(layout) && layout.every(validItem))) {
+  if (
+    layout !== null &&
+    !(layout && num(layout.rows) && layout.rows > 0 && Array.isArray(layout.items) && layout.items.every(validItem))
+  ) {
     return Response.json({ error: "That is not a layout." }, { status: 400 });
   }
 
@@ -69,7 +80,7 @@ export async function POST(request: Request) {
   if (from < 0 || end < from) {
     return Response.json({ error: `Could not find "${START}…;" in content/projectLayouts.ts.` }, { status: 500 });
   }
-  let all: Record<string, LayoutItem[]>;
+  let all: Record<string, SavedLayout>;
   try {
     // Trailing commas are how the file is written; JSON has none.
     all = JSON.parse(src.slice(from + START.length, end).replace(/,(\s*[\]}])/g, "$1"));
@@ -77,8 +88,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "content/projectLayouts.ts is not as the editor wrote it." }, { status: 500 });
   }
   if (layout === null) delete all[slug];
-  else all[slug] = (layout as LayoutItem[]).map(clean);
+  else all[slug] = { rows: r(layout.rows), items: layout.items.map(clean) };
 
   await fs.writeFile(FILE, `${src.slice(0, from)}${START}${write(all)}${src.slice(end)}`);
-  return Response.json({ saved: slug, pieces: layout?.length ?? 0 });
+  return Response.json({ saved: slug, pieces: layout?.items.length ?? 0 });
 }

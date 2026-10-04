@@ -118,6 +118,18 @@
   height: 2px;
   margin-top: -1px;
   background: var(--accent-soft);
+  /* Behind every cover, and only drawn once they are: before the reel is laid
+     out there is nothing on it to hang. */
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+/* After the covers are in: while they fade up they are see-through, and the
+   thread would show across them. */
+.ready .line {
+  opacity: 1;
+  transition-delay: 0.45s;
 }
 
 /* Placed and sized every frame — see layout() in ProjectReel.tsx. */
@@ -129,6 +141,7 @@
   overflow: hidden;
   background: var(--card);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  z-index: 1;
   opacity: 0;
   transition: opacity 0.4s ease, box-shadow 0.4s ease;
   will-change: transform, width, height;

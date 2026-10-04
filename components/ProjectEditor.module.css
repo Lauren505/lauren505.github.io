@@ -110,6 +110,25 @@
   top: calc(var(--u) * var(--at));
 }
 
+/* Where the window ends: anything under it is scrolled to. */
+.fold {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--u) * var(--at));
+  border-top: 2px dashed rgba(220, 120, 30, 0.8);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.fold span {
+  position: absolute;
+  right: 8px;
+  top: 2px;
+  font-size: 11px;
+  color: rgb(200, 100, 20);
+}
+
 .panel {
   z-index: 10;
 }
@@ -136,9 +155,9 @@
   z-index: 10;
 }
 
-/* The single column a narrow window gets is not the layout; there is nothing
-   here to edit. */
-@media (max-width: 900px) {
+/* An upright window is always laid out afresh, in one column; there is
+   nothing there to arrange by hand. */
+@media (orientation: portrait) {
   .overlay,
   .panel,
   .toggle {

@@ -37,7 +37,10 @@ type Props = {
   setDraft: (next: LayoutItem[]) => void;
   /** The spread as the file has it, to tell whether there is anything to save. */
   saved: LayoutItem[];
-  /** The automatic layout, fitted to the texts as the page drew them. */
+  /** How many units tall the window is: where the fold is, and what a saved
+   *  layout is stretched from on a window of another height. */
+  rows: number;
+  /** The automatic layout, fitted to this window. */
   relayout: () => LayoutItem[];
   /** Whether the file has a layout for this project at all, or it is made up. */
   hasFile: boolean;
@@ -134,7 +137,7 @@ function guidesFor(it: LayoutItem, items: LayoutItem[]) {
   return { xs: [...xs], ys: [...ys] };
 }
 
-export default function ProjectEditor({ project, pieces, editing, setEditing, draft, setDraft, saved, relayout, hasFile, canvas }: Props) {
+export default function ProjectEditor({ project, pieces, editing, setEditing, draft, setDraft, saved, rows, relayout, hasFile, canvas }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const [cropping, setCropping] = useState(false);
   const [past, setPast] = useState<LayoutItem[][]>([]);
@@ -197,7 +200,9 @@ export default function ProjectEditor({ project, pieces, editing, setEditing, dr
     const raf = requestAnimationFrame(() => {
       const out: string[] = [];
       canvas.querySelectorAll<HTMLElement>("[data-key]").forEach((el) => {
-        if (el.tagName !== "FIGURE" && el.scrollHeight > el.clientHeight + 2) out.push(el.dataset.key!);
+        // Down the bottom, or — set in columns — out to the side in another.
+        if (el.tagName !== "FIGURE" && (el.scrollHeight > el.clientHeight + 2 || el.scrollWidth > el.clientWidth + 2))
+          out.push(el.dataset.key!);
       });
       setSpilling(out);
     });
@@ -381,7 +386,8 @@ export default function ProjectEditor({ project, pieces, editing, setEditing, dr
 
   /* ------------------------------------------------------------- save */
 
-  const save = async (layout: LayoutItem[] | null) => {
+  const save = async (items: LayoutItem[] | null) => {
+    const layout = items && { rows, items };
     setStatus("Saving…");
     try {
       const res = await fetch("/api/projects", {
@@ -431,6 +437,9 @@ export default function ProjectEditor({ project, pieces, editing, setEditing, dr
   const overlay = canvas
     ? createPortal(
         <div className={own.overlay} onPointerDown={() => setSelected(null)}>
+          <span className={own.fold} style={{ "--at": rows } as React.CSSProperties}>
+            <span>bottom of the window</span>
+          </span>
           {guides.xs.map((x) => (
             <span key={`x${x}`} className={own.guideX} style={{ "--at": x } as React.CSSProperties} />
           ))}
@@ -496,7 +505,7 @@ export default function ProjectEditor({ project, pieces, editing, setEditing, dr
         </div>
         <div className={styles.body}>
           <p className={styles.hint}>
-            Drag a piece to move it, its handles to size it; a picture is cropped to its box, and Shift keeps it the
+            The page is the window: keep everything above the dashed line and nothing has to be scrolled to. Drag a piece to move it, its handles to size it; a picture is cropped to its box, and Shift keeps it the
             picture&apos;s shape. Double-click a picture to move it inside its box, and scroll to zoom. Pieces land on
             the grid and line up with the edges around them. Arrows nudge, Delete takes a piece off the page.
           </p>
@@ -676,7 +685,8 @@ export default function ProjectEditor({ project, pieces, editing, setEditing, dr
           <p className={styles.status}>
             {dirty
               ? "Unsaved changes"
-              : (status ?? (hasFile ? "Matches content/projectLayouts.ts" : "Laid out automatically — not saved yet"))}
+              : (status ??
+                (hasFile ? "Matches content/projectLayouts.ts" : "Laid out to fit this window — not saved yet"))}
           </p>
         </div>
       </aside>

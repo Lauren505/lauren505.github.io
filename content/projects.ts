@@ -190,7 +190,8 @@ export const projects: Project[] = [
  * width. `key` names the piece: "title", "dek", "cover", "p0"… for the
  * paragraphs and "m0"… for the other pictures and videos, in the order the
  * blocks list them. A picture's `crop` is the point of it kept in view and
- * how far it is zoomed; a text's `size` scales its type.
+ * how far it is zoomed; a text's `size` scales its type, and `cols` sets it
+ * in that many columns.
  */
 export type LayoutItem = {
   key: string;
@@ -200,4 +201,9 @@ export type LayoutItem = {
   h: number;
   crop?: { x: number; y: number; zoom: number };
   size?: number;
+  cols?: number;
 };
+
+/** A spread arranged by hand, and how many units tall the window it was
+ *  arranged in was — it is stretched to fit any other. */
+export type SavedLayout = { rows: number; items: LayoutItem[] };
