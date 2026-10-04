@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Drawn from "@/components/Drawn";
 import RecipePaper from "@/components/RecipePaper";
@@ -13,30 +13,21 @@ import styles from "./RecipeView.module.css";
 /** The hand that takes hold of the plate and brings it up to the reader. */
 const GRAB = decorations.find((d) => d.id === "hand4")?.image ?? decorations.find((d) => d.kind === "hand")?.image;
 
-/** A zoom on the table, about the plate: TableSetting's table and the plate
- *  brought up close are moved by the same one, so they keep together. */
-export type Zoom = { scale: number; ms: number; ease: string };
-
-/** How it goes, in milliseconds. First the table is looked at more closely —
- *  zoomed in on the dessert, cloth and all — then the hand reaches in and
- *  lifts the plate up to the reader, the table fading away behind it as it
- *  does. */
-const LOOK = 1300;
-const REACH = 520;
-const LIFT = 1250;
-/** Looking closer: unhurried, either way. Lifting: slow away, and easing in
- *  to where it goes. Settling: quick, then slowing to a stop. Leaving: slow
- *  to start, then away. */
-const LOOK_EASE = "cubic-bezier(0.45, 0, 0.3, 1)";
-const LIFT_EASE = "cubic-bezier(0.55, 0, 0.25, 1)";
+/** The whole of it, from the table to the plate up close, in milliseconds:
+ *  one movement, on one curve — slow away, then gathering, then settling. */
+const BRING = 2800;
+const CURVE = [0.42, 0, 0.22, 1] as const;
+/** Where along it — as a fraction of the way, after the curve — the hand
+ *  has hold and the plate starts to come up, the table falling away; and how
+ *  long before that the hand starts reaching in. */
+const HOLD = 0.45;
+const REACH = 0.22;
+/** How much further the table seems to come as it falls away. */
+const FALL = 1.25;
+/** How long the hand takes to let go, or come back for the plate. */
+const LET_GO = 500;
 const SETTLE = "cubic-bezier(0.2, 0.7, 0.3, 1)";
 const LEAVE = "cubic-bezier(0.5, 0, 0.75, 0)";
-/** How close the table is looked at, at least and at most, before the hand
- *  comes — as close as its arm needs to run off the window — and how much
- *  closer still it seems to come as it falls away. */
-const LOOK_LEAST = 1.35;
-const LOOK_MOST = 2.2;
-const FALL = 1.2;
 
 /** Below this the dessert and its card cannot sit side by side: the dessert
  *  goes at the top, the card under it. */
@@ -45,26 +36,51 @@ const NARROW = 760;
  *  torn ends are out of sight, as in a photograph cropped to the menu. */
 const RUN_OFF = 40;
 
-type Move = { ms: number; ease: string; delay?: number };
-const moving = (m: Move, what = "transform") =>
-  m.ms ? `${what} ${m.ms}ms ${m.ease} ${m.delay ?? 0}ms` : "none";
+/** A CSS cubic-bezier, as a function: how far along at `u` of the time. */
+const bezier = ([x1, y1, x2, y2]: readonly number[]) => {
+  const at = (a: number, b: number, s: number) => 3 * a * s * (1 - s) ** 2 + 3 * b * s * s * (1 - s) + s ** 3;
+  return (u: number) => {
+    let lo = 0;
+    let hi = 1;
+    for (let n = 0; n < 24; n++) {
+      const mid = (lo + hi) / 2;
+      if (at(x1, x2, mid) < u) lo = mid;
+      else hi = mid;
+    }
+    return at(y1, y2, (lo + hi) / 2);
+  };
+};
+const ease = bezier(CURVE);
+const clamp = (v: number) => Math.min(1, Math.max(0, v));
+/** From 0 to 1 and still at both ends. */
+const smooth = (v: number) => {
+  const c = clamp(v);
+  return c * c * (3 - 2 * c);
+};
+
+type Pose = { x: number; y: number; k: number };
 
 /**
- * A recipe, brought to the reader. First the table is looked at more closely
- * — zoomed in on the dessert, cloth, plates and all. Then a hand reaches in
- * from the nearest edge of the window, takes hold of the plate and brings it
- * up close — the plate growing as it comes, gliding to its side of the window
- * — and only then does the table fall away behind it, to a plain ground. The
- * hand only comes once the plate is close enough for its arm to run off the
- * window, so where it is cut off is never seen. Then the recipe slides up
- * beside it, on a tall card of
- * handmade paper that runs off the top and the foot of the window, its photos
- * tied on facing the dessert. `leave` takes it all back the way it came;
- * `onGone` is told once the plate is down again.
+ * A recipe, brought to the reader, in one movement: the table is looked at
+ * more and more closely — zoomed in on the dessert, cloth, plates and all —
+ * and as it is, a hand reaches in from the nearest edge of the window, takes
+ * hold of the plate and brings it on up close, gliding to its side of the
+ * window, while the table falls away behind it to a plain ground. The hand
+ * only comes once the plate is close enough for its arm to run off the window,
+ * so where it is cut off is never seen. Then the recipe slides up beside it,
+ * on a tall card of handmade paper that runs off the top and the foot of the
+ * window, its photos tied on facing the dessert.
  *
- * It is over the whole window — over the nav too — and the page under it
- * holds still. `locate` is where the plate is in the window, now: it is
- * asked again on the way back, in case the window has changed.
+ * `leave` takes it back: the card away, and the same movement backwards, to
+ * the very spot it came from — `onGone` is told once it is there.
+ *
+ * Every frame of the movement is worked out from the one curve — the plate,
+ * the table (`table`, zoomed about the plate), the ground and the hand — and
+ * played by the browser off the page's own thread, so they cannot drift
+ * apart, nor stutter. It is over the
+ * whole window, nav and all, and the page under it holds still. `locate` is
+ * where the plate is in the window, now: it is asked again on the way back,
+ * in case the window has changed.
  */
 export default function RecipeView({
   setting,
@@ -73,7 +89,7 @@ export default function RecipeView({
   locate,
   leave,
   onClose,
-  onZoom,
+  table,
   onGone,
 }: {
   setting: Laid;
@@ -82,14 +98,11 @@ export default function RecipeView({
   locate: () => Vec;
   leave: boolean;
   onClose: () => void;
-  /** How the table behind is zoomed, about the plate; null for not at all. */
-  onZoom: (z: Zoom | null) => void;
+  /** The table behind, which is zoomed in on the plate with it. */
+  table: () => HTMLElement | null;
   onGone: () => void;
 }) {
   const calm = useMemo(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches, []);
-  /** Every time and length, as it plays: none at all, for a reader who has
-   *  asked for less motion. */
-  const T = calm ? 0 : 1;
 
   const [view, setView] = useState({ width: window.innerWidth, height: window.innerHeight });
   useEffect(() => {
@@ -141,20 +154,28 @@ export default function RecipeView({
     };
   }, [narrow, W, H, R, side]);
 
-  /* -------------------------------------------------------- the hand */
-
   /** Where the plate is on the table, and so where it starts, and where it
-   *  comes back to. */
+   *  goes back to. */
   const [home, setHome] = useState(locate);
-  type Pose = { x: number; y: number; k: number };
+
+  /* ------------------------------------------------- the one movement */
 
   /** Its fingertips over the plate's rim, `tip` from its middle, in the
    *  plate's own pixels as it was on the table. */
   const tip = R * 0.78;
 
-  const h = useMemo(() => {
+  /** Everything at `s` of the way, after the curve: the plate, how far the
+   *  table is zoomed, how far it has fallen away, and the hand's reach. */
+  const m = useMemo(() => {
     const final: Pose = { ...g.at, k: g.k };
-    const looked = (k: number): Pose => ({ ...home, k });
+    const pose = (s: number): Pose => {
+      const k = 1 + (final.k - 1) * s;
+      const up = smooth((s - HOLD) / (1 - HOLD));
+      return { x: home.x + (final.x - home.x) * up, y: home.y + (final.y - home.y) * up, k };
+    };
+    const lifted = (s: number) => smooth((s - HOLD) / (1 - HOLD));
+    const reached = (s: number) => smooth((s - (HOLD - REACH)) / REACH);
+
     /** How far the fingertips are from the window's edge, with the plate at
      *  `q`, coming from the edge `e` is towards. */
     const gap = (q: Pose, e: Vec) => {
@@ -168,151 +189,159 @@ export default function RecipeView({
       { x: 0, y: 1 },
       { x: 0, y: -1 },
     ];
-    const nearest = (q: Pose) => edges.reduce((a, b) => (gap(q, b) < gap(q, a) ? b : a));
-    const base = 2 * R * 0.95;
-    // As close as the table has to be looked at for the hand, from the
-    // nearest edge, to reach the plate with its arm still running off.
-    let look = LOOK_MOST;
-    for (let z = LOOK_LEAST; z <= LOOK_MOST + 1e-6; z += 0.05) {
-      const q = looked(z);
-      if (gap(q, nearest(q)) + 30 <= base * z) {
-        look = z;
-        break;
-      }
-    }
-    const from = looked(look);
-    const e = nearest(from);
-    /** Every pose it holds the plate in: where it takes hold, on the way up,
-     *  and where it lets go. */
-    const held = Array.from({ length: 11 }, (_, n): Pose => {
-      const p = n / 10;
-      return { x: from.x + p * (final.x - from.x), y: from.y + p * (final.y - from.y), k: from.k + p * (final.k - from.k) };
-    });
-    // Long enough for its arm to run off the window in all of them.
-    const length = Math.max(base, ...held.map((q) => (gap(q, e) + 40) / q.k));
+    // From the edge nearest the plate where the hand takes hold of it.
+    const at = pose(HOLD);
+    const e = edges.reduce((a, b) => (gap(at, b) < gap(at, a) ? b : a));
+    // Long enough for its arm to run off the window from the moment it
+    // reaches in, and how far back it is when it is out of sight.
+    const seen = Array.from({ length: 21 }, (_, n) => pose(HOLD - REACH + ((1 - HOLD + REACH) * n) / 20));
+    const all = Array.from({ length: 21 }, (_, n) => pose(n / 20));
+    const length = Math.max(2 * R * 0.95, ...seen.map((q) => (gap(q, e) + 30) / q.k));
+    const off = Math.max(...all.map((q) => (gap(q, e) + 40) / q.k));
     return {
-      look,
+      pose,
+      lifted,
+      reached,
       e,
       length,
       width: GRAB ? length * (GRAB.width / GRAB.height) : 0,
       turn: (Math.atan2(-e.x, e.y) * 180) / Math.PI,
-      /** How far back it is, the way it came, when it is out of sight. */
-      off: Math.max(...held.map((q) => (gap(q, e) + 40) / q.k)),
+      off,
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [g, home, W, H, R, tip]);
 
-  /* -------------------------------------------------------- the moves */
-
-  const [plateAt, setPlateAt] = useState<Pose & Move>(() => ({ ...home, k: 1, ms: 0, ease: SETTLE }));
-  /** How far the hand is back from the plate, the way it came. */
-  const [handOff, setHandOff] = useState<{ by: number } & Move>({ by: h.off, ms: 0, ease: SETTLE });
-  const [ground, setGround] = useState<{ on: boolean } & Move>({ on: false, ms: 0, ease: SETTLE });
-  const [paperUp, setPaperUp] = useState<{ up: boolean } & Move>({ up: false, ms: 0, ease: SETTLE });
-  const [paperH, setPaperH] = useState(0);
-  const [stage, setStage] = useState<"opening" | "open" | "closing">("opening");
-
-  const now = useRef({ g, h });
-  now.current = { g, h };
-  const timers = useRef<number[]>([]);
-  const later = (ms: number, f: () => void) => {
-    timers.current.push(window.setTimeout(f, ms * T));
-  };
-  useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
-  const zoom = useRef(onZoom);
-  zoom.current = onZoom;
-  const gone = useRef(onGone);
-  gone.current = onGone;
   const dish = useRef<HTMLDivElement>(null);
   const hand = useRef<HTMLDivElement>(null);
+  const ground = useRef<HTMLDivElement>(null);
+  const mRef = useRef(m);
+  mRef.current = m;
+  const tableOf = useRef(table);
+  tableOf.current = table;
 
-  /** The table and the plate on it looked at `k` times closer, about the
-   *  plate — the same move for both, so they keep together. */
-  const look = (k: number, at: Vec, ms: number, ease: string) => {
-    setPlateAt({ ...at, k, ms: ms * T, ease });
-    zoom.current({ scale: k, ms: ms * T, ease });
+  /** Everything as it is at `s` of the way, with the hand `back` of the way
+   *  back from where it holds the plate, on top of where it is then. */
+  const frameAt = (s: number, back = 0) => {
+    const { pose, lifted, reached, e, turn, off } = mRef.current;
+    const q = pose(s);
+    const by = off * Math.max(1 - reached(s), back);
+    return {
+      dish: `translate(${q.x}px, ${q.y}px) scale(${q.k})`,
+      table: `scale(${q.k * (1 + (FALL - 1) * lifted(s))})`,
+      ground: smooth((s - HOLD) / (0.85 - HOLD)),
+      hand: `translate(${e.x * by}px, ${e.y * by}px) rotate(${turn}deg)`,
+    };
   };
 
-  /** Once `el`'s own move has ended — not a move inside it — or, if it
-   *  never does (no motion, or the move already over), after `most`. */
+  /** The table under it, zoomed about the plate where it is laid — and,
+   *  while it is, a layer of its own, so it is only moved, not painted again:
+   *  it is the length of the page. */
+  const hold = (on: boolean) => {
+    const t = tableOf.current();
+    if (!t) return null;
+    t.style.transformOrigin = on ? `${plate.x * scale}px ${plate.y * scale}px` : "";
+    t.style.willChange = on ? "transform" : "";
+    return t;
+  };
+
+  /** Everything that moves, moving: played by the browser, off the page's
+   *  own thread, from frames worked out here — `at` gives where along it is at
+   *  each moment `u` of `ms` — so the plate, the table, the ground and the
+   *  hand cannot drift apart, nor stutter when the page is busy. */
+  const playing = useRef<Animation[]>([]);
+  const play = (ms: number, at: (u: number) => { s: number; back?: number }) => {
+    const N = 96;
+    const frames = Array.from({ length: N + 1 }, (_, n) => {
+      const { s, back } = at(n / N);
+      return frameAt(s, back);
+    });
+    const how: KeyframeAnimationOptions = { duration: calm ? 0 : ms, fill: "forwards", easing: "linear" };
+    const moves = [
+      dish.current?.animate(frames.map((f) => ({ transform: f.dish })), how),
+      hold(true)?.animate(frames.map((f) => ({ transform: f.table })), how),
+      ground.current?.animate(frames.map((f) => ({ opacity: f.ground })), how),
+      hand.current?.animate(frames.map((f) => ({ transform: f.hand })), how),
+    ].filter((a): a is Animation => !!a);
+    playing.current.push(...moves);
+    return Promise.all(moves.map((a) => a.finished)).then(
+      () => undefined,
+      () => undefined,
+    );
+  };
+  const still = () => {
+    for (const a of playing.current) a.cancel();
+    playing.current = [];
+  };
+
   const off = useRef(false);
   useEffect(() => {
     off.current = false;
     return () => {
       off.current = true;
+      // However it is put away, the table is left as it is laid.
+      still();
+      hold(false);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const ended = (el: React.RefObject<HTMLElement | null>, most: number) =>
-    new Promise<void>((resolve) => {
-      const node = el.current;
-      let t = 0;
-      const done = (e?: TransitionEvent) => {
-        if (e && (e.target !== node || e.propertyName !== "transform")) return;
-        node?.removeEventListener("transitionend", done);
-        window.clearTimeout(t);
-        if (!off.current) resolve();
-      };
-      if (!node || !T) return done();
-      node.addEventListener("transitionend", done);
-      t = window.setTimeout(() => done(), most);
-    });
-  const wait = (ms: number) => new Promise<void>((r) => later(ms, r));
+  const wait = (ms: number) => new Promise<void>((r) => window.setTimeout(r, calm ? 0 : ms));
+  const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 
-  // Brought up, each move after the last has ended — so they keep their
-  // order, however slow the frames.
+  // Where it all starts: the plate where it is on the table, the hand out of
+  // sight, nothing yet faded.
+  useLayoutEffect(() => {
+    const f = frameAt(0);
+    if (dish.current) dish.current.style.transform = f.dish;
+    if (ground.current) ground.current.style.opacity = "0";
+    if (hand.current) hand.current.style.transform = f.hand;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const [paperUp, setPaperUp] = useState(false);
+  const [paperH, setPaperH] = useState(0);
+  /** Whether the card is dressed in its paper yet: not until the plate is
+   *  up, as drawing the paper is slow, and nothing should be moving while it
+   *  is drawn. */
+  const [dressed, setDressed] = useState(false);
+  const [stage, setStage] = useState<"opening" | "open" | "closing">("opening");
+  const gone = useRef(onGone);
+  gone.current = onGone;
+
+  // Brought up — once the copy of the plate is in and drawn, sitting where
+  // the plate was, so its first frames are not lost to that…
   useEffect(() => {
-    const { g, h } = now.current;
     (async () => {
-      await wait(40);
-      // Looked at more closely, the hand reaching in as that slows…
-      look(h.look, home, LOOK, LOOK_EASE);
-      await wait(LOOK - REACH * 0.6);
-      setHandOff({ by: 0, ms: REACH * T, ease: SETTLE });
-      await ended(hand, REACH + 600);
-      await wait(60);
-      // …and once it has hold, lifting the plate up close, the table falling
-      // away behind it.
-      setPlateAt({ ...g.at, k: g.k, ms: LIFT * T, ease: LIFT_EASE });
-      zoom.current({ scale: h.look * FALL, ms: LIFT * T, ease: LIFT_EASE });
-      setGround({ on: true, ms: LIFT * 0.8 * T, ease: "ease-in-out" });
-      await ended(dish, LIFT + 600);
-      await wait(60);
-      setHandOff({ by: h.off, ms: 500 * T, ease: LEAVE });
-      await wait(160);
-      setPaperUp({ up: true, ms: 900 * T, ease: SETTLE });
+      await frame();
+      await frame();
+      if (off.current) return;
+      await play(BRING, (u) => ({ s: ease(u) }));
+      if (off.current) return;
+      setDressed(true);
+      // …let go of…
+      await play(LET_GO, (u) => ({ s: 1, back: bezier([0.5, 0, 0.75, 0])(u) }));
+      // …and the recipe brought to it.
+      await frame();
+      if (off.current) return;
+      setPaperUp(true);
       await wait(900);
-      setStage("open");
+      if (!off.current) setStage("open");
     })();
     // Once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Put back, the same way round: the card taken away; the hand takes hold
-  // and sets the plate back down, the table coming back around it; and the
-  // table is looked at from where it was again — handed back to it once the
-  // plate is down.
+  // …and put back: the card away, the hand back for the plate, and the same
+  // movement backwards, to where the plate is on the table now.
   useEffect(() => {
     if (!leave || stage !== "open") return;
     setStage("closing");
-    const { h } = now.current;
-    const back = locate();
-    setHome(back);
+    setHome(locate());
     (async () => {
-      setPaperUp({ up: false, ms: 600 * T, ease: LEAVE });
+      setPaperUp(false);
       await wait(450);
-      setHandOff({ by: 0, ms: REACH * T, ease: SETTLE });
-      await ended(hand, REACH + 600);
-      await wait(60);
-      setPlateAt({ ...back, k: h.look, ms: LIFT * T, ease: LIFT_EASE });
-      zoom.current({ scale: h.look, ms: LIFT * T, ease: LIFT_EASE });
-      setGround({ on: false, ms: LIFT * 0.8 * T, ease: "ease-in-out", delay: LIFT * 0.2 * T });
-      await ended(dish, LIFT + 600);
-      await wait(40);
-      setHandOff({ by: h.off, ms: 500 * T, ease: LEAVE });
-      await wait(300);
-      look(1, back, LOOK, LOOK_EASE);
-      await ended(dish, LOOK + 600);
-      zoom.current(null);
+      if (off.current) return;
+      await play(LET_GO, (u) => ({ s: 1, back: 1 - bezier([0.2, 0.7, 0.3, 1])(u) }));
+      if (off.current) return;
+      await play(BRING, (u) => ({ s: ease(1 - u) }));
+      if (off.current) return;
       gone.current();
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -334,19 +363,9 @@ export default function RecipeView({
 
   return createPortal(
     <div className={styles.view} data-recipe-keep="" role="dialog" aria-label={`${setting.bake.title}: recipe`}>
-      <div
-        className={styles.ground}
-        style={{ opacity: ground.on ? 1 : 0, transition: moving(ground, "opacity") }}
-      />
+      <div ref={ground} className={styles.ground} />
 
-      <div
-        ref={dish}
-        className={styles.dish}
-        style={{
-          transform: `translate(${plateAt.x}px, ${plateAt.y}px) scale(${plateAt.k})`,
-          transition: moving(plateAt),
-        }}
-      >
+      <div ref={dish} className={styles.dish}>
         <div className={styles.piece} style={{ left: -pw / 2, top: -ph / 2, width: pw, height: ph, transform: `rotate(${plate.rotate}deg)` }}>
           <Drawn image={plate.image} width={pw} />
         </div>
@@ -355,25 +374,27 @@ export default function RecipeView({
             ref={hand}
             className={styles.piece}
             style={{
-              left: h.e.x * (tip + h.length / 2) - h.width / 2,
-              top: h.e.y * (tip + h.length / 2) - h.length / 2,
-              width: h.width,
-              height: h.length,
-              transform: `translate(${h.e.x * handOff.by}px, ${h.e.y * handOff.by}px) rotate(${h.turn}deg)`,
-              transition: moving(handOff),
+              left: m.e.x * (tip + m.length / 2) - m.width / 2,
+              top: m.e.y * (tip + m.length / 2) - m.length / 2,
+              width: m.width,
+              height: m.length,
             }}
           >
-            <Drawn image={GRAB} width={h.width} openFoot />
+            <Drawn image={GRAB} width={m.width} openFoot />
           </div>
         ) : null}
         <div
           className={`${styles.piece} ${styles.bake}`}
           style={{ left: ddx - dw / 2, top: ddy - dh / 2, width: dw, height: dh, transform: `rotate(${dessert.rotate}deg)` }}
         >
+          {/* The picture the table already has, so it is there from the first
+              frame; and over it, once it is in, a sharper one for up close. */}
+          <Image src={dessert.image} alt="" fill loading="eager" sizes={`${Math.ceil(dw)}px`} className={styles.photo} />
           <Image
             src={dessert.image}
             alt={setting.bake.title}
             fill
+            loading="eager"
             sizes={`${Math.ceil(dw * g.k)}px`}
             className={styles.photo}
           />
@@ -393,8 +414,8 @@ export default function RecipeView({
           style={{
             left: paper.x,
             top: paper.y,
-            transform: `translateY(${paperUp.up ? 0 : rise}px)`,
-            transition: moving(paperUp),
+            transform: `translateY(${paperUp ? 0 : rise}px)`,
+            transition: calm ? "none" : paperUp ? `transform 900ms ${SETTLE}` : `transform 600ms ${LEAVE}`,
           }}
         >
           <RecipePaper
@@ -405,6 +426,7 @@ export default function RecipeView({
             lead={narrow ? undefined : RUN_OFF + H * 0.15}
             toward={narrow ? "right" : side < 0 ? "left" : "right"}
             onHeight={setPaperH}
+            textured={dressed}
           />
         </div>
       </div>
@@ -413,7 +435,7 @@ export default function RecipeView({
         type="button"
         className={`${styles.back} ${garamond.className}`}
         data-side={side < 0 || narrow ? "left" : "right"}
-        style={{ opacity: paperUp.up ? 1 : 0 }}
+        style={{ opacity: paperUp ? 1 : 0 }}
         onClick={onClose}
       >
         back to the table

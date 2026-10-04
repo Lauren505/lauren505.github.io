@@ -188,6 +188,7 @@ export default function RecipePaper({
   minHeight = 0,
   lead,
   toward = "right",
+  textured = true,
   onHeight,
 }: {
   recipe: Recipe;
@@ -197,6 +198,8 @@ export default function RecipePaper({
   /** How far down the card the words start, if not the usual. */
   lead?: number;
   toward?: "left" | "right";
+  /** Whether to draw the paper yet — it is slow to: the words come first. */
+  textured?: boolean;
   onHeight?: (h: number) => void;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -226,7 +229,7 @@ export default function RecipePaper({
       className={`${styles.paper} ${garamond.className}`}
       style={{ width, minHeight, "--bleed": `${BLEED}px`, "--pad-x": `${PAD_X}px` } as React.CSSProperties}
     >
-      {height ? <Sheet width={width} height={height} /> : null}
+      {height && textured ? <Sheet width={width} height={height} /> : null}
       <div className={styles.words} style={lead === undefined ? undefined : { paddingTop: lead }}>
         <h2 className={styles.name}>{inline(recipe.name || title)}</h2>
         {recipe.portion ? <p className={styles.portion}>{inline(recipe.portion)}</p> : null}
