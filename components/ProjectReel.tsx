@@ -3,16 +3,12 @@
 import Image from "next/image";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import ProjectSpread from "@/components/ProjectSpread";
-import { dateKey, dateOf, monthYear, projects as listed } from "@/content";
+import { dateKey, monthYear, projects as listed } from "@/content";
 import styles from "./ProjectReel.module.css";
 
-/** In the order they happened, so the newest is where the reel opens and
- *  the years run left to right beneath it. */
+/** In the order they happened, the newest where the reel opens. */
 const projects = [...listed].sort((a, b) => dateKey(a.date) - dateKey(b.date));
 const N = projects.length;
-const yearOf = (i: number) => dateOf(projects[i].date).year;
-/** Every year from the first project's to the last's, gaps and all. */
-const YEARS = Array.from({ length: yearOf(N - 1) - yearOf(0) + 1 }, (_, i) => yearOf(0) + i);
 /** How much bigger the picture in the middle is than the rest. */
 const LIFT = 0.6;
 /** Slots drawn either side of the middle — enough to run past both fades. */
@@ -342,18 +338,6 @@ export default function ProjectReel({ still = false }: { still?: boolean }) {
       <p key={`m${active}`} className={styles.date} data-chrome>
         {monthYear(project.date)}
       </p>
-      <Years
-        active={active}
-        onPick={(year) => {
-          // The year's first project, the short way round the reel.
-          const i = projects.findIndex((_, j) => yearOf(j) === year);
-          if (i < 0) return;
-          const now = Math.round(target.current);
-          const d = (((i - wrap(now)) % N) + N + Math.floor(N / 2)) % N - Math.floor(N / 2);
-          target.current = now + d;
-        }}
-        still={still}
-      />
       {open ? (
         <ProjectSpread
           project={projects[open.index]}
@@ -371,40 +355,3 @@ export default function ProjectReel({ still = false }: { still?: boolean }) {
   );
 }
 
-/**
- * The years, small, under the date: the one the middle project is from in
- * the middle, the rest running off either side and fading, and a dot under
- * each year for each project in it, the middle project's filled. A year is a
- * way there — it brings its first project to the middle.
- */
-function Years({ active, onPick, still }: { active: number; onPick: (year: number) => void; still: boolean }) {
-  const year = yearOf(active);
-  return (
-    <div className={styles.years} data-chrome>
-      <div className={styles.yearTrack} style={{ "--at": YEARS.indexOf(year) } as React.CSSProperties}>
-        {YEARS.map((y) => {
-          const here = projects.flatMap((_, i) => (yearOf(i) === y ? [i] : []));
-          return (
-            <button
-              key={y}
-              type="button"
-              className={styles.year}
-              data-on={y === year || undefined}
-              disabled={still || !here.length}
-              onClick={() => onPick(y)}
-              tabIndex={still ? -1 : undefined}
-              aria-label={here.length ? `${y}: ${here.length} project${here.length > 1 ? "s" : ""}` : `${y}`}
-            >
-              <span>{y}</span>
-              <span className={styles.dots} aria-hidden>
-                {here.map((i) => (
-                  <i key={i} data-on={i === active || undefined} />
-                ))}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
