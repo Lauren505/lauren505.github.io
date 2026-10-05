@@ -242,16 +242,18 @@ export default function RecipePaper({
         {recipe.ingredients.some((g) => g.items.length) ? (
           <section>
             <h3 className={styles.heading}>Ingredients</h3>
-            {recipe.ingredients.map((g, i) => (
-              <div key={i} className={styles.group}>
-                {g.heading ? <h4 className={styles.sub}>{inline(g.heading)}</h4> : null}
-                <ul className={styles.items}>
-                  {g.items.map((item, k) => (
-                    <li key={k}>{inline(item)}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            <div className={styles.shopping}>
+              {recipe.ingredients.map((g, i) => (
+                <div key={i} className={styles.group}>
+                  {g.heading ? <h4 className={styles.sub}>{inline(g.heading)}</h4> : null}
+                  <ul className={styles.items}>
+                    {g.items.map((item, k) => (
+                      <li key={k}>{inline(item)}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
           </section>
         ) : null}
 

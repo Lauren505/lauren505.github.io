@@ -58,8 +58,12 @@
 }
 
 /* The ingredients read down the left, under their sub-headings, as a list
-   is easiest to shop from — the card's headings stay in the middle. */
-.group {
+   is easiest to shop from — but all of them together sit in the middle of
+   the card, under its headings, as wide as their longest line. */
+.shopping {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
   text-align: left;
 }
 
