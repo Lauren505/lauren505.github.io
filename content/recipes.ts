@@ -166,13 +166,19 @@ export const recipes: Record<string, Recipe> = Object.fromEntries(
 );
 
 /** What is written around the plate of a dessert with no recipe: its own
- *  sentence, or one of the rest, picked by its name so it is always the same
- *  one. */
-export const lostLine = (id: string, title: string) => {
+ *  sentence, or else one of the rest by the size of its plate — `size`, from
+ *  0 for the smallest on the table to 1 for the biggest — the shortest round
+ *  the smallest plates and the longest round the biggest. Plates much the
+ *  same size get one or the next, by the dessert's name, so it is always the
+ *  same one. */
+export const lostLine = (id: string, title: string, size: number) => {
   const own = lost[id];
-  if (own) return own.replaceAll("{name}", title.toLowerCase());
+  const name = title.toLowerCase();
+  if (own) return own.replaceAll("{name}", name);
   if (!anyLost.length) return "";
+  const lines = anyLost.map((l) => l.replaceAll("{name}", name)).sort((a, b) => a.length - b.length);
   let h = 0;
   for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return anyLost[h % anyLost.length].replaceAll("{name}", title.toLowerCase());
+  const at = size * (lines.length - 1) + ((h % 1000) / 1000 - 0.5);
+  return lines[Math.min(lines.length - 1, Math.max(0, Math.round(at)))];
 };

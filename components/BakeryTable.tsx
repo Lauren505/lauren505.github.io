@@ -6,7 +6,7 @@ import RecipeRing from "@/components/RecipeRing";
 import RecipeView from "@/components/RecipeView";
 import Tablecloth from "@/components/Tablecloth";
 import TableSetting, { type Edit, type Grip, type Part } from "@/components/TableSetting";
-import { laidOut, layTable, placements, type Table } from "@/components/bakeryLayout";
+import { laidOut, layTable, placements, type Laid, type Table } from "@/components/bakeryLayout";
 import { TABLE_WIDTH, lostLine, recipes } from "@/content";
 import styles from "./SideQuestsBody.module.css";
 
@@ -316,6 +316,15 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
   const open = shown === null ? undefined : layout.laid[shown];
   const recipe = open && recipes[open.id];
 
+  /** How big a plate is among those on the table with no recipe: 0 for the
+   *  smallest, 1 for the biggest — which sentence it has goes by it. */
+  const sizeOf = (s: Laid) => {
+    const big = (p: Laid) => Math.max(p.plate.width, p.plate.height);
+    const others = layout.laid.filter((p) => !recipes[p.id]);
+    if (others.length < 2) return 0.5;
+    return others.filter((p) => big(p) < big(s)).length / (others.length - 1);
+  };
+
   /** Where the open plate is in the window, now — on the table as it is
    *  laid, not as it is zoomed: measured from the section, which does not
    *  zoom, and the table's place in it, which a transform does not move. */
@@ -392,7 +401,7 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
               key={`${shown}-${open.id}`}
               setting={open}
               scale={scale}
-              line={lostLine(open.id, open.bake.title)}
+              line={lostLine(open.id, open.bake.title, sizeOf(open))}
               leave={want !== shown}
               onGone={gone}
             />

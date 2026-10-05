@@ -7,7 +7,9 @@
  * file named for it (see _template.md there), its recipe is brought to it on a
  * sheet of paper. Every other dessert has a sentence written around its plate
  * instead: its own, from `lost` below, if it has one, or else one of
- * `anyLost` — the same one for the same dessert every time.
+ * `anyLost` — one that goes a good part of the way round its plate, so the
+ * longer sentences go round the bigger plates and the short ones the small,
+ * and the same one for the same dessert every time.
  *
  * "{name}" in a sentence is the dessert's name, in lower case: "the {name}"
  * reads "the matcha roll". Keep them to a sentence or two — they have to fit

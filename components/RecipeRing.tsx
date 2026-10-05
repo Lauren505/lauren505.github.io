@@ -36,7 +36,7 @@ export default function RecipeRing({
 
   // Written smaller, if it is too long to go most of the way round.
   const text = useRef<SVGTextElement>(null);
-  const fit = Math.min(24, Math.max(16, R * 0.14));
+  const fit = Math.min(21, Math.max(14, R * 0.123));
   const [size, setSize] = useState(fit);
   const [len, setLen] = useState(0);
   const r = R + 8;
