@@ -8,8 +8,10 @@
 
   What the table reads:
     # Name                 the first heading — the dessert's name
-    Portion: …             what it makes (also "Serves:", "Makes:" or "Yield:",
-                           or a "## Portion" section of its own)
+    Portion: …             what it makes, or "Size: …" for how big it is
+                           (also "Serves:", "Makes:" or "Yield:", or a
+                           "## Portion" section of its own) — printed under
+                           the name, after the word you used
     ## Ingredients         a list; "### Sub-headings" split it into groups
     ## Steps               a numbered list, in order ("## Method" works too)
     ![A caption](photo.jpg) a photo, tied to the card with twine — put the

@@ -57,6 +57,12 @@
   text-transform: uppercase;
 }
 
+/* The ingredients read down the left, under their sub-headings, as a list
+   is easiest to shop from — the card's headings stay in the middle. */
+.group {
+  text-align: left;
+}
+
 .group + .group {
   margin-top: 0.75em;
 }

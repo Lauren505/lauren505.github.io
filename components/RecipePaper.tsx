@@ -232,7 +232,12 @@ export default function RecipePaper({
       {height && textured ? <Sheet width={width} height={height} /> : null}
       <div className={styles.words} style={lead === undefined ? undefined : { paddingTop: lead }}>
         <h2 className={styles.name}>{inline(recipe.name || title)}</h2>
-        {recipe.portion ? <p className={styles.portion}>{inline(recipe.portion)}</p> : null}
+        {recipe.portion ? (
+          <p className={styles.portion}>
+            {recipe.portionLabel ? `${recipe.portionLabel}: ` : null}
+            {inline(recipe.portion)}
+          </p>
+        ) : null}
 
         {recipe.ingredients.some((g) => g.items.length) ? (
           <section>

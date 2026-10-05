@@ -12,8 +12,10 @@ import { anyLost, lost } from "./lostRecipes";
 export type Recipe = {
   id: string;
   name: string;
-  /** What it makes, as written: "one 25 cm roll, about 8 slices". */
+  /** What it makes, or how big it is, as written: "one 25 cm roll, about 8
+   *  slices" — and what the file calls it: "Portion", "Size", "Serves"… */
   portion?: string;
+  portionLabel?: string;
   /** In groups, each under its sub-heading if it has one. */
   ingredients: { heading?: string; items: string[] }[];
   steps: string[];
@@ -53,13 +55,13 @@ const sectionOf = (heading: string): Section =>
     ? "ingredients"
     : /step|method|instruction|direction/i.test(heading)
       ? "steps"
-      : /portion|serv|yield|makes/i.test(heading)
+      : /portion|serv|yield|makes|size/i.test(heading)
         ? "portion"
         : "notes";
 
 const IMAGE = /^!\[([^\]]*)\]\(\s*<?([^)>]+?)>?(?:\s+"[^"]*")?\s*\)$/;
 const ITEM = /^(?:[-*+]|\d+[.)])\s+(.*)$/;
-const PORTION = /^(?:portions?|serves|servings|makes|yield)\s*:\s*(.+)$/i;
+const PORTION = /^(portions?|serves|servings|makes|yield|size)\s*:\s*(.+)$/i;
 
 /** One recipe file, read leniently: whatever it has of a name, a portion,
  *  ingredients and steps. */
@@ -97,6 +99,7 @@ const parseRecipe = (id: string, text: string): Parsed => {
     if ((m = /^##\s+(.*)$/.exec(line))) {
       section = sectionOf(m[1]);
       heading = section === "notes" ? m[1] : undefined;
+      if (section === "portion") recipe.portionLabel = m[1].trim();
       carry = null;
       continue;
     }
@@ -113,7 +116,8 @@ const parseRecipe = (id: string, text: string): Parsed => {
     }
     const portion = section !== "ingredients" && section !== "steps" && PORTION.exec(line.replace(/[*_]/g, ""));
     if (portion) {
-      recipe.portion = portion[1].trim();
+      recipe.portionLabel = portion[1];
+      recipe.portion = portion[2].trim();
       carry = null;
       continue;
     }
