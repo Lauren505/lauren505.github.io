@@ -3,10 +3,16 @@
 import Image from "next/image";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import ProjectSpread from "@/components/ProjectSpread";
-import { projects } from "@/content";
+import { dateKey, dateOf, monthYear, projects as listed } from "@/content";
 import styles from "./ProjectReel.module.css";
 
+/** In the order they happened, so the newest is where the reel opens and
+ *  the years run left to right beneath it. */
+const projects = [...listed].sort((a, b) => dateKey(a.date) - dateKey(b.date));
 const N = projects.length;
+const yearOf = (i: number) => dateOf(projects[i].date).year;
+/** Every year from the first project's to the last's, gaps and all. */
+const YEARS = Array.from({ length: yearOf(N - 1) - yearOf(0) + 1 }, (_, i) => yearOf(0) + i);
 /** How much bigger the picture in the middle is than the rest. */
 const LIFT = 0.6;
 /** Slots drawn either side of the middle — enough to run past both fades. */
@@ -37,11 +43,11 @@ const wrap = (k: number) => ((k % N) + N) % N;
 export default function ProjectReel({ still = false }: { still?: boolean }) {
   const stage = useRef<HTMLDivElement>(null);
   const slots = useRef(new Map<number, HTMLElement>());
-  const p = useRef(0);
-  const target = useRef(0);
+  const p = useRef(N - 1);
+  const target = useRef(N - 1);
   /** The whole slot nearest the middle: which covers are drawn, and whose
    *  title shows. */
-  const [base, setBase] = useState(0);
+  const [base, setBase] = useState(N - 1);
   const [ready, setReady] = useState(false);
   const [open, setOpen] = useState<{ index: number; from: DOMRect } | null>(null);
 
@@ -333,20 +339,24 @@ export default function ProjectReel({ still = false }: { still?: boolean }) {
       <p key={`d${active}`} className={styles.description} data-chrome>
         {project.description}
       </p>
-      {still ? null : (
-        <p className={styles.hint} data-chrome>
-          <span>
-            {String(active + 1).padStart(2, "0")} / {String(N).padStart(2, "0")}
-          </span>
-          <button type="button" className={styles.open} onClick={() => openAt(base)}>
-            Open the project
-          </button>
-        </p>
-      )}
+      <p key={`m${active}`} className={styles.date} data-chrome>
+        {monthYear(project.date)}
+      </p>
+      <Years
+        active={active}
+        onPick={(year) => {
+          // The year's first project, the short way round the reel.
+          const i = projects.findIndex((_, j) => yearOf(j) === year);
+          if (i < 0) return;
+          const now = Math.round(target.current);
+          const d = (((i - wrap(now)) % N) + N + Math.floor(N / 2)) % N - Math.floor(N / 2);
+          target.current = now + d;
+        }}
+        still={still}
+      />
       {open ? (
         <ProjectSpread
           project={projects[open.index]}
-          number={open.index + 1}
           from={open.from}
           // Back to wherever the cover is now, which is where it was.
           home={() => slots.current.get(base)?.getBoundingClientRect() ?? open.from}
@@ -357,6 +367,44 @@ export default function ProjectReel({ still = false }: { still?: boolean }) {
           }}
         />
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * The years, small, under the date: the one the middle project is from in
+ * the middle, the rest running off either side and fading, and a dot under
+ * each year for each project in it, the middle project's filled. A year is a
+ * way there — it brings its first project to the middle.
+ */
+function Years({ active, onPick, still }: { active: number; onPick: (year: number) => void; still: boolean }) {
+  const year = yearOf(active);
+  return (
+    <div className={styles.years} data-chrome>
+      <div className={styles.yearTrack} style={{ "--at": YEARS.indexOf(year) } as React.CSSProperties}>
+        {YEARS.map((y) => {
+          const here = projects.flatMap((_, i) => (yearOf(i) === y ? [i] : []));
+          return (
+            <button
+              key={y}
+              type="button"
+              className={styles.year}
+              data-on={y === year || undefined}
+              disabled={still || !here.length}
+              onClick={() => onPick(y)}
+              tabIndex={still ? -1 : undefined}
+              aria-label={here.length ? `${y}: ${here.length} project${here.length > 1 ? "s" : ""}` : `${y}`}
+            >
+              <span>{y}</span>
+              <span className={styles.dots} aria-hidden>
+                {here.map((i) => (
+                  <i key={i} data-on={i === active || undefined} />
+                ))}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -17,7 +17,7 @@ import {
   type View,
 } from "@/components/projectLayout";
 import RichText from "@/components/RichText";
-import { projectLayouts, type LayoutItem, type Project } from "@/content";
+import { monthYear, projectLayouts, type LayoutItem, type Project } from "@/content";
 import styles from "./ProjectSpread.module.css";
 
 // The editor, in development and nowhere else — see ProjectEditor.
@@ -180,14 +180,12 @@ const travel = (a: DOMRect, b: DOMRect) => [
  */
 export default function ProjectSpread({
   project,
-  number,
   from,
   home,
   onClosing,
   onClosed,
 }: {
   project: Project;
-  number: number;
   from: DOMRect;
   home: () => DOMRect;
   /** Closing has begun: the reel can bring its covers back. */
@@ -398,11 +396,11 @@ export default function ProjectSpread({
       <div ref={backdrop} className={styles.backdrop} aria-hidden />
       <div ref={root} className={styles.scroller}>
         <header className={styles.masthead} data-rise>
-          <span>Side quests</span>
-          <span className={styles.mastNo}>Projects · No. {String(number).padStart(2, "0")}</span>
           <button ref={closeBtn} type="button" className={styles.close} onClick={close}>
-            Close <span aria-hidden>✕</span>
+            <span aria-hidden>✕</span> Close
           </button>
+          <span className={styles.mastDate}>{monthYear(project.date)}</span>
+          <span className={styles.mastSection}>Projects</span>
         </header>
 
         <article className={styles.board}>

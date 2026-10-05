@@ -46,8 +46,12 @@
   border-bottom: 3px double var(--ink);
 }
 
-.mastNo {
+.mastDate {
   color: var(--ink-muted);
+}
+
+.mastSection {
+  justify-self: end;
 }
 
 .close {
@@ -62,7 +66,7 @@
 }
 
 .close {
-  justify-self: end;
+  justify-self: start;
 }
 
 .close:hover {
@@ -201,14 +205,4 @@
    editor's own boxes over them take the pointer. */
 .editing .item {
   pointer-events: none;
-}
-
-@media (max-width: 640px) {
-  .mastNo {
-    display: none;
-  }
-
-  .masthead {
-    grid-template-columns: 1fr auto;
-  }
 }
