@@ -6,9 +6,12 @@ import ProjectSpread from "@/components/ProjectSpread";
 import { dateKey, monthYear, projects as listed, type Project } from "@/content";
 import styles from "./ProjectReel.module.css";
 
-/** In the order they happened, the newest where the reel opens. */
+/** In the order they happened. */
 const projects = [...listed].sort((a, b) => dateKey(a.date) - dateKey(b.date));
 const N = projects.length;
+/** The project the reel opens on — the newest, if it is ever not there. */
+const OPENING = projects.findIndex((p) => p.slug === "light-dance-2022");
+const START = OPENING >= 0 ? OPENING : N - 1;
 /** How much bigger the picture in the middle is than the rest. */
 const LIFT = 0.6;
 /** Slots drawn either side of the middle — enough to run past both fades. */
@@ -39,11 +42,11 @@ const wrap = (k: number) => ((k % N) + N) % N;
 export default function ProjectReel({ still = false }: { still?: boolean }) {
   const stage = useRef<HTMLDivElement>(null);
   const slots = useRef(new Map<number, HTMLElement>());
-  const p = useRef(N - 1);
-  const target = useRef(N - 1);
+  const p = useRef(START);
+  const target = useRef(START);
   /** The whole slot nearest the middle: which covers are drawn, and whose
    *  title shows. */
-  const [base, setBase] = useState(N - 1);
+  const [base, setBase] = useState(START);
   const [ready, setReady] = useState(false);
   const [open, setOpen] = useState<{ index: number; from: DOMRect } | null>(null);
 
