@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { canRollDown, requestRollUp, startRollDown } from "@/components/foldSignal";
+import { DEFAULT_SECTION } from "@/components/SideQuestsBody";
 import { startTurn } from "@/components/turnSignal";
 import styles from "./Nav.module.css";
 
@@ -102,12 +103,12 @@ export default function Nav({ current }: { current?: string }) {
   const atSide = pathname === SIDE;
 
   // Which section of side quests is open, which is the hash and nothing else:
-  // they are places on one page, so there is no route to read it from. Empty
-  // until the browser says otherwise, which is also what the server renders.
-  const [section, setSection] = useState("");
+  // they are places on one page, so there is no route to read it from. No hash
+  // is the default section, which is also what the server renders.
+  const [section, setSection] = useState(DEFAULT_SECTION);
   useEffect(() => {
     if (frozen || !atSide) return;
-    const read = () => setSection(window.location.hash.slice(1));
+    const read = () => setSection(window.location.hash.slice(1) || DEFAULT_SECTION);
     read();
     window.addEventListener("hashchange", read);
     return () => window.removeEventListener("hashchange", read);

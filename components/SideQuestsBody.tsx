@@ -9,9 +9,13 @@ import SectionTurn from "@/components/SectionTurn";
 import { WALL_PAD, wall } from "@/content";
 import styles from "./SideQuestsBody.module.css";
 
-/** The sections in the order the nav lists them, after no section at all —
- *  which is what decides whether a turn between two rolls up or down. */
-const ORDER = ["", "projects", "gallery", "bakery", "life-lately"];
+/** The sections in the order the nav lists them, which is what decides whether
+ *  a turn between two rolls up or down. */
+const ORDER = ["projects", "gallery", "bakery", "life-lately"];
+
+/** The section with no hash at all — arriving from the nav tab, home or
+ *  publications — so the page always opens on something. */
+export const DEFAULT_SECTION = "projects";
 
 type Turn = { from: string; to: string; lift: number };
 
@@ -57,9 +61,9 @@ function Section({ id, still, laid = true }: { id: string; still: boolean; laid?
 /**
  * The side quests page, which is a page of sections rather than a page: which
  * one is open is the hash and nothing else, the same thing the nav reads to
- * light a tab. Projects, Gallery and Bakery have something in them so far —
- * content/posts.ts is still empty — so Life lately, and no hash at all, are a
- * blank page, which is what this page was before the gallery went in it.
+ * light a tab. No hash at all is Projects. Projects, Gallery and Bakery have
+ * something in them so far — content/posts.ts is still empty — so Life lately
+ * is a blank page.
  *
  * Moving between sections turns the cube they are faces of, the way home turns
  * into publications — see SectionTurn.
@@ -72,16 +76,16 @@ function Section({ id, still, laid = true }: { id: string; still: boolean; laid?
  * a second, blank for most of it, is worse than no turn at all.
  */
 export default function SideQuestsBody({ still = false }: { still?: boolean }) {
-  // Empty until the browser says otherwise, which is also what the server
-  // renders: a hash never reaches it.
-  const [section, setSection] = useState("");
+  // The default until the browser says otherwise, which is also what the
+  // server renders: a hash never reaches it.
+  const [section, setSection] = useState(DEFAULT_SECTION);
   const [turn, setTurn] = useState<Turn | null>(null);
   /** The section the page is showing or on its way to. */
-  const shown = useRef("");
+  const shown = useRef(DEFAULT_SECTION);
 
   useEffect(() => {
     const read = (animate: boolean) => {
-      const next = window.location.hash.slice(1);
+      const next = window.location.hash.slice(1) || DEFAULT_SECTION;
       const from = shown.current;
       if (next === from) return;
       shown.current = next;
