@@ -30,6 +30,13 @@
   min-height: 1.5em;
 }
 
+/* The reel as it opens, on the face a turn lands on: the title, the line
+   under it and the pictures round it are where their arrival starts, which is
+   nowhere. They come in once the turn is over, on the reel itself. */
+.reel[data-arriving] [data-chrome] {
+  visibility: hidden;
+}
+
 @keyframes arrive {
   from {
     opacity: 0;

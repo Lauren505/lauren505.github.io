@@ -142,7 +142,16 @@
    is and the turn leaves it alone. */
 @media (min-width: 1281px) and (min-aspect-ratio: 17 / 12) {
   .atSide .hang {
-    left: calc(-100cqw - var(--nav-gap-x));
+    left: calc(-100cqw - 100% - 2 * var(--nav-gap-x));
+  }
+
+  /* And Home and Publications go out into the right margin by as much as Side
+     quests comes into the left one — the width of the two and a gap — so the
+     row's two ends stand the same distance from the two edges of the window.
+     The column is centred, so that is all it takes. Side quests is placed from
+     here, so it takes the same step back: the 100% above. */
+  .atSide .nav {
+    transform: translateX(calc(100% + var(--nav-gap-x)));
   }
 }
 

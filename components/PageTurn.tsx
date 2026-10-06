@@ -14,9 +14,6 @@ const TURN_MS = 760;
 /** How far the camera sits from the page, as a multiple of the turning face's
  *  width — so the convergence looks the same whatever the window's size. */
 const CAMERA = 2.9;
-/** How far the far face tips away from the reader at the middle of the turn,
- *  in degrees. Nothing at either end, where it has a real page to match. */
-const TILT = 11;
 /** How much of the turn the far face takes to come up to full strength. The
  *  page it covers is the page still being read: anything past the crease
  *  belongs to the face coming round, so it has to go, but it dissolves over a
@@ -140,12 +137,14 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
       `translateZ(${(-faceW.current * sin).toFixed(2)}px) ` +
       `rotateY(${(-theta).toFixed(3)}deg)`;
 
-    // The far face, hung from the crease and leaning away from the same edge,
-    // deepest side-on. Home and Publications are printed on it, at the right
-    // of its header, so they come round with it.
+    // The far face, hung from the crease at a right angle to the near one:
+    // edge-on as the turn begins and square on at the end of it, so its far
+    // side recedes into the window — drawn smaller — the whole way round, as
+    // the near face's does. Home and Publications are printed on it, at the
+    // right of its header, so they come round with it.
     face.style.transform =
       `translateX(${edge.toFixed(2)}px) perspective(${camera.current.toFixed(0)}px) ` +
-      `rotateY(${(TILT * 2 * sin * cos).toFixed(3)}deg)`;
+      `rotateY(${(90 - theta).toFixed(3)}deg)`;
     edgeLine.style.transform = `translateX(${edge.toFixed(2)}px)`;
     if (ramp !== faced.current) {
       faced.current = ramp;
@@ -403,7 +402,7 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
             {frozen ? null : (
               <>
                 <Nav current={SIDE} />
-                <SideQuestsBody still />
+                <SideQuestsBody still arriving />
               </>
             )}
           </div>

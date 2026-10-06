@@ -1,7 +1,7 @@
 "use client";
 
 import Image, { type StaticImageData } from "next/image";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import ProjectSpread from "@/components/ProjectSpread";
 import { dateKey, monthYear, projects as listed, type Project } from "@/content";
 import styles from "./ProjectReel.module.css";
@@ -37,9 +37,12 @@ const wrap = (k: number) => ((k % N) + N) % N;
  * frame, straight onto the elements: React only hears about it when the
  * middle changes.
  *
- * `still` is the reel as a picture of itself, for the faces of a turn.
+ * `still` is the reel as a picture of itself, for the faces of a turn; and
+ * `arriving` is that picture as the reel opens, before the title and the
+ * pictures round it have come in — the face a turn lands on, so that what
+ * comes in does so once the turn is over, not twice.
  */
-export default function ProjectReel({ still = false }: { still?: boolean }) {
+export default function ProjectReel({ still = false, arriving = false }: { still?: boolean; arriving?: boolean }) {
   const stage = useRef<HTMLDivElement>(null);
   const slots = useRef(new Map<number, HTMLElement>());
   const p = useRef(START);
@@ -48,6 +51,11 @@ export default function ProjectReel({ still = false }: { still?: boolean }) {
    *  title shows. */
   const [base, setBase] = useState(START);
   const [ready, setReady] = useState(false);
+  // The covers fade up on a page that has just loaded, where the server's
+  // markup is up before they can be placed. Mounted any later — after a turn,
+  // say — they are placed before the first frame (see below), and are simply
+  // there.
+  const hydrated = useSyncExternalStore(noSubscribe, () => true, () => false);
   const [open, setOpen] = useState<{ index: number; from: DOMRect } | null>(null);
 
   const layout = useCallback(() => {
@@ -93,6 +101,10 @@ export default function ProjectReel({ still = false }: { still?: boolean }) {
 
   // The loop: ease toward the target, lay out, and tell React when the middle
   // has moved to another slot.
+  useLayoutEffect(() => {
+    layout();
+  }, [layout]);
+
   useEffect(() => {
     layout();
     setReady(true);
@@ -272,7 +284,7 @@ export default function ProjectReel({ still = false }: { still?: boolean }) {
   for (let k = base - REACH; k <= base + REACH; k++) ks.push(k);
 
   return (
-    <div ref={root} className={styles.reel}>
+    <div ref={root} className={styles.reel} data-arriving={arriving || undefined}>
       <Strewn active={active} still={still} />
       <h2 key={`t${active}`} className={styles.title} data-chrome>
         {project.title}
@@ -280,7 +292,7 @@ export default function ProjectReel({ still = false }: { still?: boolean }) {
       <div className={styles.track}>
       <div
         ref={stage}
-        className={`${styles.stage} ${ready ? styles.ready : ""}`}
+        className={`${styles.stage} ${ready || hydrated ? styles.ready : ""}`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -528,3 +540,5 @@ function Strewn({ active, still }: { active: number; still: boolean }) {
     </div>
   );
 }
+
+const noSubscribe = () => () => {};
