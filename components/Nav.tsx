@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { canRollDown, requestRollUp, startRollDown } from "@/components/foldSignal";
-import { DEFAULT_SECTION } from "@/components/SideQuestsBody";
+import { DEFAULT_SECTION, sectionOf } from "@/components/SideQuestsBody";
 import { startTurn } from "@/components/turnSignal";
 import styles from "./Nav.module.css";
 
@@ -17,7 +17,8 @@ const LINKS = [
 /** The side quests page's own sections. They stand beside its tab, and only
  *  while that tab is the page: everywhere else there is nothing to the right of
  *  it but window, and nothing they would mean. */
-const SUBS = ["Projects", "Gallery", "Bakery", "Life lately"];
+// Life lately is put away until there is something in it — see posts.ts.
+const SUBS = ["Projects", "Gallery", "Bakery"];
 const slug = (label: string) => label.toLowerCase().replace(/\s+/g, "-");
 
 const HOME = "/";
@@ -109,7 +110,7 @@ export default function Nav({ current }: { current?: string }) {
   // Before paint, so the turn's copy is never drawn lighting the wrong one.
   useLayoutEffect(() => {
     if (!atSide) return;
-    const read = () => setSection(window.location.hash.slice(1) || DEFAULT_SECTION);
+    const read = () => setSection(sectionOf(window.location.hash.slice(1)));
     read();
     // A picture of the nav — the turn's copy — lights the section the page is
     // on as it is taken, and keeps it.

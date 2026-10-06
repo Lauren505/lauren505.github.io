@@ -719,8 +719,17 @@ function useNarrow() {
  */
 function Cue({ p, hidden }: { p: Portal; hidden: boolean }) {
   const cue = useNarrow() ? CUE_NARROW : CUE;
+  // Where drei puts the caption, fixed from the first frame. Left to itself it
+  // takes the canvas's parent until the pointer events are connected and the
+  // events' element after — and on that change it mounts the caption's React
+  // root again on the same node while the first is still being taken down,
+  // which then fails to remove what the second has already cleared away. The
+  // two are the same size in the same place, so this only keeps it still.
+  const gl = useThree((s) => s.gl);
+  const host = useMemo(() => ({ current: gl.domElement.parentElement as HTMLElement }), [gl]);
   return (
     <Html
+      portal={host}
       transform
       distanceFactor={(400 * cue) / CUE_PX}
       position={[p.x - p.w / 2 + 10 * cue, p.y - p.h / 2, 0.002]}

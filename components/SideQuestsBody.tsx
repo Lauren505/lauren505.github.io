@@ -12,11 +12,15 @@ import styles from "./SideQuestsBody.module.css";
 
 /** The sections in the order the nav lists them, which is what decides whether
  *  a turn between two rolls up or down. */
-const ORDER = ["projects", "gallery", "bakery", "life-lately"];
+const ORDER = ["projects", "gallery", "bakery"];
 
 /** The section with no hash at all — arriving from the nav tab, home or
  *  publications — so the page always opens on something. */
 export const DEFAULT_SECTION = "projects";
+
+/** The section a hash names — or, for no hash or one naming nothing here
+ *  (Life lately, put away until there is something in it), the default. */
+export const sectionOf = (hash: string) => (ORDER.includes(hash) ? hash : DEFAULT_SECTION);
 
 type Turn = { from: string; to: string; held: Frozen | null };
 
@@ -64,9 +68,8 @@ function Section({ id, still, arriving = false }: { id: string; still: boolean; 
 /**
  * The side quests page, which is a page of sections rather than a page: which
  * one is open is the hash and nothing else, the same thing the nav reads to
- * light a tab. No hash at all is Projects. Projects, Gallery and Bakery have
- * something in them so far — content/posts.ts is still empty — so Life lately
- * is a blank page.
+ * light a tab. No hash at all is Projects, and so is a hash naming no section
+ * — Life lately among them, put away while content/posts.ts is still empty.
  *
  * Moving between sections turns the cube they are faces of, the way home turns
  * into publications — see SectionTurn.
@@ -91,7 +94,7 @@ export default function SideQuestsBody({ still = false, arriving = false }: { st
 
   useEffect(() => {
     const read = (animate: boolean) => {
-      const next = window.location.hash.slice(1) || DEFAULT_SECTION;
+      const next = sectionOf(window.location.hash.slice(1));
       const from = shown.current;
       if (next === from) return;
       shown.current = next;
