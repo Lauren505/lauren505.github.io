@@ -63,6 +63,9 @@
 .shopping {
   columns: 2 11em;
   column-gap: 2.4em;
+  /* In as far as the steps' words are, past their numbers, so both lists
+     start at the same place. */
+  padding-left: 1.6em;
   text-align: left;
 }
 
