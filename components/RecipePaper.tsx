@@ -450,7 +450,7 @@ export default function RecipePaper({
         {recipe.ingredients.some((g) => g.items.length) ? (
           <section>
             <h3 className={styles.heading}>Ingredients</h3>
-            <div className={styles.shopping}>
+            <div className={styles.shopping} data-grouped={recipe.ingredients.length > 1 || undefined}>
               {recipe.ingredients.map((g, i) => (
                 <div key={i} className={styles.group}>
                   {g.heading ? <h4 className={styles.sub}>{inline(g.heading)}</h4> : null}

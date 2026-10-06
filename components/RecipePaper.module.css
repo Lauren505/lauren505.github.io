@@ -58,13 +58,25 @@
 }
 
 /* The ingredients read down the left, under their sub-headings, as a list
-   is easiest to shop from — but all of them together sit in the middle of
-   the card, under its headings, as wide as their longest line. */
+   is easiest to shop from — in two columns, side by side, so a long list
+   is not a long card; in one, if the card is too narrow for two. */
 .shopping {
-  width: fit-content;
-  max-width: 100%;
-  margin: 0 auto;
+  columns: 2 11em;
+  column-gap: 2.4em;
   text-align: left;
+}
+
+.items li {
+  break-inside: avoid;
+}
+
+/* With groups, each kept whole, in one column or the other. */
+.shopping[data-grouped] .group {
+  break-inside: avoid;
+}
+
+.sub {
+  break-after: avoid;
 }
 
 .group + .group {
