@@ -86,16 +86,16 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
   const faced = useRef(-1);
   /** The elements a frame writes to, found once per turn — see paint(). */
   const parts = useRef<Record<string, HTMLElement>>({});
-  /** The live page's own nav, which hands over to the stage's copy. */
-  const headers = useRef<HTMLElement[]>([]);
+  /** The live page's Side quests tab, which hands over to the stage's copy —
+   *  the one tab that is on neither face. */
+  const liveTab = useRef<HTMLElement | null>(null);
   /** Window width, and the crease's place in it at rest. */
   const split = useRef(0);
-  /** How far the row of tabs has to travel, and which way round — see the
-   *  hand-over in measure(). */
+  /** How far the Side quests tab has to travel, and which way round — see
+   *  measure(). */
   const navShift = useRef(0);
-  /** Where the crease comes to rest, and how wide the near face is measured
-   *  from there — see the hinge in measure(). */
-  const hinge = useRef(0);
+  /** The near face: everything left of the crease, hinged at the window's
+   *  left edge. */
   const faceW = useRef(0);
   const viewW = useRef(1);
   const camera = useRef(1600);
@@ -119,12 +119,10 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
     const sin = Math.sin(theta * DEG);
     const cos = Math.cos(theta * DEG);
     /** The crease: where the faces meet, and what the rest is measured from.
-     *  It runs through the gap between the Publications and Side quests tabs,
-     *  and the row of tabs is on its way to the left margin, so the crease goes
-     *  with it — it comes to rest in that same gap rather than at the edge of
-     *  the window. See the hinge in measure(); when the row is not travelling
-     *  the hinge is 0 and this is the plain sweep across the window. */
-    const edge = hinge.current + faceW.current * cos;
+     *  It starts in the gap between the Publications and Side quests tabs and
+     *  sweeps the near face — Home and Publications with it — away off the
+     *  left of the window. */
+    const edge = faceW.current * cos;
     const view = viewW.current || 1;
     /** Holds the shading — and the face coming round — off for the first
      *  sliver of the turn, so the page still looks untouched at the moment
@@ -133,19 +131,18 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
     /** And the mirror of it at the other end: what is left of the crease. */
     const out = Math.min(1, (1 - v) / EDGE_OUT);
 
-    // The near face, hinged along the line the crease is making for. Pushing it
-    // back by exactly the depth its near edge gained puts that edge on the
-    // camera plane: it keeps its size and the crease stays at
-    // hinge + width * cos(theta), while everything behind it draws smaller.
-    // There is nothing to the left of the hinge but the page's own margin, so
-    // nothing of what is being read swings the wrong way round it.
+    // The near face, hinged along the left of the window. Pushing it back by
+    // exactly the depth its near edge gained puts that edge on the camera
+    // plane: it keeps its size and the crease stays at width * cos(theta),
+    // while everything behind it draws smaller.
     page.style.transform =
       `perspective(${camera.current.toFixed(0)}px) ` +
       `translateZ(${(-faceW.current * sin).toFixed(2)}px) ` +
       `rotateY(${(-theta).toFixed(3)}deg)`;
 
     // The far face, hung from the crease and leaning away from the same edge,
-    // deepest side-on.
+    // deepest side-on. Home and Publications are printed on it, at the right
+    // of its header, so they come round with it.
     face.style.transform =
       `translateX(${edge.toFixed(2)}px) perspective(${camera.current.toFixed(0)}px) ` +
       `rotateY(${(TILT * 2 * sin * cos).toFixed(3)}deg)`;
@@ -153,12 +150,12 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
     if (ramp !== faced.current) {
       faced.current = ramp;
       face.style.opacity = ramp.toFixed(4);
-      // Four times the face's own ramp, so the hand-over between the two navs
-      // is over while the page beneath has turned barely a degree: they stand
-      // in the same place, and any longer would show them both.
+      // Four times the face's own ramp, so the hand-over between the two Side
+      // quests tabs is over while the page beneath has turned barely a degree:
+      // they stand in the same place, and any longer would show them both.
       const navs = Math.min(1, ramp * 4);
       chrome.style.opacity = navs.toFixed(4);
-      for (const h of headers.current) h.style.opacity = (1 - navs).toFixed(4);
+      if (liveTab.current) liveTab.current.style.opacity = (1 - navs).toFixed(4);
     }
     // The two halves the crease divides the window into, as scale factors: the
     // shading is a window-sized gradient, and squashing one is far cheaper
@@ -178,18 +175,18 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
     shadeFar.style.opacity = (0.36 * cos * ramp).toFixed(4);
     veilNear.style.opacity = (0.5 * sin * out).toFixed(4);
     veilFar.style.opacity = (0.7 * sin * cos * ramp).toFixed(4);
-    // Up over the first frames, and out again over the last: at the end of the
-    // turn the crease has arrived between the two tabs, which is where the new
-    // page's own column begins, and a line drawn there would stay behind after
-    // everything that explained it had gone.
+    // Up over the first frames, and out again over the last, as the crease
+    // reaches the edge of the window.
     edgeLine.style.opacity = (Math.min(1, v * 9) * out).toFixed(4);
-    // The nav travels by the same law as the crease, between the two places
-    // its own two layouts put it: level with the crease at rest, and level
-    // with the start of the body text once side quests fills the window.
+    // The Side quests tab travels by the same law as the crease, between the
+    // two places the two layouts put it: just past the crease at rest, and
+    // where Home stood once side quests fills the window. It starts right of
+    // the crease and lands right of where the crease does, so it stays on the
+    // face coming round the whole way.
     chrome.style.transform = `translateX(${(navShift.current * cos).toFixed(2)}px)`;
     // And the sections it is carrying, which only make sense once it is nearly
-    // there: at the start of the turn the row is still standing at the right of
-    // the window, and they would reach off the edge of it.
+    // there: at the start of the turn it is still standing at the right of the
+    // window, and they would reach off the edge of it.
     // Set on the copy of the nav, the only thing beneath it that reads it.
     chrome.style.setProperty("--nav-subs", Math.max(0, Math.min(1, (v - SUBS_AT) / 0.3)).toFixed(4));
   }, []);
@@ -205,8 +202,8 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
       ["face", "chrome", "veilNear", "shadeNear", "veilFar", "shadeFar", "edgeLine"].map((n) => [n, part(n)]),
     );
     // The route may have changed since the last measure, and its nav with it.
-    for (const h of headers.current) h.style.opacity = "";
-    headers.current = [...page.querySelectorAll<HTMLElement>("header")];
+    if (liveTab.current) liveTab.current.style.opacity = "";
+    liveTab.current = page.querySelector<HTMLElement>("header [data-turn-seam-right]");
     faced.current = -1;
 
     // Read with the rotation off: every rect below would otherwise come back
@@ -218,41 +215,27 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
     // against either of them: it is the line those two words are written
     // either side of.
     split.current = seam(page) ?? viewW.current;
-
-    // Where that same gap ends up. The stage's copy of the nav is drawn as side
-    // quests draws it — the row standing in the left margin — and the live one
-    // as the page being left draws it, so the distance between the two gaps is
-    // the whole of the journey, whichever way round the turn is going and
-    // whether the window is wide enough for the row to move at all. Read with
-    // the carriage at rest, for the same reason the rotation is cleared above.
-    parts.current.chrome.style.transform = "";
-    const lands = seam(stage) ?? split.current;
-
-    // The nav travels exactly as far as the crease, because it is the same
-    // journey: taking the row's shift from the two gaps rather than from the
-    // tabs either side of them is what glues the crease to the gap for every
-    // frame in between, whatever else differs between the two layouts.
-    navShift.current = split.current - lands;
-
-    // The hinge is that gap read in the layout the turn is landing in — the
-    // start of the new page's column, give or take half a gap — and the near
-    // face is what is left of the window between the two.
-    //
-    // Only when the row really does cross the page, which is what the far side
-    // of the window asks: on a window too narrow or too upright for the row to
-    // stand in the left margin, the gap stays where it is and the crease
-    // sweeps the whole window, hinged at its edge, as it always did.
-    hinge.current = lands < viewW.current / 2 ? lands : 0;
-    faceW.current = Math.max(1, split.current - hinge.current);
+    faceW.current = Math.max(1, split.current);
     camera.current = Math.max(1200, faceW.current * CAMERA);
+
+    // Where the Side quests tab is going. The stage's copy is drawn as side
+    // quests draws it and the live one as the page being left draws it, so the
+    // distance between the two is the whole of the journey, whichever way
+    // round the turn is going — and nothing, where the window is too narrow
+    // for the tab to move. Read with the carriage at rest, for the same reason
+    // the rotation is cleared above.
+    parts.current.chrome.style.transform = "";
+    const from = liveTab.current?.querySelector("span")?.getBoundingClientRect().left;
+    const to = parts.current.chrome
+      .querySelector("[data-turn-seam-right] span")
+      ?.getBoundingClientRect().left;
+    navShift.current = from !== undefined && to !== undefined ? from - to : 0;
 
     // The axis runs down the left of the window, through its middle: the page
     // is document-tall, so the vanishing point has to be carried down to
     // wherever the reader is.
     const top = page.getBoundingClientRect().top + window.scrollY;
-    page.style.transformOrigin =
-      `${hinge.current.toFixed(2)}px ` +
-      `${(window.scrollY + window.innerHeight / 2 - top).toFixed(2)}px`;
+    page.style.transformOrigin = `0px ${(window.scrollY + window.innerHeight / 2 - top).toFixed(2)}px`;
     page.style.willChange = "transform";
   }, []);
 
@@ -268,8 +251,8 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
       page.style.transformOrigin = "";
       page.style.willChange = "";
     }
-    for (const h of headers.current) h.style.opacity = "";
-    headers.current = [];
+    if (liveTab.current) liveTab.current.style.opacity = "";
+    liveTab.current = null;
     faced.current = -1;
     phase.current = "idle";
     setTurning(false);
@@ -315,14 +298,14 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
       setActive(true);
       return;
     }
-    // Leaving side quests: the face is the page as it is, so it is taken on
-    // the next frame, once a scene that draws every frame has drawn — see
-    // freezePage.
+    // Leaving side quests: the face is the page as it is, nav and all, so it
+    // is taken on the next frame, once a scene that draws every frame has
+    // drawn — see freezePage.
     phase.current = "inWait";
-    const main = pageRef.current?.querySelector<HTMLElement>("main");
+    const page = pageRef.current;
     raf.current = requestAnimationFrame(() => {
       raf.current = 0;
-      setFrozen(main ? freezePage(main) : null);
+      setFrozen(page ? freezePage(page) : null);
       setActive(true);
     });
   }, []);
@@ -413,8 +396,16 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
       {active ? (
         <div ref={stageRef} className={styles.stage} aria-hidden>
           <div className={styles.face} data-part="face" inert>
-            {/* Empty when it is the frozen page, which goes in by hand. */}
-            {frozen ? null : <SideQuestsBody still />}
+            {/* Empty when it is the frozen page, which goes in by hand. Either
+                way it carries its own nav, Home and Publications at the right
+                of it — see .face in the CSS for the tab that does not ride
+                on it. */}
+            {frozen ? null : (
+              <>
+                <Nav current={SIDE} />
+                <SideQuestsBody still />
+              </>
+            )}
           </div>
 
           {/* Over the window, not over the faces — see .tint. */}

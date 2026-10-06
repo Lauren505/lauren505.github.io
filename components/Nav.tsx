@@ -130,6 +130,8 @@ export default function Nav({ current }: { current?: string }) {
         // The sideways turn creases between these two tabs.
         data-turn-seam-left={href === PUBS ? "" : undefined}
         data-turn-seam-right={href === SIDE ? "" : undefined}
+        // Which face of the sideways turn it rides on — see PageTurn.
+        data-nav-part={href === SIDE ? undefined : "pages"}
         className={styles.link}
         data-active={active}
         aria-current={active ? "page" : undefined}
@@ -148,7 +150,7 @@ export default function Nav({ current }: { current?: string }) {
 
           {/* Everything past the column's right edge: the side quests tab, and
               — once side quests is the page — its own sections after it. */}
-          <div className={styles.hang}>
+          <div className={styles.hang} data-nav-part="hang">
             {tab(LINKS[LINKS.length - 1])}
 
             {atSide ? (

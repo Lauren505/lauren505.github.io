@@ -62,17 +62,26 @@
   will-change: transform, opacity;
 }
 
-/* The nav is chrome, not page: the crease runs between two of its tabs, so it
-   belongs to neither face. It rides above the shading and clear of the crease
-   for the whole turn, and hands over from the live one at the start — the two
-   stand in the same place, so all that changes is which tab is lit.
+/* The Side quests tab is chrome, not page: the crease runs just in front of
+   it, so it belongs to neither face. It rides above the shading and clear of
+   the crease for the whole turn, and hands over from the live one at the start
+   — the two stand in the same place, so all that changes is that it is lit.
 
-   It is drawn as side quests draws it, with the row of tabs standing in the
-   left margin, and carried back to where the page being left puts it: the
-   whole way at rest, nothing at a full turn, so it crosses the window
-   by the same law as the crease and reads as part of the cube rather than as
-   something laid over it. At either end of the turn it is exactly where the
-   page it lands on puts it. */
+   It is drawn as side quests draws it, standing where Home stands on the page
+   being left, and carried back to where the page being left puts it: the
+   whole way at rest, nothing at a full turn, so it crosses the window by the
+   same law as the crease. At either end of the turn it is exactly where the
+   page it lands on puts it.
+
+   Home and Publications are not chrome. On the page being left they fold away
+   with it; on side quests they are printed on the face coming round, at the
+   right of its header — so here they are left out, and there the tab that
+   rides up here is. */
+.chrome [data-nav-part="pages"],
+.face [data-nav-part="hang"] {
+  visibility: hidden;
+}
+
 .chrome {
   position: absolute;
   top: 0;

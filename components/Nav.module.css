@@ -12,12 +12,13 @@
 }
 
 /* The row of tabs, as wide as the column and with the nav against its right
-   end. It exists to be exactly the column's width: that is the distance the
-   row travels on side quests, and the only way to say it in CSS — see
-   .atSide. */
+   end. It exists to be exactly the column's width: that is the distance Side
+   quests travels on its own page, and a container is the only way to say it
+   in CSS — see .atSide. */
 .rail {
   display: flex;
   justify-content: flex-end;
+  container-type: inline-size;
 }
 
 .nav {
@@ -118,30 +119,30 @@
   text-transform: uppercase;
 }
 
-/* On side quests the whole row crosses the page and stands in the left margin,
-   with Side quests — the tab that is now the page — level with the start of the
-   body text and the other two hanging off the far side of it. It is the mirror
-   of where the row sits everywhere else, and it is what the sideways turn is
-   carrying the nav towards: the row travels with the crease, so the nav reads
-   as part of the cube rather than as something laid over it.
+/* On side quests, Side quests — the tab that is now the page — crosses the
+   page with its sections and stands in the left margin, where Home would stand
+   if the whole row had crossed: a column's width and a gap to the left of it.
+   Home and Publications stay where they are on every other page, at the right
+   of the column. It is what the sideways turn shows: Home and Publications
+   fold away to the left with the page being left and come round again on the
+   right, printed on side quests, while Side quests travels across in front of
+   the crease.
 
-   The distance is the width of the column plus the gap between two tabs.
-   -100% is the rail's own width, which is the column's, so this lands Side
-   quests exactly where the body text starts, whatever the window's size.
+   100cqw is the rail's width, which is the column's, so this lands Side
+   quests in the same place whatever the window's size.
 
    Only where there is a margin to stand in. The margin is what is left of the
    window either side of the column, and the column — like the type in it — is
-   in rem, so whether Home and Publications fit in it is a question about the
-   window's shape rather than its width: they need a window about five twelfths
-   wider than it is tall. That number follows --page-max and the root size's
-   law together — the row travels the column's width, and the margin it lands
-   in is what the window has left over — so widening one or re-calibrating the
-   other means measuring this again. (The floor is there because below it the
-   last tab stops hanging, and this is measured from where it hangs.) Anywhere
-   else the row stays where it is and the turn leaves it alone. */
+   in rem, so whether the tabs fit in it is a question about the window's
+   shape rather than its width: they need a window about five twelfths wider
+   than it is tall. That number follows --page-max and the root size's law
+   together, so widening one or re-calibrating the other means measuring this
+   again. (The floor is there because below it the last tab stops hanging, and
+   this is measured from where it hangs.) Anywhere else the tab stays where it
+   is and the turn leaves it alone. */
 @media (min-width: 1281px) and (min-aspect-ratio: 17 / 12) {
-  .atSide .rail {
-    transform: translateX(calc(-100% - var(--nav-gap-x)));
+  .atSide .hang {
+    left: calc(-100cqw - var(--nav-gap-x));
   }
 }
 
