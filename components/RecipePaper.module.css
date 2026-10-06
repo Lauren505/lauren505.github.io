@@ -1,12 +1,13 @@
-/* A menu card: everything centred, the name in wide capitals, the rest in a
-   small italic — and the steps, which are read rather than glanced at, set
-   flush left under their numbers. Warm black ink, not quite black. */
+/* A menu card: everything centred, the name in wide capitals, the rest
+   upright, only what it makes in italic — and the steps, which are read
+   rather than glanced at, set flush left under their numbers. Warm black
+   ink, not quite black. */
 .paper {
   position: relative;
   display: flex;
   flex-direction: column;
   color: #3b3431;
-  font-size: 19.5px;
+  font-size: 18px;
   line-height: 1.55;
   text-align: center;
   cursor: auto;
@@ -100,7 +101,6 @@
   padding: 0;
   /* A bullet out in the margin, where the steps have their numbers. */
   list-style: disc outside;
-  font-style: italic;
   letter-spacing: 0.03em;
 }
 
@@ -108,7 +108,6 @@
   margin: 0;
   padding: 0 0 0 1.6em;
   text-align: left;
-  font-style: italic;
   letter-spacing: 0.02em;
 }
 
@@ -129,17 +128,13 @@
 
 .note {
   margin: 0.4em 0 0;
-  font-style: italic;
 }
 
 .paper em {
   font-style: italic;
 }
 
-.items em,
-.steps em,
-.portion em,
-.note em {
+.portion em {
   font-style: normal;
 }
 
