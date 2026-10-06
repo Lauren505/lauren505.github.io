@@ -98,7 +98,8 @@
 .items {
   margin: 0;
   padding: 0;
-  list-style: none;
+  /* A bullet out in the margin, where the steps have their numbers. */
+  list-style: disc outside;
   font-style: italic;
   letter-spacing: 0.03em;
 }
@@ -113,6 +114,11 @@
 
 .steps li + li {
   margin-top: 0.45em;
+}
+
+.items li::marker {
+  font-size: 0.8em;
+  color: #6d625c;
 }
 
 .steps li::marker {
