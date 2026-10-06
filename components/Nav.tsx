@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { canRollDown, requestRollUp, startRollDown } from "@/components/foldSignal";
 import { DEFAULT_SECTION } from "@/components/SideQuestsBody";
 import { startTurn } from "@/components/turnSignal";
@@ -106,10 +106,14 @@ export default function Nav({ current }: { current?: string }) {
   // they are places on one page, so there is no route to read it from. No hash
   // is the default section, which is also what the server renders.
   const [section, setSection] = useState(DEFAULT_SECTION);
-  useEffect(() => {
-    if (frozen || !atSide) return;
+  // Before paint, so the turn's copy is never drawn lighting the wrong one.
+  useLayoutEffect(() => {
+    if (!atSide) return;
     const read = () => setSection(window.location.hash.slice(1) || DEFAULT_SECTION);
     read();
+    // A picture of the nav — the turn's copy — lights the section the page is
+    // on as it is taken, and keeps it.
+    if (frozen) return;
     window.addEventListener("hashchange", read);
     return () => window.removeEventListener("hashchange", read);
   }, [frozen, atSide]);

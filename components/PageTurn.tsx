@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Nav from "@/components/Nav";
 import SideQuestsBody from "@/components/SideQuestsBody";
+import { freezePage, type Frozen } from "@/components/freezePage";
 import { setTurn, setTurning } from "@/components/turnSignal";
 import styles from "./PageTurn.module.css";
 
@@ -58,8 +59,9 @@ type Phase = "idle" | "out" | "outWait" | "inWait" | "in";
  * It wraps the whole document because the near face is the live page itself,
  * rotated where it stands — a route is only laid out where it is mounted, so
  * there is nothing to copy it from. The far face is always side quests, which
- * is empty and so can be drawn from anywhere; that is what makes both
- * directions the same animation:
+ * is what makes both directions the same animation. Turning to it, it is drawn
+ * fresh, as it opens; turning back, it is a picture of the live page, frozen
+ * as it stands — see freezePage — rather than drawn again from the start:
  *
  *   to side quests   turn 0 -> 1, then change route behind the covered screen
  *   from side quests change route behind the covered screen, then turn 1 -> 0
@@ -68,6 +70,8 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [active, setActive] = useState(false);
+  /** Side quests as it stood when the turn back from it began. */
+  const [frozen, setFrozen] = useState<Frozen | null>(null);
 
   const pageRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -270,6 +274,7 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
     phase.current = "idle";
     setTurning(false);
     setActive(false);
+    setFrozen(null);
   }, []);
 
   const run = useCallback(
@@ -304,15 +309,32 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
 
   const start = useCallback((href: string) => {
     dest.current = href;
-    phase.current = href === SIDE ? "out" : "inWait";
     setTurning(true);
-    setActive(true);
+    if (href === SIDE) {
+      phase.current = "out";
+      setActive(true);
+      return;
+    }
+    // Leaving side quests: the face is the page as it is, so it is taken on
+    // the next frame, once a scene that draws every frame has drawn — see
+    // freezePage.
+    phase.current = "inWait";
+    const main = pageRef.current?.querySelector<HTMLElement>("main");
+    raf.current = requestAnimationFrame(() => {
+      raf.current = 0;
+      setFrozen(main ? freezePage(main) : null);
+      setActive(true);
+    });
   }, []);
 
   // The stage is mounted: measure both layouts and put the first frame up
   // before the browser draws one.
   useLayoutEffect(() => {
     if (!active) return;
+    if (frozen) {
+      stageRef.current?.querySelector(':scope > [data-part="face"]')?.appendChild(frozen.node);
+      frozen.hold();
+    }
     measure();
 
     if (phase.current === "out") {
@@ -325,7 +347,7 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
     // swapped behind it and the turn plays from there.
     paint(1);
     handOver("inWait");
-  }, [active, measure, paint, run, handOver]);
+  }, [active, frozen, measure, paint, run, handOver]);
 
   // The route has landed. Either the turn is over, or this is where it starts.
   useLayoutEffect(() => {
@@ -391,7 +413,8 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
       {active ? (
         <div ref={stageRef} className={styles.stage} aria-hidden>
           <div className={styles.face} data-part="face" inert>
-            <SideQuestsBody still />
+            {/* Empty when it is the frozen page, which goes in by hand. */}
+            {frozen ? null : <SideQuestsBody still />}
           </div>
 
           {/* Over the window, not over the faces — see .tint. */}
