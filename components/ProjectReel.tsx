@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import ProjectSpread from "@/components/ProjectSpread";
-import { dateKey, monthYear, projects as listed } from "@/content";
+import { dateKey, monthYear, projects as listed, type Project } from "@/content";
 import styles from "./ProjectReel.module.css";
 
 /** In the order they happened, the newest where the reel opens. */
@@ -270,6 +270,7 @@ export default function ProjectReel({ still = false }: { still?: boolean }) {
 
   return (
     <div ref={root} className={styles.reel}>
+      <Strewn active={active} still={still} />
       <h2 key={`t${active}`} className={styles.title} data-chrome>
         {project.title}
       </h2>
@@ -355,3 +356,120 @@ export default function ProjectReel({ still = false }: { still?: boolean }) {
   );
 }
 
+
+/** The same few numbers for the same project every time. */
+function seeded(seed: string) {
+  let h = 2166136261;
+  for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return () => {
+    h = Math.imul(h ^ (h >>> 15), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    return ((h ^= h >>> 16) >>> 0) / 4294967296;
+  };
+}
+
+/** Where the strewn pictures lie, as the middle of each in percent of the
+ *  window: above the title and below the line under the reel, and off the
+ *  edges, never across the reel itself. Taken in this order. */
+const SPOTS = [
+  [14, 7],
+  [80, 5],
+  [30, 95],
+  [37, 4],
+  [76, 97],
+];
+
+/** A project's pictures other than its cover, as something to draw: its
+ *  photographs, and its videos by their thumbnails. */
+function picturesOf(p: Project) {
+  const out: { src: string | import("next/image").StaticImageData; w: number; h: number }[] = [];
+  for (const block of p.blocks) {
+    if (typeof block === "string") continue;
+    for (const m of block) {
+      if (m.kind === "image") {
+        if (m.image !== p.cover) out.push({ src: m.image, w: m.image.width, h: m.image.height });
+      } else out.push({ src: `https://i.ytimg.com/vi/${m.youtube}/hqdefault.jpg`, w: 16, h: 9 });
+    }
+  }
+  return out.slice(0, SPOTS.length);
+}
+
+/**
+ * The middle project's other pictures, strewn faintly round the reel behind
+ * everything, tilted and running off the edges of the window, as if the
+ * rest of its photographs were lying about on the table under it. Where each
+ * lies is the project's own, the same every time it comes round.
+ *
+ * They change once the reel comes to rest on a project, not with every one
+ * it passes: the last lot drift out and fade as the next drift in.
+ */
+function Strewn({ active, still }: { active: number; still: boolean }) {
+  const [shown, setShown] = useState<{ i: number; leaving: boolean }[]>([{ i: active, leaving: false }]);
+
+  useEffect(() => {
+    if (still) {
+      setShown([{ i: active, leaving: false }]);
+      return;
+    }
+    const settle = window.setTimeout(() => {
+      setShown((now) => {
+        if (now.some((s) => s.i === active && !s.leaving)) return now;
+        return [...now.filter((s) => !s.leaving && s.i !== active).map((s) => ({ ...s, leaving: true })), { i: active, leaving: false }];
+      });
+    }, 220);
+    return () => window.clearTimeout(settle);
+  }, [active, still]);
+
+  // The ones that have gone, gone.
+  useEffect(() => {
+    if (!shown.some((s) => s.leaving)) return;
+    const t = window.setTimeout(() => setShown((now) => now.filter((s) => !s.leaving)), 700);
+    return () => window.clearTimeout(t);
+  }, [shown]);
+
+  return (
+    <div className={styles.strewn} aria-hidden data-chrome>
+      {shown.map(({ i, leaving }) => {
+        const p = projects[i];
+        const rand = seeded(p.slug);
+        return picturesOf(p).map((pic, j) => {
+          const [sx, sy] = SPOTS[j];
+          const x = sx + (rand() - 0.5) * 8;
+          const y = sy + (rand() - 0.5) * 6;
+          const turn = (rand() - 0.5) * 40;
+          const size = 15 + rand() * 7;
+          // Out the way it lies from the middle of the window.
+          const ox = (x - 50) * 0.5;
+          const oy = (y - 50) * 0.5;
+          return (
+            <div
+              key={`${p.slug}-${j}`}
+              className={styles.strewnPiece}
+              data-leaving={leaving || undefined}
+              style={
+                {
+                  left: `${x}%`,
+                  top: `${y}%`,
+                  // A share of the window, but no smaller than a print would be.
+                  width: `max(${size}vw, ${size * 0.55}rem)`,
+                  aspectRatio: `${pic.w} / ${pic.h}`,
+                  "--turn": `${turn}deg`,
+                  "--out-x": `${ox}vw`,
+                  "--out-y": `${oy}vh`,
+                  animationDelay: leaving ? "0s" : `${j * 70}ms`,
+                } as React.CSSProperties
+              }
+            >
+              {typeof pic.src === "string" ? (
+                // eslint-disable-next-line @next/next/no-img-element -- a video's thumbnail, from YouTube
+                <img src={pic.src} alt="" loading="lazy" draggable={false} />
+              ) : (
+                <Image src={pic.src} alt="" fill sizes="24vw" draggable={false} />
+              )}
+            </div>
+          );
+        });
+      })}
+    </div>
+  );
+}
