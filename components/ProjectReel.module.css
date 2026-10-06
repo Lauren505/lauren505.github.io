@@ -57,28 +57,36 @@
 }
 
 /* The middle project's other pictures, faint, behind everything: across the
-   window's whole width and from the top of it to the foot, past the section
-   into the bands the nav and the margin keep, and fading at the sides like
-   the reel. See Strewn in ProjectReel.tsx. */
+   whole window, past the section into the bands the nav and the margin keep.
+   See Strewn in ProjectReel.tsx. */
 .strewn {
   position: absolute;
   z-index: -1;
   left: 50%;
   width: 100vw;
-  top: calc(-1 * var(--frame));
-  bottom: calc(-1 * var(--frame));
+  /* Set from the window: see Strewn. */
+  top: 0;
+  height: 100dvh;
   transform: translateX(-50%);
   overflow: hidden;
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
-  mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
+  /* Faded out towards every edge of the window, the top and foot as well as
+     the sides. */
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%),
+    linear-gradient(180deg, transparent 0, #000 14%, #000 86%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%),
+    linear-gradient(180deg, transparent 0, #000 14%, #000 86%, transparent 100%);
+  mask-composite: intersect;
 }
 
 .strewnPiece {
   position: absolute;
   overflow: hidden;
   background: var(--card);
-  opacity: 0.2;
+  opacity: 0.3;
   transform: translate(-50%, -50%) rotate(var(--turn));
   animation: strewIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

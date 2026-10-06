@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image, { type StaticImageData } from "next/image";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import ProjectSpread from "@/components/ProjectSpread";
 import { dateKey, monthYear, projects as listed, type Project } from "@/content";
@@ -368,21 +368,13 @@ function seeded(seed: string) {
   };
 }
 
-/** Where the strewn pictures lie, as the middle of each in percent of the
- *  window: above the title and below the line under the reel, and off the
- *  edges, never across the reel itself. Taken in this order. */
-const SPOTS = [
-  [14, 7],
-  [80, 5],
-  [30, 95],
-  [37, 4],
-  [76, 97],
-];
+/** At most this many of a project's pictures lie about at once. */
+const STREWN = 6;
 
 /** A project's pictures other than its cover, as something to draw: its
  *  photographs, and its videos by their thumbnails. */
 function picturesOf(p: Project) {
-  const out: { src: string | import("next/image").StaticImageData; w: number; h: number }[] = [];
+  const out: { src: string | StaticImageData; w: number; h: number }[] = [];
   for (const block of p.blocks) {
     if (typeof block === "string") continue;
     for (const m of block) {
@@ -391,20 +383,91 @@ function picturesOf(p: Project) {
       } else out.push({ src: `https://i.ytimg.com/vi/${m.youtube}/hqdefault.jpg`, w: 16, h: 9 });
     }
   }
-  return out.slice(0, SPOTS.length);
+  return out.slice(0, STREWN);
+}
+
+type Strewn = { pic: ReturnType<typeof picturesOf>[number]; x: number; y: number; w: number; h: number; turn: number; outX: number; outY: number };
+
+/**
+ * Where a project's pictures lie in a window W by H pixels: in loose runs
+ * along the top and the foot, each overlapping the last by a little more or a
+ * little less, now and then a gap, the run starting wherever it starts — not
+ * spread out evenly. Each is large, and reaches only a short way into the
+ * window, so all the rest of it, its far edge included, is out past the edge
+ * of the window whatever way it is turned. They reach no further in than the
+ * room above the title and below the line under the reel.
+ */
+function strew(p: Project, W: number, H: number): Strewn[] {
+  const rand = seeded(p.slug);
+  const pics = picturesOf(p);
+  // An upright window has less width for them than height: smaller, there.
+  const scale = Math.min(1, (W / H) * 0.9);
+  const runs: Strewn[][] = [[], []];
+  const firstTop = rand() < 0.5;
+  pics.forEach((pic, i) => runs[(i % 2 === 0) === firstTop ? 0 : 1].push({ pic } as Strewn));
+  runs.forEach((run, band) => {
+    const top = band === 0;
+    let x = W * (-0.08 + rand() * 0.3);
+    for (const piece of run) {
+      const aspect = piece.pic.w / piece.pic.h;
+      let h = H * (0.34 + rand() * 0.14) * scale;
+      let w = h * aspect;
+      if (w > W * 0.62) {
+        w = W * 0.62;
+        h = w / aspect;
+      }
+      const turn = (rand() - 0.5) * 28;
+      const t = (turn * Math.PI) / 180;
+      // How tall it stands, turned.
+      const tall = w * Math.abs(Math.sin(t)) + h * Math.abs(Math.cos(t));
+      const reach = Math.min(H * (top ? 0.15 + rand() * 0.09 : 0.13 + rand() * 0.07), tall * 0.8);
+      Object.assign(piece, {
+        w,
+        h,
+        turn,
+        x: x + w / 2,
+        y: top ? reach - tall / 2 : H - reach + tall / 2,
+        outX: (rand() - 0.5) * 80,
+        outY: (top ? -1 : 1) * tall * 0.5,
+      });
+      x += w * (0.6 + rand() * 0.25) + (rand() < 0.3 ? W * (0.06 + rand() * 0.14) : 0);
+    }
+  });
+  return runs.flat();
 }
 
 /**
  * The middle project's other pictures, strewn faintly round the reel behind
- * everything, tilted and running off the edges of the window, as if the
- * rest of its photographs were lying about on the table under it. Where each
- * lies is the project's own, the same every time it comes round.
+ * everything, tilted, overlapping and running off the top and foot of the
+ * window, as if the rest of its photographs were lying about on the table
+ * under it. Where each lies is the project's own, the same every time it
+ * comes round — see strew.
  *
  * They change once the reel comes to rest on a project, not with every one
  * it passes: the last lot drift out and fade as the next drift in.
+ *
+ * The layer is the window, whatever the section is: it is measured, and set
+ * from the top of the window to the foot of it, so the fade at its edges is
+ * the window's edges.
  */
 function Strewn({ active, still }: { active: number; still: boolean }) {
+  const layer = useRef<HTMLDivElement>(null);
+  const [win, setWin] = useState<{ w: number; h: number } | null>(null);
   const [shown, setShown] = useState<{ i: number; leaving: boolean }[]>([{ i: active, leaving: false }]);
+
+  useLayoutEffect(() => {
+    const el = layer.current;
+    const host = el?.parentElement;
+    if (!el || !host) return;
+    const place = () => {
+      el.style.top = `${-host.getBoundingClientRect().top}px`;
+      el.style.height = `${window.innerHeight}px`;
+      setWin((v) => (v && v.w === window.innerWidth && v.h === window.innerHeight ? v : { w: window.innerWidth, h: window.innerHeight }));
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, []);
 
   useEffect(() => {
     if (still) {
@@ -428,48 +491,37 @@ function Strewn({ active, still }: { active: number; still: boolean }) {
   }, [shown]);
 
   return (
-    <div className={styles.strewn} aria-hidden data-chrome>
-      {shown.map(({ i, leaving }) => {
-        const p = projects[i];
-        const rand = seeded(p.slug);
-        return picturesOf(p).map((pic, j) => {
-          const [sx, sy] = SPOTS[j];
-          const x = sx + (rand() - 0.5) * 8;
-          const y = sy + (rand() - 0.5) * 6;
-          const turn = (rand() - 0.5) * 40;
-          const size = 15 + rand() * 7;
-          // Out the way it lies from the middle of the window.
-          const ox = (x - 50) * 0.5;
-          const oy = (y - 50) * 0.5;
-          return (
-            <div
-              key={`${p.slug}-${j}`}
-              className={styles.strewnPiece}
-              data-leaving={leaving || undefined}
-              style={
-                {
-                  left: `${x}%`,
-                  top: `${y}%`,
-                  // A share of the window, but no smaller than a print would be.
-                  width: `max(${size}vw, ${size * 0.55}rem)`,
-                  aspectRatio: `${pic.w} / ${pic.h}`,
-                  "--turn": `${turn}deg`,
-                  "--out-x": `${ox}vw`,
-                  "--out-y": `${oy}vh`,
-                  animationDelay: leaving ? "0s" : `${j * 70}ms`,
-                } as React.CSSProperties
-              }
-            >
-              {typeof pic.src === "string" ? (
-                // eslint-disable-next-line @next/next/no-img-element -- a video's thumbnail, from YouTube
-                <img src={pic.src} alt="" loading="lazy" draggable={false} />
-              ) : (
-                <Image src={pic.src} alt="" fill sizes="24vw" draggable={false} />
-              )}
-            </div>
-          );
-        });
-      })}
+    <div ref={layer} className={styles.strewn} aria-hidden data-chrome>
+      {win
+        ? shown.map(({ i, leaving }) =>
+            strew(projects[i], win.w, win.h).map((piece, j) => (
+              <div
+                key={`${projects[i].slug}-${j}`}
+                className={styles.strewnPiece}
+                data-leaving={leaving || undefined}
+                style={
+                  {
+                    left: `${piece.x}px`,
+                    top: `${piece.y}px`,
+                    width: `${piece.w}px`,
+                    height: `${piece.h}px`,
+                    "--turn": `${piece.turn}deg`,
+                    "--out-x": `${piece.outX}px`,
+                    "--out-y": `${piece.outY}px`,
+                    animationDelay: leaving ? "0s" : `${j * 70}ms`,
+                  } as React.CSSProperties
+                }
+              >
+                {typeof piece.pic.src === "string" ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- a video's thumbnail, from YouTube
+                  <img src={piece.pic.src} alt="" loading="lazy" draggable={false} />
+                ) : (
+                  <Image src={piece.pic.src} alt="" fill sizes="45vw" draggable={false} />
+                )}
+              </div>
+            )),
+          )
+        : null}
     </div>
   );
 }
