@@ -20,32 +20,18 @@
 }
 
 /* The crease runs between two tabs, so the nav is the one thing on the page
-   that cannot belong to either face. It is handed over instead: this one
+   that cannot belong to either face. It is handed over instead: the live one
    dissolves as the turn begins and the copy on the face coming round, which
-   stands in the same place, takes over. Unset outside a turn, where the
-   fallback leaves the nav alone. */
-.page header {
-  opacity: calc(1 - clamp(0, calc(var(--turn-face, 0) * 4), 1));
-}
+   stands in the same place, takes over — see paint() in PageTurn. */
 
 /* The far face and the shading, over the window for the length of the turn.
    Transparent, unlike the fold's stage: the near half of the window is the
-   live page showing through. */
-.stage {
-  --turn-edge-x: 100vw;
-  --turn-face: 0;
-  --turn-camera: 1600px;
-  --turn-tilt: 0deg;
-  --turn-near-s: 1;
-  --turn-far-s: 0;
-  --turn-shade-near: 0;
-  --turn-shade-far: 0;
-  --turn-veil-near: 0;
-  --turn-veil-far: 0;
-  --turn-edge: 0;
-  --turn-nav-x: 0px;
-  --turn-subs: 0;
+   live page showing through.
 
+   Everything below that moves is written to its own element inline, frame by
+   frame, and what is here is only the state before the first one — see
+   paint() in PageTurn. */
+.stage {
   position: fixed;
   inset: 0;
   overflow: hidden;
@@ -69,11 +55,10 @@
   overflow: hidden;
   background: var(--bg);
   transform-origin: 0 50%;
-  transform: translateX(var(--turn-edge-x)) perspective(var(--turn-camera))
-    rotateY(var(--turn-tilt));
-  /* Comes up over the first sliver of the turn rather than at the first frame:
-     see --turn-face. At rest the window is the page, untouched. */
-  opacity: var(--turn-face);
+  transform: translateX(100vw);
+  /* Comes up over the first sliver of the turn rather than at the first frame.
+     At rest the window is the page, untouched. */
+  opacity: 0;
   will-change: transform, opacity;
 }
 
@@ -83,8 +68,8 @@
    stand in the same place, so all that changes is which tab is lit.
 
    It is drawn as side quests draws it, with the row of tabs standing in the
-   left margin, and carried back to where the page being left puts it by
-   --turn-nav-x: full at rest, nothing at a full turn, so it crosses the window
+   left margin, and carried back to where the page being left puts it: the
+   whole way at rest, nothing at a full turn, so it crosses the window
    by the same law as the crease and reads as part of the cube rather than as
    something laid over it. At either end of the turn it is exactly where the
    page it lands on puts it. */
@@ -94,16 +79,12 @@
   left: 0;
   right: 0;
   z-index: 2;
-  transform: translateX(var(--turn-nav-x));
   /* Side quests brings its own sections with it. They belong to the place the
      row is going, not the place it is leaving, so they unfurl over the last of
      the journey — see .subs in Nav.module.css. */
-  --nav-subs: var(--turn-subs);
+  --nav-subs: 0;
   will-change: transform;
-  /* Four times the face's own ramp, so the hand-over is over while the page
-     beneath has turned barely a degree: the two navs stand in the same place,
-     and any longer would show them both. */
-  opacity: clamp(0, calc(var(--turn-face) * 4), 1);
+  opacity: 0;
 }
 
 /* Shading and haze are laid over the window rather than over the faces. A
@@ -125,13 +106,12 @@
 .near {
   composes: tint;
   transform-origin: 0 50%;
-  transform: scaleX(var(--turn-near-s));
 }
 
 .far {
   composes: tint;
   transform-origin: 100% 50%;
-  transform: scaleX(var(--turn-far-s));
+  transform: scaleX(0);
 }
 
 /* ------------------------------------------------------------------ depth */
@@ -143,12 +123,12 @@
 
 .veilNear {
   background: linear-gradient(to right, var(--bg) 0%, transparent 55%);
-  opacity: var(--turn-veil-near);
+  opacity: 0;
 }
 
 .veilFar {
   background: linear-gradient(to right, transparent 45%, var(--bg) 100%);
-  opacity: var(--turn-veil-far);
+  opacity: 0;
 }
 
 /* ---------------------------------------------------------------- shading */
@@ -161,7 +141,7 @@
     rgba(72, 54, 34, 0) 60%,
     rgba(72, 54, 34, 0.7) 100%
   );
-  opacity: var(--turn-shade-near);
+  opacity: 0;
 }
 
 /* The far face starts in shadow and lifts out of it as it comes round. */
@@ -172,7 +152,7 @@
     rgba(74, 56, 34, 0.8) 42%,
     rgba(74, 56, 34, 0.62) 100%
   );
-  opacity: var(--turn-shade-far);
+  opacity: 0;
 }
 
 /* The edge itself, sweeping left as the face beside it turns away. */
@@ -182,7 +162,7 @@
   bottom: 0;
   left: 0;
   width: 1px;
-  transform: translateX(var(--turn-edge-x));
+  transform: translateX(100vw);
   background: linear-gradient(
     to bottom,
     rgba(60, 44, 26, 0) 0%,
@@ -190,6 +170,6 @@
     rgba(60, 44, 26, 0.3) 92%,
     rgba(60, 44, 26, 0) 100%
   );
-  opacity: var(--turn-edge);
+  opacity: 0;
   pointer-events: none;
 }

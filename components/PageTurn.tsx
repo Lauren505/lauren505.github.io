@@ -78,10 +78,12 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
   const strand = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   /** Last value of the hand-over, which only moves over the first frames of
-   *  the turn: it is set on the page, where a custom property costs the
-   *  computed style of the whole document, so it is written only when it has
-   *  actually changed. */
+   *  the turn, so it is written only when it has actually changed. */
   const faced = useRef(-1);
+  /** The elements a frame writes to, found once per turn — see paint(). */
+  const parts = useRef<Record<string, HTMLElement>>({});
+  /** The live page's own nav, which hands over to the stage's copy. */
+  const headers = useRef<HTMLElement[]>([]);
   /** Window width, and the crease's place in it at rest. */
   const split = useRef(0);
   /** How far the row of tabs has to travel, and which way round — see the
@@ -99,14 +101,15 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
   // Every animated value feeds a transform or an opacity, so a turn costs a
   // style recalculation and compositing and no layout at all.
   //
-  // The near face's transform is written straight to the element rather than
-  // through a custom property: it is the live page, and an inherited property
-  // set there would invalidate the computed style of every node in the
-  // document on every frame.
+  // And each is written straight to the element it moves rather than through
+  // a custom property: those inherit, so one set on the live page or on the
+  // stage would invalidate the computed style of every node beneath it — the
+  // whole document, or the whole of side quests — on every frame.
   const paint = useCallback((v: number) => {
     const page = pageRef.current;
     const stage = stageRef.current;
-    if (!page || !stage) return;
+    const { face, chrome, veilNear, shadeNear, veilFar, shadeFar, edgeLine } = parts.current;
+    if (!page || !stage || !face) return;
 
     const theta = v * 90;
     const sin = Math.sin(theta * DEG);
@@ -125,7 +128,6 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
     const ramp = Math.min(1, v / RAMP);
     /** And the mirror of it at the other end: what is left of the crease. */
     const out = Math.min(1, (1 - v) / EDGE_OUT);
-    const set = (name: string, value: string) => stage.style.setProperty(name, value);
 
     // The near face, hinged along the line the crease is making for. Pushing it
     // back by exactly the depth its near edge gained puts that edge on the
@@ -138,19 +140,29 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
       `translateZ(${(-faceW.current * sin).toFixed(2)}px) ` +
       `rotateY(${(-theta).toFixed(3)}deg)`;
 
-    set("--turn-edge-x", `${edge.toFixed(2)}px`);
+    // The far face, hung from the crease and leaning away from the same edge,
+    // deepest side-on.
+    face.style.transform =
+      `translateX(${edge.toFixed(2)}px) perspective(${camera.current.toFixed(0)}px) ` +
+      `rotateY(${(TILT * 2 * sin * cos).toFixed(3)}deg)`;
+    edgeLine.style.transform = `translateX(${edge.toFixed(2)}px)`;
     if (ramp !== faced.current) {
       faced.current = ramp;
-      set("--turn-face", `${ramp.toFixed(4)}`);
-      page.style.setProperty("--turn-face", `${ramp.toFixed(4)}`);
+      face.style.opacity = ramp.toFixed(4);
+      // Four times the face's own ramp, so the hand-over between the two navs
+      // is over while the page beneath has turned barely a degree: they stand
+      // in the same place, and any longer would show them both.
+      const navs = Math.min(1, ramp * 4);
+      chrome.style.opacity = navs.toFixed(4);
+      for (const h of headers.current) h.style.opacity = (1 - navs).toFixed(4);
     }
-    // The far face leans away from the same edge, deepest side-on.
-    set("--turn-tilt", `${(TILT * 2 * sin * cos).toFixed(3)}deg`);
     // The two halves the crease divides the window into, as scale factors: the
     // shading is a window-sized gradient, and squashing one is far cheaper
     // than rasterising a differently-sized one every frame.
-    set("--turn-near-s", `${(edge / view).toFixed(5)}`);
-    set("--turn-far-s", `${Math.max(0, (view - edge) / view).toFixed(5)}`);
+    const near = `scaleX(${(edge / view).toFixed(5)})`;
+    const far = `scaleX(${Math.max(0, (view - edge) / view).toFixed(5)})`;
+    veilNear.style.transform = shadeNear.style.transform = near;
+    veilFar.style.transform = shadeFar.style.transform = far;
 
     // The near face turns away into the light, so it only darkens into the
     // crease; the far one starts in shadow and lifts out of it.
@@ -158,23 +170,24 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
     // they are describing, and by the last frame there is no near face left to
     // shade. The far face's own two go out with the turn already — cos and
     // sin * cos are nothing at a right angle.
-    set("--turn-shade-near", `${(0.13 * sin * out).toFixed(4)}`);
-    set("--turn-shade-far", `${(0.36 * cos * ramp).toFixed(4)}`);
-    set("--turn-veil-near", `${(0.5 * sin * out).toFixed(4)}`);
-    set("--turn-veil-far", `${(0.7 * sin * cos * ramp).toFixed(4)}`);
+    shadeNear.style.opacity = (0.13 * sin * out).toFixed(4);
+    shadeFar.style.opacity = (0.36 * cos * ramp).toFixed(4);
+    veilNear.style.opacity = (0.5 * sin * out).toFixed(4);
+    veilFar.style.opacity = (0.7 * sin * cos * ramp).toFixed(4);
     // Up over the first frames, and out again over the last: at the end of the
     // turn the crease has arrived between the two tabs, which is where the new
     // page's own column begins, and a line drawn there would stay behind after
     // everything that explained it had gone.
-    set("--turn-edge", `${(Math.min(1, v * 9) * out).toFixed(4)}`);
+    edgeLine.style.opacity = (Math.min(1, v * 9) * out).toFixed(4);
     // The nav travels by the same law as the crease, between the two places
     // its own two layouts put it: level with the crease at rest, and level
     // with the start of the body text once side quests fills the window.
-    set("--turn-nav-x", `${(navShift.current * cos).toFixed(2)}px`);
+    chrome.style.transform = `translateX(${(navShift.current * cos).toFixed(2)}px)`;
     // And the sections it is carrying, which only make sense once it is nearly
     // there: at the start of the turn the row is still standing at the right of
     // the window, and they would reach off the edge of it.
-    set("--turn-subs", `${Math.max(0, Math.min(1, (v - SUBS_AT) / 0.3)).toFixed(4)}`);
+    // Set on the copy of the nav, the only thing beneath it that reads it.
+    chrome.style.setProperty("--nav-subs", Math.max(0, Math.min(1, (v - SUBS_AT) / 0.3)).toFixed(4));
   }, []);
 
   /** Where the crease sits, and where the axis it turns about runs. */
@@ -182,6 +195,15 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
     const page = pageRef.current;
     const stage = stageRef.current;
     if (!page || !stage) return;
+
+    const part = (name: string) => stage.querySelector<HTMLElement>(`:scope > [data-part="${name}"]`)!;
+    parts.current = Object.fromEntries(
+      ["face", "chrome", "veilNear", "shadeNear", "veilFar", "shadeFar", "edgeLine"].map((n) => [n, part(n)]),
+    );
+    // The route may have changed since the last measure, and its nav with it.
+    for (const h of headers.current) h.style.opacity = "";
+    headers.current = [...page.querySelectorAll<HTMLElement>("header")];
+    faced.current = -1;
 
     // Read with the rotation off: every rect below would otherwise come back
     // projected. paint() puts it straight back before the frame is drawn.
@@ -199,7 +221,7 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
     // the whole of the journey, whichever way round the turn is going and
     // whether the window is wide enough for the row to move at all. Read with
     // the carriage at rest, for the same reason the rotation is cleared above.
-    stage.style.setProperty("--turn-nav-x", "0px");
+    parts.current.chrome.style.transform = "";
     const lands = seam(stage) ?? split.current;
 
     // The nav travels exactly as far as the crease, because it is the same
@@ -228,7 +250,6 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
       `${hinge.current.toFixed(2)}px ` +
       `${(window.scrollY + window.innerHeight / 2 - top).toFixed(2)}px`;
     page.style.willChange = "transform";
-    stage.style.setProperty("--turn-camera", `${camera.current.toFixed(0)}px`);
   }, []);
 
   /* ------------------------------------------------------------ lifecycle */
@@ -241,9 +262,10 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
     if (page) {
       page.style.transform = "";
       page.style.transformOrigin = "";
-      page.style.removeProperty("--turn-face");
       page.style.willChange = "";
     }
+    for (const h of headers.current) h.style.opacity = "";
+    headers.current = [];
     faced.current = -1;
     phase.current = "idle";
     setTurning(false);
@@ -368,20 +390,20 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
 
       {active ? (
         <div ref={stageRef} className={styles.stage} aria-hidden>
-          <div className={styles.face} inert>
+          <div className={styles.face} data-part="face" inert>
             <SideQuestsBody still />
           </div>
 
           {/* Over the window, not over the faces — see .tint. */}
-          <span className={`${styles.near} ${styles.veilNear}`} />
-          <span className={`${styles.near} ${styles.shadeNear}`} />
-          <span className={`${styles.far} ${styles.veilFar}`} />
-          <span className={`${styles.far} ${styles.shadeFar}`} />
+          <span className={`${styles.near} ${styles.veilNear}`} data-part="veilNear" />
+          <span className={`${styles.near} ${styles.shadeNear}`} data-part="shadeNear" />
+          <span className={`${styles.far} ${styles.veilFar}`} data-part="veilFar" />
+          <span className={`${styles.far} ${styles.shadeFar}`} data-part="shadeFar" />
 
-          <span className={styles.edge} />
+          <span className={styles.edge} data-part="edgeLine" />
 
           {/* Above the shading and outside both faces — see .chrome. */}
-          <div className={styles.chrome} inert>
+          <div className={styles.chrome} data-part="chrome" inert>
             <Nav current={SIDE} />
           </div>
         </div>

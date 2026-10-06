@@ -73,6 +73,8 @@ export default function PageFold({ above, below, href, label }: Props) {
   const anchorRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const faceRef = useRef<HTMLDivElement>(null);
+  /** The elements a frame writes to, besides the face — see paint(). */
+  const parts = useRef<HTMLElement[]>([]);
 
   const activeRef = useRef(false);
   const committedRef = useRef(false);
@@ -97,15 +99,27 @@ export default function PageFold({ above, below, href, label }: Props) {
 
   /* ---------------------------------------------------------------- paint */
 
-  // Every animated value is a custom property, so a whole turn never re-renders
-  // React — and none of them can trigger layout. Each one feeds a transform or
-  // an opacity, which is work the compositor can do on its own; a length that
-  // something has to be laid out against would cost a reflow of the face on
-  // every frame, and the faces hold most of the page.
+  // Every animated value is written straight to the element it moves, so a
+  // whole turn never re-renders React — and none of them can trigger layout.
+  // Each one is a transform or an opacity, which is work the compositor can do
+  // on its own; a length that something has to be laid out against would cost
+  // a reflow of the face on every frame, and the faces hold most of the page.
+  //
+  // Not custom properties on the stage: those inherit, so every one set there
+  // would invalidate the computed style of both copies of the page, every node
+  // of them, on every frame.
   const paint = useCallback((v: number) => {
     const stage = stageRef.current;
     const face = faceRef.current;
     if (!stage || !face) return;
+    // Found once per stage: a search from here walks both copies of the page.
+    if (parts.current[0]?.parentElement !== stage) {
+      parts.current = ["top", "veilTop", "shadeTop", "veilBottom", "shadeBottom", "edge"].map(
+        (name) => stage.querySelector<HTMLElement>(`:scope > [data-part="${name}"]`)!,
+      );
+    }
+    const [top, veilTop, shadeTop, veilBottom, shadeBottom, edgeLine] = parts.current;
+    const camera = `perspective(${Math.max(1200, split.current * CAMERA).toFixed(0)}px)`;
 
     const theta = v * 90;
     const sin = Math.sin(theta * DEG);
@@ -116,16 +130,16 @@ export default function PageFold({ above, below, href, label }: Props) {
     /** Holds the shading off for the first sliver of the turn, so the page
      *  still looks untouched at the moment the edge appears. */
     const ramp = Math.min(1, v / 0.05);
-    const set = (name: string, value: string) => stage.style.setProperty(name, value);
 
     // --- the turn
-    set("--fold-theta", `${theta}deg`);
-    set("--fold-edge-y", `${edge.toFixed(2)}px`);
+    edgeLine.style.transform = `translateY(${edge.toFixed(2)}px)`;
     // The two regions the crease divides the window into, as scale factors:
     // the shading is a window-sized gradient and squashing one is far cheaper
     // than rasterising a differently-sized one every frame.
-    set("--fold-above-s", `${(edge / view).toFixed(5)}`);
-    set("--fold-below-s", `${Math.max(0, (view - edge) / view).toFixed(5)}`);
+    const above = `scaleY(${(edge / view).toFixed(5)})`;
+    const below = `scaleY(${Math.max(0, (view - edge) / view).toFixed(5)})`;
+    veilTop.style.transform = shadeTop.style.transform = above;
+    veilBottom.style.transform = shadeBottom.style.transform = below;
 
     // --- the camera
     // Pushing the upper face back by exactly the depth its near edge gained
@@ -133,29 +147,30 @@ export default function PageFold({ above, below, href, label }: Props) {
     // stays at height * cos(theta), while everything behind it draws smaller.
     // The whole fold hangs off the crease, so this is what lets a perspective
     // camera in without moving anything.
-    set("--fold-top-z", `${(-split.current * sin).toFixed(2)}px`);
+    top.style.transform =
+      `${camera} translateZ(${(-split.current * sin).toFixed(2)}px) rotateX(${theta.toFixed(3)}deg)`;
     // The lower face leans away from the same edge, deepest side-on.
-    set("--fold-tilt", `${(-TILT * 2 * sin * cos).toFixed(3)}deg`);
+    face.style.transform =
+      `translateY(${edge.toFixed(2)}px) ${camera} rotateX(${(-TILT * 2 * sin * cos).toFixed(3)}deg)`;
 
     // --- depth
     // The upper face turns up into the light, so it only darkens into the
     // crease; the lower one starts in shadow and lifts out of it.
-    set("--fold-shade-top", `${(0.13 * sin).toFixed(4)}`);
-    set("--fold-shade-bottom", `${(0.36 * cos * ramp).toFixed(4)}`);
+    shadeTop.style.opacity = (0.13 * sin).toFixed(4);
+    shadeBottom.style.opacity = (0.36 * cos * ramp).toFixed(4);
     // Haze. The edge is the near corner and each face falls away from it, so
     // the far end — over the top of the screen, or past the foot of it — is
     // the one that loses itself. The upper face deepens the whole way round;
     // the lower one is deepest side-on and clean at both ends, where it has a
     // real page to match.
-    set("--fold-veil-top", `${(0.5 * sin).toFixed(4)}`);
-    set("--fold-veil-bottom", `${(0.7 * sin * cos * ramp).toFixed(4)}`);
-    set("--fold-edge", `${Math.min(1, v * 9).toFixed(4)}`);
+    veilTop.style.opacity = (0.5 * sin).toFixed(4);
+    veilBottom.style.opacity = (0.7 * sin * cos * ramp).toFixed(4);
+    edgeLine.style.opacity = Math.min(1, v * 9).toFixed(4);
 
     // --- progress
-    // On the lower face rather than on the stage: everything that reads it
-    // lives there, and an inherited custom property invalidates the computed
-    // style of every element beneath wherever it is set — from the stage that
-    // would include the home page's copy, for nothing.
+    // These two are custom properties, since the rows and the flights read
+    // them: on the lower face rather than on the stage, because everything
+    // that reads them lives there.
     //
     // The flight finishes a little before the turn does, so a flying element
     // hands over to the real one while the two sit on top of each other
@@ -199,7 +214,6 @@ export default function PageFold({ above, below, href, label }: Props) {
     root.style.setProperty("--fold-split", `${split.current.toFixed(2)}px`);
     root.style.setProperty("--fold-offset", `${offset.toFixed(2)}px`);
     root.style.setProperty("--fold-land", `${land.toFixed(2)}px`);
-    root.style.setProperty("--fold-camera", `${Math.max(1200, split.current * CAMERA).toFixed(0)}px`);
     // The face above carries a copy of the page from its very top, nav
     // included, so it only has to be shifted by the scroll.
     root.style.setProperty("--fold-scroll", `${(-window.scrollY).toFixed(2)}px`);
@@ -552,7 +566,7 @@ export default function PageFold({ above, below, href, label }: Props) {
         <div ref={stageRef} className={styles.stage} data-fold-active aria-hidden>
           {/* About + News: hinged along the top of the viewport, so with no
               perspective in play it projects to exactly height * cos(theta). */}
-          <div className={styles.top}>
+          <div className={styles.top} data-part="top">
             {/* A copy of the page from its very top, so the nav folds away
                 with the face it belongs to instead of blinking out. */}
             <div className={styles.topInner} inert>
@@ -575,12 +589,12 @@ export default function PageFold({ above, below, href, label }: Props) {
           </div>
 
           {/* Over the window, not over the faces — see .shade. */}
-          <span className={`${styles.shadeAbove} ${styles.veilTop}`} />
-          <span className={`${styles.shadeAbove} ${styles.shadeTop}`} />
-          <span className={`${styles.shadeBelow} ${styles.veilBottom}`} />
-          <span className={`${styles.shadeBelow} ${styles.shadeBottom}`} />
+          <span className={`${styles.shadeAbove} ${styles.veilTop}`} data-part="veilTop" />
+          <span className={`${styles.shadeAbove} ${styles.shadeTop}`} data-part="shadeTop" />
+          <span className={`${styles.shadeBelow} ${styles.veilBottom}`} data-part="veilBottom" />
+          <span className={`${styles.shadeBelow} ${styles.shadeBottom}`} data-part="shadeBottom" />
 
-          <span className={styles.edge} />
+          <span className={styles.edge} data-part="edge" />
         </div>
       ) : null}
 

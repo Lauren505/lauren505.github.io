@@ -3,20 +3,10 @@
 
    Under the nav rather than over it: the nav is not on either face here, it is
    what the reader is pressing. */
+/* Everything that moves is written to its element inline, frame by frame —
+   see SectionTurn. */
 .stage {
   --st-top: 0px;
-  --st-camera: 1600px;
-  --st-theta: 0deg;
-  --st-top-z: 0px;
-  --st-tilt: 0deg;
-  --st-edge-y: 100vh;
-  --st-above-s: 1;
-  --st-below-s: 0;
-  --st-shade-top: 0;
-  --st-shade-bottom: 0;
-  --st-veil-top: 0;
-  --st-veil-bottom: 0;
-  --st-edge: 0;
 
   position: fixed;
   inset: 0;
@@ -35,8 +25,6 @@
   overflow: hidden;
   background: var(--bg);
   transform-origin: 50% 0;
-  transform: perspective(var(--st-camera)) translateZ(var(--st-top-z))
-    rotateX(var(--st-theta));
   will-change: transform;
 }
 
@@ -47,8 +35,7 @@
   overflow: hidden;
   background: var(--bg);
   transform-origin: 50% 0;
-  transform: translateY(var(--st-edge-y)) perspective(var(--st-camera))
-    rotateX(var(--st-tilt));
+  transform: translateY(100vh);
   will-change: transform;
 }
 
@@ -69,23 +56,22 @@
 .shadeAbove {
   composes: tint;
   transform-origin: 50% 0;
-  transform: scaleY(var(--st-above-s));
 }
 
 .shadeBelow {
   composes: tint;
   transform-origin: 50% 100%;
-  transform: scaleY(var(--st-below-s));
+  transform: scaleY(0);
 }
 
 .veilTop {
   background: linear-gradient(to bottom, var(--bg) 0%, transparent 55%);
-  opacity: var(--st-veil-top);
+  opacity: 0;
 }
 
 .veilBottom {
   background: linear-gradient(to bottom, transparent 45%, var(--bg) 100%);
-  opacity: var(--st-veil-bottom);
+  opacity: 0;
 }
 
 .shadeTop {
@@ -94,7 +80,7 @@
     rgba(72, 54, 34, 0) 60%,
     rgba(72, 54, 34, 0.7) 100%
   );
-  opacity: var(--st-shade-top);
+  opacity: 0;
 }
 
 .shadeBottom {
@@ -104,7 +90,7 @@
     rgba(74, 56, 34, 0.8) 42%,
     rgba(74, 56, 34, 0.62) 100%
   );
-  opacity: var(--st-shade-bottom);
+  opacity: 0;
 }
 
 .edge {
@@ -113,7 +99,7 @@
   left: 0;
   right: 0;
   height: 1px;
-  transform: translateY(var(--st-edge-y));
+  transform: translateY(100vh);
   background: linear-gradient(
     to right,
     rgba(60, 44, 26, 0) 0%,
@@ -121,6 +107,6 @@
     rgba(60, 44, 26, 0.3) 92%,
     rgba(60, 44, 26, 0) 100%
   );
-  opacity: var(--st-edge);
+  opacity: 0;
   pointer-events: none;
 }

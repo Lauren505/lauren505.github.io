@@ -3,26 +3,17 @@
   --fold-scroll: 0px;
   --fold-offset: 0px;
   --fold-land: 0px;
-  --fold-camera: 1600px;
 }
 
 /* ------------------------------------------------------------------ stage */
 
 /* A frozen copy of the viewport, laid over the live page for the length of the
-   turn. The page underneath never moves. */
-.stage {
-  --fold-theta: 0deg;
-  --fold-top-z: 0px;
-  --fold-tilt: 0deg;
-  --fold-edge-y: 50vh;
-  --fold-above-s: 1;
-  --fold-below-s: 1;
-  --fold-shade-top: 0;
-  --fold-shade-bottom: 0;
-  --fold-veil-top: 0;
-  --fold-veil-bottom: 0;
-  --fold-edge: 0;
+   turn. The page underneath never moves.
 
+   Everything below that moves is written to its own element inline, frame by
+   frame, and what is here is only the state before the first one — see
+   paint() in PageFold. */
+.stage {
   position: fixed;
   inset: 0;
   overflow: hidden;
@@ -36,7 +27,7 @@
    element's own transform-origin, so the face converges on the top of the
    screen, which is where it is going.
 
-   --fold-top-z carries the near edge back onto the camera plane, so it keeps
+   Pushing it back in z carries the near edge onto the camera plane, so it keeps
    its size and the crease still lands at height * cos(theta). Everything the
    fold measures hangs off that. */
 .top {
@@ -48,8 +39,6 @@
   overflow: hidden;
   background: var(--bg);
   transform-origin: 50% 0;
-  transform: perspective(var(--fold-camera)) translateZ(var(--fold-top-z))
-    rotateX(var(--fold-theta));
   will-change: transform;
 }
 
@@ -72,8 +61,7 @@
   overflow: hidden;
   background: var(--bg);
   transform-origin: 50% 0;
-  transform: translateY(var(--fold-edge-y)) perspective(var(--fold-camera))
-    rotateX(var(--fold-tilt));
+  transform: translateY(50vh);
   will-change: transform;
 
   /* Progress lives on this face, since everything that reads it is inside it.
@@ -123,7 +111,6 @@
   top: 0;
   height: 100%;
   transform-origin: 50% 0;
-  transform: scaleY(var(--fold-above-s));
 }
 
 .shadeBelow {
@@ -131,7 +118,6 @@
   top: 0;
   height: 100%;
   transform-origin: 50% 100%;
-  transform: scaleY(var(--fold-below-s));
 }
 
 /* ------------------------------------------------------------------ depth */
@@ -147,13 +133,13 @@
 /* Rotating up and away: its top edge is the far one. */
 .veilTop {
   background: linear-gradient(to bottom, var(--bg) 0%, transparent 55%);
-  opacity: var(--fold-veil-top);
+  opacity: 0;
 }
 
 /* Coming up from below: its bottom edge is the far one. */
 .veilBottom {
   background: linear-gradient(to bottom, transparent 45%, var(--bg) 100%);
-  opacity: var(--fold-veil-bottom);
+  opacity: 0;
 }
 
 /* ---------------------------------------------------------------- shading */
@@ -166,7 +152,7 @@
     rgba(72, 54, 34, 0) 60%,
     rgba(72, 54, 34, 0.7) 100%
   );
-  opacity: var(--fold-shade-top);
+  opacity: 0;
 }
 
 /* The other face starts in shadow and lifts out of it as it comes round. */
@@ -177,14 +163,14 @@
     rgba(74, 56, 34, 0.8) 42%,
     rgba(74, 56, 34, 0.62) 100%
   );
-  opacity: var(--fold-shade-bottom);
+  opacity: 0;
 }
 
 /* The edge itself, riding up as the face above it folds away. */
 .edge {
   position: absolute;
   top: 0;
-  transform: translateY(var(--fold-edge-y));
+  transform: translateY(50vh);
   left: 0;
   right: 0;
   height: 1px;
@@ -195,7 +181,7 @@
     rgba(60, 44, 26, 0.3) 92%,
     rgba(60, 44, 26, 0) 100%
   );
-  opacity: var(--fold-edge);
+  opacity: 0;
   pointer-events: none;
 }
 

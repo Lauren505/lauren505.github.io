@@ -46,15 +46,21 @@ export default function SectionTurn({ from, to, up, lift = 0, onDone }: Props) {
   useLayoutEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
-    const set = (name: string, value: string) => stage.style.setProperty(name, value);
+    const part = (name: string) => stage.querySelector<HTMLElement>(`:scope > [data-part="${name}"]`)!;
+    const [top, bottom, veilTop, shadeTop, veilBottom, shadeBottom, edgeLine] = [
+      "top", "bottom", "veilTop", "shadeTop", "veilBottom", "shadeBottom", "edge",
+    ].map(part);
 
     // The page's column starts below the nav, so each face is pushed down by
     // exactly as much; the nav itself is not on either face.
-    const top = stage.parentElement?.getBoundingClientRect().top ?? 0;
+    const offset = stage.parentElement?.getBoundingClientRect().top ?? 0;
     const view = window.innerHeight || 1;
-    set("--st-top", `${top.toFixed(2)}px`);
-    set("--st-camera", `${Math.max(1200, view * CAMERA).toFixed(0)}px`);
+    stage.style.setProperty("--st-top", `${offset.toFixed(2)}px`);
+    const camera = `perspective(${Math.max(1200, view * CAMERA).toFixed(0)}px)`;
 
+    // Every frame is written straight to the handful of elements that move,
+    // never as custom properties on the stage: those inherit, so setting one
+    // there would restyle both sections, every node of them, on every frame.
     const paint = (v: number) => {
       const theta = v * 90;
       const sin = Math.sin(theta * DEG);
@@ -64,17 +70,20 @@ export default function SectionTurn({ from, to, up, lift = 0, onDone }: Props) {
       // Out over the last of the turn, so no line is left behind at the top.
       const out = Math.min(1, (1 - v) / 0.2);
 
-      set("--st-theta", `${theta}deg`);
-      set("--st-edge-y", `${edge.toFixed(2)}px`);
-      set("--st-above-s", `${(edge / view).toFixed(5)}`);
-      set("--st-below-s", `${Math.max(0, (view - edge) / view).toFixed(5)}`);
-      set("--st-top-z", `${(-view * sin).toFixed(2)}px`);
-      set("--st-tilt", `${(-TILT * 2 * sin * cos).toFixed(3)}deg`);
-      set("--st-shade-top", `${(0.13 * sin).toFixed(4)}`);
-      set("--st-shade-bottom", `${(0.36 * cos * ramp).toFixed(4)}`);
-      set("--st-veil-top", `${(0.5 * sin).toFixed(4)}`);
-      set("--st-veil-bottom", `${(0.7 * sin * cos * ramp).toFixed(4)}`);
-      set("--st-edge", `${(Math.min(1, v * 9) * out).toFixed(4)}`);
+      top.style.transform =
+        `${camera} translateZ(${(-view * sin).toFixed(2)}px) rotateX(${theta.toFixed(3)}deg)`;
+      bottom.style.transform =
+        `translateY(${edge.toFixed(2)}px) ${camera} rotateX(${(-TILT * 2 * sin * cos).toFixed(3)}deg)`;
+      const above = `scaleY(${(edge / view).toFixed(5)})`;
+      const below = `scaleY(${Math.max(0, (view - edge) / view).toFixed(5)})`;
+      veilTop.style.transform = shadeTop.style.transform = above;
+      veilBottom.style.transform = shadeBottom.style.transform = below;
+      shadeTop.style.opacity = (0.13 * sin).toFixed(4);
+      shadeBottom.style.opacity = (0.36 * cos * ramp).toFixed(4);
+      veilTop.style.opacity = (0.5 * sin).toFixed(4);
+      veilBottom.style.opacity = (0.7 * sin * cos * ramp).toFixed(4);
+      edgeLine.style.transform = `translateY(${edge.toFixed(2)}px)`;
+      edgeLine.style.opacity = (Math.min(1, v * 9) * out).toFixed(4);
     };
 
     const a = up ? 0 : 1;
@@ -98,18 +107,18 @@ export default function SectionTurn({ from, to, up, lift = 0, onDone }: Props) {
 
   return (
     <div ref={stageRef} className={styles.stage} aria-hidden inert>
-      <div className={styles.top}>
+      <div className={styles.top} data-part="top">
         <div className={styles.inner}>{up ? leaving : to}</div>
       </div>
-      <div className={styles.bottom}>
+      <div className={styles.bottom} data-part="bottom">
         <div className={styles.inner}>{up ? to : leaving}</div>
       </div>
 
-      <span className={`${styles.shadeAbove} ${styles.veilTop}`} />
-      <span className={`${styles.shadeAbove} ${styles.shadeTop}`} />
-      <span className={`${styles.shadeBelow} ${styles.veilBottom}`} />
-      <span className={`${styles.shadeBelow} ${styles.shadeBottom}`} />
-      <span className={styles.edge} />
+      <span className={`${styles.shadeAbove} ${styles.veilTop}`} data-part="veilTop" />
+      <span className={`${styles.shadeAbove} ${styles.shadeTop}`} data-part="shadeTop" />
+      <span className={`${styles.shadeBelow} ${styles.veilBottom}`} data-part="veilBottom" />
+      <span className={`${styles.shadeBelow} ${styles.shadeBottom}`} data-part="shadeBottom" />
+      <span className={styles.edge} data-part="edge" />
     </div>
   );
 }
