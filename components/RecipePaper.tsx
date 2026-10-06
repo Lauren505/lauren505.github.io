@@ -90,32 +90,238 @@ function Sheet({ width, height }: { width: number; height: number }) {
   );
 }
 
-/** A length of garden twine across the card, two strands twisted, tied in
- *  a bow at `knot` — `width` long, its strands `at` down from the top. */
+/** A little random number generator, so the same twine is drawn the same
+ *  every time. */
+const random = (seed: number) => () => {
+  seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+
+type Pt = { x: number; y: number };
+type Curve = [Pt, Pt, Pt, Pt];
+
+/** A cubic curve, walked about a pixel at a time: where each step is, and
+ *  which way the curve goes there. */
+const walk = ([a, b, c, d]: Curve) => {
+  const at = (t: number) => {
+    const u = 1 - t;
+    return {
+      x: u * u * u * a.x + 3 * u * u * t * b.x + 3 * u * t * t * c.x + t * t * t * d.x,
+      y: u * u * u * a.y + 3 * u * u * t * b.y + 3 * u * t * t * c.y + t * t * t * d.y,
+    };
+  };
+  const fine: Pt[] = [];
+  for (let i = 0; i <= 400; i++) fine.push(at(i / 400));
+  const steps: { p: Pt; tx: number; ty: number; s: number }[] = [];
+  let s = 0;
+  let next = 0;
+  for (let i = 1; i < fine.length; i++) {
+    const dx = fine[i].x - fine[i - 1].x;
+    const dy = fine[i].y - fine[i - 1].y;
+    const l = Math.hypot(dx, dy) || 1e-6;
+    while (next <= s + l) {
+      const f = (next - s) / l;
+      steps.push({ p: { x: fine[i - 1].x + dx * f, y: fine[i - 1].y + dy * f }, tx: dx / l, ty: dy / l, s: next });
+      next += 1;
+    }
+    s += l;
+  }
+  return steps;
+};
+
+const n1 = (v: number) => Math.round(v * 10) / 10;
+
+/**
+ * One length of jute twine along `curve`, as path data: three plies wound
+ * round each other — the half of each turn that is behind, darker, and the
+ * half in front, lighter, over it — and the loose hairs jute is covered in,
+ * most lying along it, a few standing off it.
+ */
+function rope(curve: Curve, seed: number) {
+  const rnd = random(seed);
+  const steps = walk(curve);
+  const R = 2.2;
+  const PITCH = 8 + rnd() * 1.5;
+  // Jute is uneven: thicker and thinner, and the twist tighter and looser.
+  const wob = [rnd() * 6, rnd() * 6, 0.02 + rnd() * 0.02, 0.05 + rnd() * 0.03];
+  const thick = (s: number) => 1 + 0.18 * Math.sin(s * wob[2] + wob[0]) + 0.08 * Math.sin(s * wob[3] + wob[1]);
+  const back: string[] = [];
+  const front: string[] = [];
+  const groove: string[] = [];
+  for (let ply = 0; ply < 3; ply++) {
+    let was: boolean | null = null;
+    for (const { p, tx, ty, s } of steps) {
+      const a = (2 * Math.PI * s) / PITCH + (2 * Math.PI * ply) / 3 + 0.5 * Math.sin(s * wob[3] + wob[0]);
+      const off = R * thick(s) * Math.sin(a);
+      const x = n1(p.x - ty * off);
+      const y = n1(p.y + tx * off);
+      const facing = Math.cos(a) > 0;
+      const into = facing ? front : back;
+      into.push(`${was === facing ? "L" : "M"}${x} ${y}`);
+      was = facing;
+      // Where one ply goes under the next, a shadow.
+      if (Math.abs(Math.cos(a)) < 0.1 && !facing && rnd() < 0.6) groove.push(`M${x} ${y}l${n1(-ty * 0.5 + tx * 0.6)} ${n1(tx * 0.5 + ty * 0.6)}`);
+    }
+  }
+  const hairs: string[] = [];
+  const strays: string[] = [];
+  for (const { p, tx, ty } of steps) {
+    if (rnd() < 0.6) {
+      // Lying along the twine, a little off it.
+      const side = rnd() < 0.5 ? -1 : 1;
+      const o = R * (0.6 + rnd() * 0.9) * side;
+      const len = 2 + rnd() * 5;
+      const tilt = (rnd() - 0.3) * 0.7 * side;
+      const sx = p.x - ty * o;
+      const sy = p.y + tx * o;
+      const dx = (tx * Math.cos(tilt) - ty * Math.sin(tilt)) * len * (rnd() < 0.5 ? -1 : 1);
+      const dy = (ty * Math.cos(tilt) + tx * Math.sin(tilt)) * len * (Math.sign(dx) === Math.sign(tx * len) ? 1 : -1);
+      hairs.push(`M${n1(sx)} ${n1(sy)}l${n1(dx)} ${n1(dy)}`);
+    }
+    if (rnd() < 0.05) {
+      // Standing off it, curling.
+      const side = rnd() < 0.5 ? -1 : 1;
+      const len = 5 + rnd() * 9;
+      const ang = (0.35 + rnd() * 0.8) * side;
+      const dir = rnd() < 0.5 ? -1 : 1;
+      const ux = (tx * Math.cos(ang) - ty * Math.sin(ang)) * dir;
+      const uy = (ty * Math.cos(ang) + tx * Math.sin(ang)) * dir;
+      const sx = p.x - ty * R * side * 0.8;
+      const sy = p.y + tx * R * side * 0.8;
+      const curl = (rnd() - 0.5) * len * 0.6;
+      strays.push(
+        `M${n1(sx)} ${n1(sy)}q${n1(ux * len * 0.5 - uy * curl)} ${n1(uy * len * 0.5 + ux * curl)} ${n1(ux * len)} ${n1(uy * len)}`,
+      );
+    }
+  }
+  return { back: back.join(""), front: front.join(""), groove: groove.join(""), hairs: hairs.join(""), strays: strays.join("") };
+}
+
+/** A length of jute twine across the card, twice round it, tied in a bow
+ *  at `knot` — `width` long, `at` down from the top. */
 function Twine({ width, at, knot }: { width: number; at: number; knot: number }) {
+  const id = useId().replace(/:/g, "");
   const y = at;
-  const strand = (dy: number, wob: number) =>
-    `M 0 ${y + dy} C ${width * 0.3} ${y + dy + wob}, ${width * 0.6} ${y + dy - wob}, ${width} ${y + dy + wob / 2}`;
   const k = knot;
-  const loops = [
-    `M ${k} ${y} C ${k - 30} ${y - 26}, ${k - 40} ${y + 6}, ${k} ${y + 1}`,
-    `M ${k} ${y} C ${k + 30} ${y - 24}, ${k + 42} ${y + 8}, ${k} ${y + 1}`,
+  const P = (x: number, yy: number) => ({ x, y: yy });
+  const curves: Curve[] = [
+    [P(0, y - 1.5), P(width * 0.3, y + 1.5), P(width * 0.6, y - 4.5), P(width, y)],
+    [P(0, y + 1.5), P(width * 0.3, y - 0.5), P(width * 0.6, y + 3.5), P(width, y + 0.5)],
+    [P(k, y), P(k - 30, y - 26), P(k - 40, y + 6), P(k, y + 1)],
+    [P(k, y), P(k + 30, y - 24), P(k + 42, y + 8), P(k, y + 1)],
+    [P(k, y + 1), P(k - 6, y + 16), P(k - 16, y + 26), P(k - 22, y + 44)],
+    [P(k, y + 1), P(k + 8, y + 14), P(k + 12, y + 30), P(k + 24, y + 40)],
+    // The knot, the twine wound tight on itself.
+    [P(k - 4, y - 3), P(k + 3, y - 5), P(k + 5, y + 4), P(k - 3, y + 4)],
+    [P(k + 4, y - 2), P(k - 4, y - 4), P(k - 5, y + 5), P(k + 3, y + 5)],
   ];
-  const tails = [
-    `M ${k} ${y + 1} C ${k - 6} ${y + 16}, ${k - 16} ${y + 26}, ${k - 22} ${y + 44}`,
-    `M ${k} ${y + 1} C ${k + 8} ${y + 14}, ${k + 12} ${y + 30}, ${k + 24} ${y + 40}`,
-  ];
-  const all = [strand(-1.5, 3), strand(1.5, -2), ...loops, ...tails];
+  const ropes = curves.map((c, i) => rope(c, 17 + i * 31));
   return (
     <svg className={styles.twine} width={width} height={y + 60} aria-hidden>
-      {all.map((d, i) => (
-        <path key={`b${i}`} d={d} className={styles.strand} />
-      ))}
-      {/* The twist of it. */}
-      {all.map((d, i) => (
-        <path key={`t${i}`} d={d} className={styles.twist} />
-      ))}
-      <circle cx={k} cy={y + 1} r={3.2} className={styles.knot} />
+      <defs>
+        <filter id={`${id}-jute`} x="-2%" y="-20%" width="104%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.35" numOctaves="2" seed="4" result="n" />
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="1.6" xChannelSelector="R" yChannelSelector="G" result="rough" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="1.2" result="blur" />
+          <feOffset in="blur" dx="0.8" dy="1.6" result="drop" />
+          <feColorMatrix in="drop" type="matrix" values="0 0 0 0 0.24  0 0 0 0 0.16  0 0 0 0 0.09  0 0 0 0.45 0" result="shadow" />
+          <feMerge>
+            <feMergeNode in="shadow" />
+            <feMergeNode in="rough" />
+          </feMerge>
+        </filter>
+      </defs>
+      <g filter={`url(#${id}-jute)`}>
+        {/* Each length whole before the next goes over it. */}
+        {ropes.map((r, i) => (
+          <g key={i}>
+            <path d={r.strays} className={styles.stray} />
+            <path d={r.back} className={styles.plyBack} />
+            <path d={r.groove} className={styles.groove} />
+            <path d={r.front} className={styles.plyFront} />
+            <path d={r.hairs} className={styles.hair} />
+          </g>
+        ))}
+      </g>
+    </svg>
+  );
+}
+
+/** The square of kraft card a photo is mounted on: brown wrapping-paper
+ *  board, mottled, with its fibres and the darker flecks in it showing, and
+ *  its edges not quite straight where it was cut. It also has the filter
+ *  that tears the photo's edges — `torn` — for the photo to use. */
+function Kraft({ torn }: { torn: string }) {
+  const id = useId().replace(/:/g, "");
+  return (
+    <svg className={styles.kraftSheet} width="100%" height="100%" preserveAspectRatio="none" aria-hidden>
+      <defs>
+        {/* The photo torn out, not cut: its edge eaten in a little and
+            pushed about, and a thin rim of the white core of the print
+            showing where it tore. */}
+        <filter id={torn} x="-3%" y="-3%" width="106%" height="106%" colorInterpolationFilters="sRGB">
+          <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="8" result="wave" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.45" numOctaves="2" seed="14" result="tear" />
+          <feComposite in="wave" in2="tear" operator="arithmetic" k2="0.6" k3="0.4" result="noise" />
+          <feMorphology in="SourceAlpha" operator="erode" radius="2.5" result="in1" />
+          <feDisplacementMap in="in1" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G" result="rimShape" />
+          <feMorphology in="rimShape" operator="erode" radius="1.2" result="in2" />
+          <feFlood floodColor="#f4f0e8" result="white" />
+          <feComposite in="white" in2="rimShape" operator="in" result="rim" />
+          <feComposite in="SourceGraphic" in2="in2" operator="in" result="print" />
+          <feMerge>
+            <feMergeNode in="rim" />
+            <feMergeNode in="print" />
+          </feMerge>
+        </filter>
+        <filter id={`${id}-kraft`} x="-2%" y="-2%" width="104%" height="104%" colorInterpolationFilters="sRGB">
+          <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="21" result="edgeNoise" />
+          <feDisplacementMap in="SourceGraphic" in2="edgeNoise" scale="2.2" xChannelSelector="R" yChannelSelector="G" result="cut" />
+
+          {/* Mottled: lighter and darker in patches, as the pulp lay. */}
+          <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="3" seed="9" result="patch" />
+          <feColorMatrix
+            in="patch"
+            type="matrix"
+            values="0 0 0 0 0.52  0 0 0 0 0.39  0 0 0 0 0.26  0.9 0 0 0 -0.38"
+            result="mottle"
+          />
+          <feComposite in="mottle" in2="cut" operator="atop" result="mottled" />
+
+          {/* The fibres: short and every which way, catching the light. */}
+          <feTurbulence type="turbulence" baseFrequency="0.55 0.18" numOctaves="2" seed="2" result="fibreA" />
+          <feTurbulence type="turbulence" baseFrequency="0.16 0.6" numOctaves="2" seed="13" result="fibreB" />
+          <feComposite in="fibreA" in2="fibreB" operator="arithmetic" k2="0.5" k3="0.5" result="fibres" />
+          <feColorMatrix
+            in="fibres"
+            type="matrix"
+            values="0 0 0 0 1  0 0 0 0 0.93  0 0 0 0 0.82  -3 0 0 0 0.32"
+            result="light"
+          />
+          <feComposite in="light" in2="mottled" operator="atop" result="fibred" />
+
+          {/* The flecks: bits of darker pulp, small and few. */}
+          <feTurbulence type="fractalNoise" baseFrequency="0.32" numOctaves="2" seed="31" result="speck" />
+          <feColorMatrix
+            in="speck"
+            type="matrix"
+            values="0 0 0 0 0.32  0 0 0 0 0.21  0 0 0 0 0.12  0 0 -40 0 11"
+            result="flecks"
+          />
+          <feComposite in="flecks" in2="fibred" operator="atop" result="flecked" />
+
+          {/* And a tooth to it, lit from the top left. */}
+          <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="6" result="grain" />
+          <feDiffuseLighting in="grain" surfaceScale="1.2" diffuseConstant="1.1" lightingColor="#ffffff" result="lit">
+            <feDistantLight azimuth="225" elevation="60" />
+          </feDiffuseLighting>
+          <feComposite in="lit" in2="flecked" operator="arithmetic" k1="0.55" k2="0" k3="0.5" result="tooth" />
+          <feComposite in="tooth" in2="cut" operator="in" />
+        </filter>
+      </defs>
+      <rect width="100%" height="100%" fill="#b18f69" filter={`url(#${id}-kraft)`} />
     </svg>
   );
 }
@@ -131,6 +337,7 @@ function Photos({ photos, width, toward }: { photos: Recipe["photos"]; width: nu
   const high = h + 40 + (photos.length - 1) * fan;
   const knot = toward === "right" ? left + w * 0.22 : left + w * 0.78;
   const span = { x0: Math.min(left, BLEED), x1: Math.max(left + w, width - BLEED) };
+  const tornId = useId().replace(/:/g, "") + "torn";
   return (
     <div className={styles.photos} style={{ height: high, marginLeft: -PAD_X, width }}>
       {[...photos].reverse().map((p, n) => {
@@ -148,7 +355,8 @@ function Photos({ photos, width, toward }: { photos: Recipe["photos"]; width: nu
               transform: `rotate(${[-2.5, 3, -1.2, 2][k % 4]}deg)`,
             }}
           >
-            <div className={styles.photo}>
+            <Kraft torn={`${tornId}-${k}`} />
+            <div className={styles.photo} style={{ filter: `url(#${tornId}-${k})` }}>
               <Image src={p.image} alt={p.alt} fill sizes={`${w}px`} />
             </div>
           </figure>
