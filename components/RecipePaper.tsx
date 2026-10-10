@@ -249,9 +249,9 @@ function Twine({ width, at, knot }: { width: number; at: number; knot: number })
   );
 }
 
-/** The square of kraft card a photo is mounted on: brown wrapping-paper
- *  board, mottled, with its fibres and the darker flecks in it showing, and
- *  its edges not quite straight where it was cut. It also has the filter
+/** The square of brown card a photo is mounted on: board with a fine, even,
+ *  sandy grain — specks a little darker and lighter than it, a few pale
+ *  fibres, a felted surface — cut clean. It also has the filter
  *  that tears the photo's edges — `torn` — for the photo to use. */
 function Kraft({ torn }: { torn: string }) {
   const id = useId().replace(/:/g, "");
@@ -277,51 +277,41 @@ function Kraft({ torn }: { torn: string }) {
           </feMerge>
         </filter>
         <filter id={`${id}-kraft`} x="-2%" y="-2%" width="104%" height="104%" colorInterpolationFilters="sRGB">
-          <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="21" result="edgeNoise" />
-          <feDisplacementMap in="SourceGraphic" in2="edgeNoise" scale="2.2" xChannelSelector="R" yChannelSelector="G" result="cut" />
+          {/* Cut clean, only a little furred where the knife went through. */}
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="21" result="fur" />
+          <feDisplacementMap in="SourceGraphic" in2="fur" scale="1.4" xChannelSelector="R" yChannelSelector="G" result="cut" />
 
-          {/* Mottled: lighter and darker in patches, as the pulp lay. */}
-          <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="3" seed="9" result="patch" />
-          <feColorMatrix
-            in="patch"
-            type="matrix"
-            values="0 0 0 0 0.52  0 0 0 0 0.39  0 0 0 0 0.26  0.9 0 0 0 -0.38"
-            result="mottle"
-          />
-          <feComposite in="mottle" in2="cut" operator="atop" result="mottled" />
+          {/* Barely uneven: the faintest drift of light and dark across it. */}
+          <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="2" seed="9" result="drift" />
+          <feColorMatrix in="drift" type="matrix" values="0 0 0 0 0.44  0 0 0 0 0.34  0 0 0 0 0.24  0.5 0 0 0 -0.18" result="tone" />
+          <feComposite in="tone" in2="cut" operator="atop" result="toned" />
 
-          {/* The fibres: short and every which way, catching the light. */}
-          <feTurbulence type="turbulence" baseFrequency="0.55 0.18" numOctaves="2" seed="2" result="fibreA" />
-          <feTurbulence type="turbulence" baseFrequency="0.16 0.6" numOctaves="2" seed="13" result="fibreB" />
-          <feComposite in="fibreA" in2="fibreB" operator="arithmetic" k2="0.5" k3="0.5" result="fibres" />
-          <feColorMatrix
-            in="fibres"
-            type="matrix"
-            values="0 0 0 0 1  0 0 0 0 0.93  0 0 0 0 0.82  -3 0 0 0 0.32"
-            result="light"
-          />
-          <feComposite in="light" in2="mottled" operator="atop" result="fibred" />
+          {/* The grain of the board: fine and close all over, like sand —
+              specks a little darker and a little lighter than it. */}
+          <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="2" result="sand" />
+          <feColorMatrix in="sand" type="matrix" values="0 0 0 0 0.3  0 0 0 0 0.22  0 0 0 0 0.15  -1.5 0 0 0 0.68" result="dark" />
+          <feColorMatrix in="sand" type="matrix" values="0 0 0 0 0.93  0 0 0 0 0.87  0 0 0 0 0.78  0 1.5 0 0 -0.8" result="light" />
+          <feMerge result="grains">
+            <feMergeNode in="dark" />
+            <feMergeNode in="light" />
+          </feMerge>
+          <feComposite in="grains" in2="toned" operator="atop" result="sanded" />
 
-          {/* The flecks: bits of darker pulp, small and few. */}
-          <feTurbulence type="fractalNoise" baseFrequency="0.32" numOctaves="2" seed="31" result="speck" />
-          <feColorMatrix
-            in="speck"
-            type="matrix"
-            values="0 0 0 0 0.32  0 0 0 0 0.21  0 0 0 0 0.12  0 0 -40 0 11"
-            result="flecks"
-          />
-          <feComposite in="flecks" in2="fibred" operator="atop" result="flecked" />
+          {/* A few longer fibres, pale, caught in the surface. */}
+          <feTurbulence type="turbulence" baseFrequency="0.06 0.05" numOctaves="3" seed="13" result="thread" />
+          <feColorMatrix in="thread" type="matrix" values="0 0 0 0 0.9  0 0 0 0 0.84  0 0 0 0 0.74  -9 0 0 0 0.32" result="threads" />
+          <feComposite in="threads" in2="sanded" operator="atop" result="fibred" />
 
-          {/* And a tooth to it, lit from the top left. */}
-          <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="6" result="grain" />
-          <feDiffuseLighting in="grain" surfaceScale="1.2" diffuseConstant="1.1" lightingColor="#ffffff" result="lit">
-            <feDistantLight azimuth="225" elevation="60" />
+          {/* And the felt of it, lit from the top left. */}
+          <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="3" seed="6" result="felt" />
+          <feDiffuseLighting in="felt" surfaceScale="0.9" diffuseConstant="1.05" lightingColor="#ffffff" result="lit">
+            <feDistantLight azimuth="225" elevation="62" />
           </feDiffuseLighting>
-          <feComposite in="lit" in2="flecked" operator="arithmetic" k1="0.55" k2="0" k3="0.5" result="tooth" />
+          <feComposite in="lit" in2="fibred" operator="arithmetic" k1="0.28" k3="0.75" result="tooth" />
           <feComposite in="tooth" in2="cut" operator="in" />
         </filter>
       </defs>
-      <rect width="100%" height="100%" fill="#b18f69" filter={`url(#${id}-kraft)`} />
+      <rect width="100%" height="100%" fill="#9e8263" filter={`url(#${id}-kraft)`} />
     </svg>
   );
 }
