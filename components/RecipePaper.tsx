@@ -90,96 +90,69 @@ function Sheet({ width, height }: { width: number; height: number }) {
   );
 }
 
-/** The square of brown card a photo is mounted on: board with a fine, even,
- *  sandy grain — specks a little darker and lighter than it, a few pale
- *  fibres, a felted surface — cut clean. It also has the filter
- *  that tears the photo's edges — `torn` — for the photo to use. */
-function Kraft({ torn }: { torn: string }) {
+/**
+ * The card a photo is mounted on: white cotton card, its edges torn by hand
+ * against a rule — so the full thickness of it stops at a line that is all
+ * but straight, a little ridge, and beyond that the tear: thinner, fibrous,
+ * ragged at its edge, the light coming through it.
+ */
+function Mount() {
   const id = useId().replace(/:/g, "");
   return (
-    <svg className={styles.kraftSheet} width="100%" height="100%" preserveAspectRatio="none" aria-hidden>
+    <svg className={styles.mountSheet} width="100%" height="100%" preserveAspectRatio="none" aria-hidden>
       <defs>
-        {/* The photo torn out, not cut: its edge eaten in a little and
-            pushed about, and a thin rim of the white core of the print
-            showing where it tore. */}
-        <filter id={torn} x="-3%" y="-3%" width="106%" height="106%" colorInterpolationFilters="sRGB">
-          <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="8" result="wave" />
-          <feTurbulence type="fractalNoise" baseFrequency="0.45" numOctaves="2" seed="14" result="tear" />
-          <feComposite in="wave" in2="tear" operator="arithmetic" k2="0.6" k3="0.4" result="noise" />
-          <feMorphology in="SourceAlpha" operator="erode" radius="2.5" result="in1" />
-          <feDisplacementMap in="in1" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G" result="rimShape" />
-          <feMorphology in="rimShape" operator="erode" radius="1.2" result="in2" />
-          <feFlood floodColor="#f4f0e8" result="white" />
-          <feComposite in="white" in2="rimShape" operator="in" result="rim" />
-          <feComposite in="SourceGraphic" in2="in2" operator="in" result="print" />
-          <feMerge>
-            <feMergeNode in="rim" />
-            <feMergeNode in="print" />
+        <filter id={`${id}-mount`} x="-5%" y="-5%" width="110%" height="110%" colorInterpolationFilters="sRGB">
+          <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="3" result="wave" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.07" numOctaves="2" seed="17" result="swayNoise" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.22" numOctaves="3" seed="8" result="tearNoise" />
+          <feTurbulence type="turbulence" baseFrequency="0.7" numOctaves="2" seed="5" result="fibreNoise" />
+
+          {/* The torn edge: pulled about at three sizes — wider and narrower
+              along its length, its tears, and the fibres at its very edge. */}
+          <feDisplacementMap in="SourceAlpha" in2="swayNoise" scale="9" xChannelSelector="R" yChannelSelector="G" result="sway" />
+          <feDisplacementMap in="sway" in2="tearNoise" scale="7" xChannelSelector="R" yChannelSelector="G" result="tear" />
+          <feDisplacementMap in="tear" in2="fibreNoise" scale="4" xChannelSelector="R" yChannelSelector="G" result="outer" />
+
+          {/* The card at its full thickness, ending at a line not quite
+              straight, a few pixels in from the tear. */}
+          <feMorphology in="SourceAlpha" operator="erode" radius="5" result="core0" />
+          <feDisplacementMap in="core0" in2="wave" scale="2.5" xChannelSelector="R" yChannelSelector="G" result="core" />
+
+          {/* Between them, the tear: thin, so only partly there, more where
+              the fibres are. */}
+          <feComposite in="outer" in2="core" operator="out" result="fringe0" />
+          <feColorMatrix in="fibreNoise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -3 0 0 0 1.2" result="fibres" />
+          <feComposite in="fringe0" in2="fibres" operator="arithmetic" k1="0.25" k2="0.75" result="fringe" />
+          <feMerge result="shape">
+            <feMergeNode in="fringe" />
+            <feMergeNode in="core" />
           </feMerge>
-        </filter>
-        <filter id={`${id}-kraft`} x="-2%" y="-2%" width="104%" height="104%" colorInterpolationFilters="sRGB">
-          {/* Cut clean, only a little furred where the knife went through. */}
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="21" result="fur" />
-          <feDisplacementMap in="SourceGraphic" in2="fur" scale="1.4" xChannelSelector="R" yChannelSelector="G" result="cut" />
 
-          {/* Barely uneven: the faintest drift of light and dark across it. */}
-          <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="2" seed="9" result="drift" />
-          <feColorMatrix in="drift" type="matrix" values="0 0 0 0 0.44  0 0 0 0 0.34  0 0 0 0 0.24  0.5 0 0 0 -0.18" result="tone" />
-          <feComposite in="tone" in2="cut" operator="atop" result="toned" />
-
-          {/* The grain of the board: close all over, like sand, soft — specks
-              a shade darker and a shade lighter than it, some bigger, some
-              smaller, which goes unevenly across it. */}
-          <feTurbulence type="fractalNoise" baseFrequency="0.48" numOctaves="2" seed="2" result="big" />
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="27" result="small" />
-          <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="15" result="mix" />
-          <feComposite in="big" in2="mix" operator="arithmetic" k1="1.1" k3="-0.05" result="bigHere" />
-          <feComposite in="small" in2="mix" operator="arithmetic" k1="-1.1" k2="1" k3="0.05" result="smallHere" />
-          <feComposite in="bigHere" in2="smallHere" operator="arithmetic" k2="1" k3="1" result="sandSharp" />
-          <feGaussianBlur in="sandSharp" stdDeviation="0.25" result="sand" />
-          <feColorMatrix in="sand" type="matrix" values="0 0 0 0 0.4  0 0 0 0 0.31  0 0 0 0 0.22  -2 0 0 0 0.92" result="dark" />
-          <feColorMatrix in="sand" type="matrix" values="0 0 0 0 0.75  0 0 0 0 0.66  0 0 0 0 0.55  0 2 0 0 -1.05" result="light" />
-          <feMerge result="grains">
-            <feMergeNode in="dark" />
-            <feMergeNode in="light" />
-          </feMerge>
-          <feComposite in="grains" in2="toned" operator="atop" result="sanded" />
-
-          {/* A few longer fibres, a little paler, caught in the surface. */}
-          <feTurbulence type="turbulence" baseFrequency="0.06 0.05" numOctaves="3" seed="13" result="thread" />
-          <feColorMatrix in="thread" type="matrix" values="0 0 0 0 0.74  0 0 0 0 0.66  0 0 0 0 0.55  -7 0 0 0 0.2" result="threads" />
-          <feComposite in="threads" in2="sanded" operator="atop" result="fibred" />
-
-          {/* And the felt of it, lit from the top left. */}
-          <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="3" seed="6" result="felt" />
-          <feDiffuseLighting in="felt" surfaceScale="0.9" diffuseConstant="1.05" lightingColor="#ffffff" result="lit">
-            <feDistantLight azimuth="225" elevation="62" />
+          {/* Cotton white, with a tooth to it, lit from the top left. */}
+          <feFlood floodColor="#f6f3ec" result="white" />
+          <feComposite in="white" in2="shape" operator="in" result="paper" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="4" seed="11" result="grain" />
+          <feDiffuseLighting in="grain" surfaceScale="1.2" diffuseConstant="1.12" lightingColor="#ffffff" result="lit">
+            <feDistantLight azimuth="225" elevation="58" />
           </feDiffuseLighting>
-          <feComposite in="lit" in2="fibred" operator="arithmetic" k1="0.2" k3="0.83" result="tooth" />
+          <feComposite in="lit" in2="paper" operator="arithmetic" k1="0.25" k3="0.76" result="tooth" />
+          <feComposite in="tooth" in2="shape" operator="in" result="card" />
 
-          {/* It is board, not paper: its edges rounded a little by the cut,
-              catching the light along the top and left and falling away
-              into shade along the bottom and right — and soft. */}
-          <feGaussianBlur in="cut" stdDeviation="0.6" result="soft" />
-          <feGaussianBlur in="soft" stdDeviation="1.6" result="height" />
-          <feDiffuseLighting in="height" surfaceScale="0.4" diffuseConstant="1" lightingColor="#ffffff" result="bevel">
-            <feDistantLight azimuth="225" elevation="45" />
-          </feDiffuseLighting>
-          <feComposite in="tooth" in2="bevel" operator="arithmetic" k1="1.38" result="rounded" />
-          <feComposite in="rounded" in2="soft" operator="in" result="face" />
+          {/* The ridge where the full thickness stops: a soft line of shade
+              just past it, more along the bottom and right. */}
+          <feGaussianBlur in="core" stdDeviation="0.9" result="coreSoft" />
+          <feOffset in="coreSoft" dx="0.5" dy="0.8" result="coreDown" />
+          <feComposite in="coreDown" in2="core" operator="out" result="lip0" />
+          <feFlood floodColor="#7d7262" floodOpacity="0.42" result="lipShade" />
+          <feComposite in="lipShade" in2="lip0" operator="in" result="lip" />
 
-          {/* And thick enough that its cut side shows, along the bottom and
-              right, a shade darker. */}
-          <feOffset in="soft" dx="0.2" dy="0.3" result="under" />
-          <feFlood floodColor="#977b5d" result="side" />
-          <feComposite in="side" in2="under" operator="in" result="thickness" />
           <feMerge>
-            <feMergeNode in="thickness" />
-            <feMergeNode in="face" />
+            <feMergeNode in="card" />
+            <feMergeNode in="lip" />
           </feMerge>
         </filter>
       </defs>
-      <rect width="100%" height="100%" fill="#9e8263" filter={`url(#${id}-kraft)`} />
+      <rect width="100%" height="100%" fill="#fff" filter={`url(#${id}-mount)`} />
     </svg>
   );
 }
@@ -410,7 +383,7 @@ function Deboss({ text, crest }: { text: string; crest?: number }) {
   );
 }
 
-/** The recipe's photos, each on a square of brown card, with a sprig laid
+/** The recipe's photos, each on a square of torn white card, with a sprig laid
  *  over them, hanging off the card on the side `toward`. */
 function Photos({ photos, width, toward }: { photos: Recipe["photos"]; width: number; toward: "left" | "right" }) {
   const w = Math.round(Math.min(width * 0.42, 300));
@@ -420,7 +393,6 @@ function Photos({ photos, width, toward }: { photos: Recipe["photos"]; width: nu
   const fan = 16;
   const high = h + 40 + (photos.length - 1) * fan;
   const tuck = toward === "right" ? left + w * 0.22 : left + w * 0.78;
-  const tornId = useId().replace(/:/g, "") + "torn";
   return (
     <div className={styles.photos} style={{ height: high, marginLeft: -PAD_X, width }}>
       {[...photos].reverse().map((p, n) => {
@@ -429,7 +401,7 @@ function Photos({ photos, width, toward }: { photos: Recipe["photos"]; width: nu
         return (
           <figure
             key={k}
-            className={styles.kraft}
+            className={styles.mount}
             style={{
               left: left + inward,
               top: 14 + (photos.length - 1 - k) * fan,
@@ -438,8 +410,8 @@ function Photos({ photos, width, toward }: { photos: Recipe["photos"]; width: nu
               transform: `rotate(${[-2.5, 3, -1.2, 2][k % 4]}deg)`,
             }}
           >
-            <Kraft torn={`${tornId}-${k}`} />
-            <div className={styles.photo} style={{ filter: `url(#${tornId}-${k})` }}>
+            <Mount />
+            <div className={styles.photo}>
               <Image src={p.image} alt={p.alt} fill sizes={`${w}px`} />
             </div>
           </figure>

@@ -259,17 +259,17 @@
   box-sizing: content-box;
 }
 
-.kraft {
+/* A photo on its square of torn white card: a clean margin round it, wider
+   than the tear at its edge. */
+.mount {
   position: absolute;
   margin: 0;
-  padding: 2%;
+  padding: 5%;
   box-sizing: border-box;
-  /* Card has weight: it lies close, so a tight shadow under it, and a soft
-     one further out. */
-  filter: drop-shadow(0 1px 1px rgba(50, 35, 20, 0.08)) drop-shadow(0 2px 4px rgba(60, 40, 25, 0.22));
+  filter: drop-shadow(0 1px 1.5px rgba(60, 45, 30, 0.14)) drop-shadow(0 4px 8px rgba(60, 45, 30, 0.12));
 }
 
-.kraftSheet {
+.mountSheet {
   position: absolute;
   inset: 0;
   overflow: visible;
