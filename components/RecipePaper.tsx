@@ -184,43 +184,101 @@ function Kraft({ torn }: { torn: string }) {
   );
 }
 
-/** A gem paper clip, in two halves: the loop that lies over the paper,
- *  and the loop that goes behind it — seen through it, onion skin being as
- *  thin as it is. Drawn 16 by 66, the paper's edge 20 down. */
-const CLIP = {
-  front: "M4 18 V52 A4 4 0 0 0 12 52 V6 A5.5 5.5 0 0 0 1 6",
-  back: "M1 6 V58 A7 7 0 0 0 15 58 V22",
-};
+/** What holds the onion skin on: a steel gem clip, a gold teardrop clip, or
+ *  a gold stud pin through it. */
+export type Fastener = "gem" | "drop" | "stud";
 
-function Clip({ part, id }: { part: "front" | "back"; id: string }) {
+/** The clips, each in two halves: the wire that lies over the paper, and the
+ *  wire that goes behind it — seen through it, onion skin being as thin as
+ *  it is. `box` is what it is drawn in, `edge` how far down it the paper's
+ *  edge comes, and `scale` how big it is drawn. */
+const CLIPS = {
+  gem: {
+    front: "M4 18 V52 A4 4 0 0 0 12 52 V6 A5.5 5.5 0 0 0 1 6",
+    back: "M1 6 V58 A7 7 0 0 0 15 58 V22",
+    box: [16, 66],
+    edge: 20,
+    scale: 1.35,
+    metal: ["#5d6269", "#c9ced4", "#eef1f4", "#80868e"],
+  },
+  // One wire bent into a drop — round over the top, a point at the foot —
+  // its two ends crossing at the top, one of them run on down behind.
+  drop: {
+    front: "M17 3.5 C 7 0.5, 0.5 8, 3 15.5 L 14.5 41 L 26 15.5 C 28.5 9, 24 2.5, 15.5 2.8",
+    back: "M15.5 2.8 C 13 9, 12.5 18, 13.5 29",
+    box: [29, 44],
+    edge: 11,
+    scale: 1.25,
+    metal: ["#9a7631", "#e2c47c", "#f6e6b4", "#b18b3c"],
+  },
+} as const;
+
+function Clip({ kind, part, id }: { kind: "gem" | "drop"; part: "front" | "back"; id: string }) {
+  const c = CLIPS[kind];
+  const [w, h] = c.box;
   return (
-    <svg className={styles.clip} data-part={part} width="23" height="92" viewBox="-1 -1 18 68" aria-hidden>
-      {part === "front" ? (
-        <defs>
-          <linearGradient id={`${id}-steel`} x1="0" y1="0" x2="1" y2="0.15">
-            <stop offset="0" stopColor="#5d6269" />
-            <stop offset="0.45" stopColor="#c9ced4" />
-            <stop offset="0.6" stopColor="#eef1f4" />
-            <stop offset="1" stopColor="#80868e" />
-          </linearGradient>
-        </defs>
-      ) : null}
-      <path d={CLIP[part]} className={styles.wire} stroke={`url(#${id}-steel)`} />
-      <path d={CLIP[part]} className={styles.glint} />
+    <svg
+      className={styles.clip}
+      data-part={part}
+      data-kind={kind}
+      width={(w + 2) * c.scale}
+      height={(h + 2) * c.scale}
+      viewBox={`-1 -1 ${w + 2} ${h + 2}`}
+      style={{ top: -(c.edge + 1) * c.scale }}
+      aria-hidden
+    >
+      <defs>
+        <linearGradient id={`${id}-${part}-metal`} x1="0" y1="0" x2="1" y2="0.15">
+          <stop offset="0" stopColor={c.metal[0]} />
+          <stop offset="0.45" stopColor={c.metal[1]} />
+          <stop offset="0.6" stopColor={c.metal[2]} />
+          <stop offset="1" stopColor={c.metal[3]} />
+        </linearGradient>
+      </defs>
+      <path d={c[part]} className={styles.wire} stroke={`url(#${id}-${part}-metal)`} />
+      <path d={c[part]} className={styles.glint} />
     </svg>
   );
 }
 
+/** A gold stud pin through the sheet into the card: a small domed head,
+ *  lit from the top left. */
+function Stud({ id }: { id: string }) {
+  return (
+    <svg className={styles.stud} width="11" height="11" viewBox="0 0 11 11" aria-hidden>
+      <defs>
+        <radialGradient id={`${id}-dome`} cx="0.36" cy="0.32" r="0.75">
+          <stop offset="0" stopColor="#fbf0c8" />
+          <stop offset="0.3" stopColor="#e2c26f" />
+          <stop offset="0.75" stopColor="#b48f3e" />
+          <stop offset="1" stopColor="#86672a" />
+        </radialGradient>
+      </defs>
+      <circle cx="5.5" cy="5.5" r="4.8" fill={`url(#${id}-dome)`} />
+      <circle cx="5.5" cy="5.5" r="4.6" fill="none" stroke="rgba(110, 80, 25, 0.35)" strokeWidth="0.5" />
+    </svg>
+  );
+}
+
+/** Which fastener a recipe's sheet has: one of them, by its name, so it is
+ *  always the same one. */
+const fastenerFor = (id: string): Fastener => {
+  let h = 0;
+  for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return (["gem", "drop", "stud"] as const)[h % 3];
+};
+
 /**
  * A sheet of onion skin clipped over the foot of the card: so thin the card
  * shows through it, with a fine grain and the faint cockle that thin paper
- * takes on — and a paper clip on its top edge, holding it on.
+ * takes on — and held on by `fastener`: a clip on its top edge, or a pin
+ * through it.
  */
-function Onion({ children }: { children: React.ReactNode }) {
+function Onion({ fastener, children }: { fastener: Fastener; children: React.ReactNode }) {
   const id = useId().replace(/:/g, "");
   return (
     <div className={styles.onionLay}>
-      <Clip part="back" id={id} />
+      {fastener !== "stud" ? <Clip kind={fastener} part="back" id={id} /> : null}
       <div className={styles.onion}>
         <svg className={styles.onionSkin} width="100%" height="100%" aria-hidden>
           <defs>
@@ -291,7 +349,7 @@ function Onion({ children }: { children: React.ReactNode }) {
           </defs>
           <rect width="100%" height="100%" fill="#fff" filter={`url(#${id}-skin)`} />
         </svg>
-        <Clip part="front" id={id} />
+        {fastener !== "stud" ? <Clip kind={fastener} part="front" id={id} /> : <Stud id={id} />}
         <div className={styles.onionWords}>{children}</div>
       </div>
     </div>
@@ -304,10 +362,18 @@ function Onion({ children }: { children: React.ReactNode }) {
  * — the upper and left walls of each letter in shade, the lower and right
  * ones catching the light, and the floor of it a shade deeper.
  */
-function Deboss({ text }: { text: string }) {
+function Deboss({ text, crest }: { text: string; crest?: number }) {
   const id = useId().replace(/:/g, "");
   return (
-    <svg className={styles.deboss} width="100%" height="1.5em" role="img" aria-label={text}>
+    <svg
+      className={styles.deboss}
+      width="100%"
+      height="1.5em"
+      role="img"
+      aria-label={text}
+      // The middle of the capitals is about 0.77em down it.
+      style={crest === undefined ? undefined : { top: `calc(${crest}px - 0.77em)` }}
+    >
       <defs>
         <filter id={`${id}-press`} x="-5%" y="-30%" width="110%" height="160%" colorInterpolationFilters="sRGB">
           {/* The floor: the paper pressed down, a shade deeper. */}
@@ -409,6 +475,7 @@ export default function RecipePaper({
   width,
   minHeight = 0,
   lead,
+  crest,
   toward = "right",
   textured = true,
   onHeight,
@@ -419,6 +486,8 @@ export default function RecipePaper({
   minHeight?: number;
   /** How far down the card the words start, if not the usual. */
   lead?: number;
+  /** How far down the card the middle of "RECIPE" is, if not the usual. */
+  crest?: number;
   toward?: "left" | "right";
   /** Whether to draw the paper yet — it is slow to: the words come first. */
   textured?: boolean;
@@ -453,7 +522,7 @@ export default function RecipePaper({
     >
       {height && textured ? <Sheet width={width} height={height} /> : null}
       <div className={styles.words} style={lead === undefined ? undefined : { paddingTop: lead }}>
-        <Deboss text="RECIPE" />
+        <Deboss text="RECIPE" crest={crest} />
         <h2 className={styles.name}>{inline(recipe.name || title)}</h2>
         {recipe.portion ? (
           <p className={styles.portion}>
@@ -481,7 +550,7 @@ export default function RecipePaper({
         ) : null}
 
         {recipe.steps.length || recipe.notes.length ? (
-          <Onion>
+          <Onion fastener={fastenerFor(recipe.id)}>
             {recipe.steps.length ? (
               <section>
                 <h3 className={styles.heading}>Steps</h3>

@@ -332,6 +332,15 @@ export default function RecipeView({
   const [paperUp, setPaperUp] = useState(false);
   const card = useRef<HTMLDivElement>(null);
   const [paperH, setPaperH] = useState(0);
+
+  /** How far down the window the middle of "back to the table" is: the
+   *  card's "RECIPE" is set level with it. */
+  const backRef = useRef<HTMLButtonElement>(null);
+  const [backMid, setBackMid] = useState<number | undefined>(undefined);
+  useLayoutEffect(() => {
+    const b = backRef.current?.getBoundingClientRect();
+    if (b) setBackMid(b.top + b.height / 2);
+  }, [W, H]);
   /** Whether the card is dressed in its paper yet: not in the first frames,
    *  as drawing the paper is slow — once the movement is under way, which the
    *  browser plays on its own, it can take its time. */
@@ -474,6 +483,7 @@ export default function RecipeView({
             width={paper.width}
             minHeight={paper.min}
             lead={narrow ? undefined : RUN_OFF + H * 0.15}
+            crest={narrow || backMid === undefined ? undefined : backMid - paper.y}
             toward={narrow ? "right" : side < 0 ? "left" : "right"}
             onHeight={setPaperH}
             textured={dressed}
@@ -482,6 +492,7 @@ export default function RecipeView({
       </div>
 
       <button
+        ref={backRef}
         type="button"
         className={`${styles.back} ${garamond.className}`}
         data-side={side < 0 || narrow ? "left" : "right"}
