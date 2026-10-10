@@ -272,42 +272,42 @@
   overflow: visible;
 }
 
-/* Jute: straw-brown, the plies lighter where they come round to the front,
-   the hairs paler still. */
+/* Fine twine, linen-pale: the plies lighter where they come round to the
+   front, a fine dark line where they meet, the odd hair paler still. */
 .plyBack {
   fill: none;
-  stroke: #8f7350;
-  stroke-width: 3.6;
+  stroke: #a9967a;
+  stroke-width: 1.45;
   stroke-linecap: round;
 }
 
 .plyFront {
   fill: none;
-  stroke: #d3bc92;
-  stroke-width: 1.9;
+  stroke: #d9cbad;
+  stroke-width: 0.85;
   stroke-linecap: round;
 }
 
 .groove {
   fill: none;
-  stroke: #7d6343;
-  stroke-width: 0.9;
+  stroke: #84715a;
+  stroke-width: 0.35;
   stroke-linecap: round;
-  opacity: 0.9;
+  opacity: 0.75;
 }
 
 .hair {
   fill: none;
-  stroke: #e6d6b4;
-  stroke-width: 0.5;
+  stroke: #ded2b8;
+  stroke-width: 0.3;
   stroke-linecap: round;
-  opacity: 0.85;
+  opacity: 0.8;
 }
 
 .stray {
   fill: none;
-  stroke: #cdb68e;
-  stroke-width: 0.4;
+  stroke: #cfc2a5;
+  stroke-width: 0.3;
   stroke-linecap: round;
-  opacity: 0.75;
+  opacity: 0.7;
 }

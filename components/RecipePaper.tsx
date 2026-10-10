@@ -102,9 +102,9 @@ const random = (seed: number) => () => {
 type Pt = { x: number; y: number };
 type Curve = [Pt, Pt, Pt, Pt];
 
-/** A cubic curve, walked about a pixel at a time: where each step is, and
+/** A cubic curve, walked `step` pixels at a time: where each step is, and
  *  which way the curve goes there. */
-const walk = ([a, b, c, d]: Curve) => {
+const walk = ([a, b, c, d]: Curve, step = 1) => {
   const at = (t: number) => {
     const u = 1 - t;
     return {
@@ -124,7 +124,7 @@ const walk = ([a, b, c, d]: Curve) => {
     while (next <= s + l) {
       const f = (next - s) / l;
       steps.push({ p: { x: fine[i - 1].x + dx * f, y: fine[i - 1].y + dy * f }, tx: dx / l, ty: dy / l, s: next });
-      next += 1;
+      next += step;
     }
     s += l;
   }
@@ -134,62 +134,72 @@ const walk = ([a, b, c, d]: Curve) => {
 const n1 = (v: number) => Math.round(v * 10) / 10;
 
 /**
- * One length of jute twine along `curve`, as path data: three plies wound
- * round each other — the half of each turn that is behind, darker, and the
- * half in front, lighter, over it — and the loose hairs jute is covered in,
- * most lying along it, a few standing off it.
+ * One length of fine twine along `curve`, as path data: two plies twisted
+ * tight round each other — the half of each turn that is behind, darker,
+ * the half in front, lighter, over it, and a fine dark line where one
+ * goes under the next — with only a hair or two loose from it.
  */
 function rope(curve: Curve, seed: number) {
   const rnd = random(seed);
-  const steps = walk(curve);
-  const R = 2.2;
-  const PITCH = 8 + rnd() * 1.5;
-  // Jute is uneven: thicker and thinner, and the twist tighter and looser.
-  const wob = [rnd() * 6, rnd() * 6, 0.02 + rnd() * 0.02, 0.05 + rnd() * 0.03];
-  const thick = (s: number) => 1 + 0.18 * Math.sin(s * wob[2] + wob[0]) + 0.08 * Math.sin(s * wob[3] + wob[1]);
+  const steps = walk(curve, 0.4);
+  const R = 0.7;
+  const PITCH = 3.1 + rnd() * 0.4;
+  // Not machine-even: a little thicker and thinner, the twist a little
+  // tighter and looser.
+  const wob = [rnd() * 6, rnd() * 6, 0.03 + rnd() * 0.02, 0.07 + rnd() * 0.03];
+  const thick = (s: number) => 1 + 0.1 * Math.sin(s * wob[2] + wob[0]) + 0.05 * Math.sin(s * wob[3] + wob[1]);
+  const turn = (s: number) => (2 * Math.PI * s) / PITCH + 0.4 * Math.sin(s * wob[3] + wob[0]);
   const back: string[] = [];
   const front: string[] = [];
   const groove: string[] = [];
-  for (let ply = 0; ply < 3; ply++) {
+  for (let ply = 0; ply < 2; ply++) {
     let was: boolean | null = null;
     for (const { p, tx, ty, s } of steps) {
-      const a = (2 * Math.PI * s) / PITCH + (2 * Math.PI * ply) / 3 + 0.5 * Math.sin(s * wob[3] + wob[0]);
+      const a = turn(s) + Math.PI * ply;
       const off = R * thick(s) * Math.sin(a);
-      const x = n1(p.x - ty * off);
-      const y = n1(p.y + tx * off);
       const facing = Math.cos(a) > 0;
-      const into = facing ? front : back;
-      into.push(`${was === facing ? "L" : "M"}${x} ${y}`);
+      (facing ? front : back).push(`${was === facing ? "L" : "M"}${n1(p.x - ty * off)} ${n1(p.y + tx * off)}`);
       was = facing;
-      // Where one ply goes under the next, a shadow.
-      if (Math.abs(Math.cos(a)) < 0.1 && !facing && rnd() < 0.6) groove.push(`M${x} ${y}l${n1(-ty * 0.5 + tx * 0.6)} ${n1(tx * 0.5 + ty * 0.6)}`);
     }
+  }
+  // Where the plies meet, once each half turn: a fine slanted line across.
+  let last = turn(0);
+  for (const { p, tx, ty, s } of steps) {
+    const a = turn(s);
+    if (Math.floor(a / Math.PI) !== Math.floor(last / Math.PI)) {
+      const w = R * thick(s) * 0.95;
+      const lean = 0.45;
+      groove.push(
+        `M${n1(p.x + ty * w - tx * lean)} ${n1(p.y - tx * w - ty * lean)}L${n1(p.x - ty * w + tx * lean)} ${n1(p.y + tx * w + ty * lean)}`,
+      );
+    }
+    last = a;
   }
   const hairs: string[] = [];
   const strays: string[] = [];
-  for (const { p, tx, ty } of steps) {
-    if (rnd() < 0.6) {
-      // Lying along the twine, a little off it.
+  for (const { p, tx, ty } of walk(curve, 1)) {
+    if (rnd() < 0.05) {
+      // Lying along it, just off it.
       const side = rnd() < 0.5 ? -1 : 1;
-      const o = R * (0.6 + rnd() * 0.9) * side;
-      const len = 2 + rnd() * 5;
-      const tilt = (rnd() - 0.3) * 0.7 * side;
+      const o = R * (0.8 + rnd() * 0.6) * side;
+      const len = (1 + rnd() * 2.5) * (rnd() < 0.5 ? -1 : 1);
+      const tilt = (rnd() - 0.5) * 0.5;
       const sx = p.x - ty * o;
       const sy = p.y + tx * o;
-      const dx = (tx * Math.cos(tilt) - ty * Math.sin(tilt)) * len * (rnd() < 0.5 ? -1 : 1);
-      const dy = (ty * Math.cos(tilt) + tx * Math.sin(tilt)) * len * (Math.sign(dx) === Math.sign(tx * len) ? 1 : -1);
-      hairs.push(`M${n1(sx)} ${n1(sy)}l${n1(dx)} ${n1(dy)}`);
+      hairs.push(
+        `M${n1(sx)} ${n1(sy)}l${n1((tx * Math.cos(tilt) - ty * Math.sin(tilt)) * len)} ${n1((ty * Math.cos(tilt) + tx * Math.sin(tilt)) * len)}`,
+      );
     }
-    if (rnd() < 0.05) {
-      // Standing off it, curling.
+    if (rnd() < 0.006) {
+      // Now and then one standing off it, curling.
       const side = rnd() < 0.5 ? -1 : 1;
-      const len = 5 + rnd() * 9;
-      const ang = (0.35 + rnd() * 0.8) * side;
+      const len = 3 + rnd() * 4;
+      const ang = (0.4 + rnd() * 0.6) * side;
       const dir = rnd() < 0.5 ? -1 : 1;
       const ux = (tx * Math.cos(ang) - ty * Math.sin(ang)) * dir;
       const uy = (ty * Math.cos(ang) + tx * Math.sin(ang)) * dir;
-      const sx = p.x - ty * R * side * 0.8;
-      const sy = p.y + tx * R * side * 0.8;
+      const sx = p.x - ty * R * side;
+      const sy = p.y + tx * R * side;
       const curl = (rnd() - 0.5) * len * 0.6;
       strays.push(
         `M${n1(sx)} ${n1(sy)}q${n1(ux * len * 0.5 - uy * curl)} ${n1(uy * len * 0.5 + ux * curl)} ${n1(ux * len)} ${n1(uy * len)}`,
@@ -199,7 +209,7 @@ function rope(curve: Curve, seed: number) {
   return { back: back.join(""), front: front.join(""), groove: groove.join(""), hairs: hairs.join(""), strays: strays.join("") };
 }
 
-/** A length of jute twine across the card, twice round it, tied in a bow
+/** A length of fine twine across the card, sagging a little, tied in a bow
  *  at `knot` — `width` long, `at` down from the top. */
 function Twine({ width, at, knot }: { width: number; at: number; knot: number }) {
   const id = useId().replace(/:/g, "");
@@ -207,26 +217,26 @@ function Twine({ width, at, knot }: { width: number; at: number; knot: number })
   const k = knot;
   const P = (x: number, yy: number) => ({ x, y: yy });
   const curves: Curve[] = [
-    [P(0, y - 1.5), P(width * 0.3, y + 1.5), P(width * 0.6, y - 4.5), P(width, y)],
-    [P(0, y + 1.5), P(width * 0.3, y - 0.5), P(width * 0.6, y + 3.5), P(width, y + 0.5)],
-    [P(k, y), P(k - 30, y - 26), P(k - 40, y + 6), P(k, y + 1)],
-    [P(k, y), P(k + 30, y - 24), P(k + 42, y + 8), P(k, y + 1)],
-    [P(k, y + 1), P(k - 6, y + 16), P(k - 16, y + 26), P(k - 22, y + 44)],
-    [P(k, y + 1), P(k + 8, y + 14), P(k + 12, y + 30), P(k + 24, y + 40)],
-    // The knot, the twine wound tight on itself.
-    [P(k - 4, y - 3), P(k + 3, y - 5), P(k + 5, y + 4), P(k - 3, y + 4)],
-    [P(k + 4, y - 2), P(k - 4, y - 4), P(k - 5, y + 5), P(k + 3, y + 5)],
+    [P(0, y - 1), P(width * 0.33, y + 1.5), P(width * 0.66, y - 1.5), P(width, y + 0.5)],
+    // The bow: two long, slim loops, not quite alike, and two tails.
+    [P(k - 1, y), P(k - 26, y - 25), P(k - 54, y - 8), P(k - 2, y + 1)],
+    [P(k + 1, y), P(k + 30, y - 20), P(k + 56, y - 1), P(k + 2, y + 1.5)],
+    [P(k - 1, y + 1), P(k - 11, y + 13), P(k - 24, y + 25), P(k - 37, y + 39)],
+    [P(k + 1, y + 1), P(k + 9, y + 16), P(k + 21, y + 30), P(k + 35, y + 43)],
+    // The knot, small and tight.
+    [P(k - 3, y - 2), P(k + 2, y - 3.5), P(k + 3.5, y + 2.5), P(k - 2, y + 2.5)],
+    [P(k + 2.5, y - 1.5), P(k - 2.5, y - 3), P(k - 3.5, y + 3), P(k + 2, y + 3)],
   ];
   const ropes = curves.map((c, i) => rope(c, 17 + i * 31));
   return (
     <svg className={styles.twine} width={width} height={y + 60} aria-hidden>
       <defs>
         <filter id={`${id}-jute`} x="-2%" y="-20%" width="104%" height="140%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.35" numOctaves="2" seed="4" result="n" />
-          <feDisplacementMap in="SourceGraphic" in2="n" scale="1.6" xChannelSelector="R" yChannelSelector="G" result="rough" />
-          <feGaussianBlur in="SourceAlpha" stdDeviation="1.2" result="blur" />
-          <feOffset in="blur" dx="0.8" dy="1.6" result="drop" />
-          <feColorMatrix in="drop" type="matrix" values="0 0 0 0 0.24  0 0 0 0 0.16  0 0 0 0 0.09  0 0 0 0.45 0" result="shadow" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="1" seed="4" result="n" />
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="0.5" xChannelSelector="R" yChannelSelector="G" result="rough" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="0.7" result="blur" />
+          <feOffset in="blur" dx="0.5" dy="1.1" result="drop" />
+          <feColorMatrix in="drop" type="matrix" values="0 0 0 0 0.24  0 0 0 0 0.18  0 0 0 0 0.12  0 0 0 0.32 0" result="shadow" />
           <feMerge>
             <feMergeNode in="shadow" />
             <feMergeNode in="rough" />
@@ -239,8 +249,8 @@ function Twine({ width, at, knot }: { width: number; at: number; knot: number })
           <g key={i}>
             <path d={r.strays} className={styles.stray} />
             <path d={r.back} className={styles.plyBack} />
-            <path d={r.groove} className={styles.groove} />
             <path d={r.front} className={styles.plyFront} />
+            <path d={r.groove} className={styles.groove} />
             <path d={r.hairs} className={styles.hair} />
           </g>
         ))}
