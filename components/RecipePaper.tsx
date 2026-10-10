@@ -13,7 +13,7 @@ const BLEED = 12;
 /** How far in from the sheet's edge the words are, at the sides. */
 const PAD_X = BLEED + 36;
 
-/** The sprig tucked under the twine. */
+/** The sprig laid over the photos. */
 const SPRIG = decorations.find((d) => d.id === "flower3")?.image;
 
 /** *Italic* and **bold**, which is all a recipe needs of markdown in a line. */
@@ -86,175 +86,6 @@ function Sheet({ width, height }: { width: number; height: number }) {
         fill="#f6f4ef"
         filter={`url(#${id}-paper)`}
       />
-    </svg>
-  );
-}
-
-/** A little random number generator, so the same twine is drawn the same
- *  every time. */
-const random = (seed: number) => () => {
-  seed = (seed + 0x6d2b79f5) | 0;
-  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-};
-
-type Pt = { x: number; y: number };
-type Curve = [Pt, Pt, Pt, Pt];
-
-/** A cubic curve, walked `step` pixels at a time: where each step is, and
- *  which way the curve goes there. */
-const walk = ([a, b, c, d]: Curve, step = 1) => {
-  const at = (t: number) => {
-    const u = 1 - t;
-    return {
-      x: u * u * u * a.x + 3 * u * u * t * b.x + 3 * u * t * t * c.x + t * t * t * d.x,
-      y: u * u * u * a.y + 3 * u * u * t * b.y + 3 * u * t * t * c.y + t * t * t * d.y,
-    };
-  };
-  const fine: Pt[] = [];
-  for (let i = 0; i <= 400; i++) fine.push(at(i / 400));
-  const steps: { p: Pt; tx: number; ty: number; s: number }[] = [];
-  let s = 0;
-  let next = 0;
-  for (let i = 1; i < fine.length; i++) {
-    const dx = fine[i].x - fine[i - 1].x;
-    const dy = fine[i].y - fine[i - 1].y;
-    const l = Math.hypot(dx, dy) || 1e-6;
-    while (next <= s + l) {
-      const f = (next - s) / l;
-      steps.push({ p: { x: fine[i - 1].x + dx * f, y: fine[i - 1].y + dy * f }, tx: dx / l, ty: dy / l, s: next });
-      next += step;
-    }
-    s += l;
-  }
-  return steps;
-};
-
-const n1 = (v: number) => Math.round(v * 10) / 10;
-
-/**
- * One length of fine twine along `curve`, as path data: two plies twisted
- * tight round each other — the half of each turn that is behind, darker,
- * the half in front, lighter, over it, and a fine dark line where one
- * goes under the next — with only a hair or two loose from it.
- */
-function rope(curve: Curve, seed: number) {
-  const rnd = random(seed);
-  const steps = walk(curve, 0.4);
-  const R = 0.7;
-  const PITCH = 3.1 + rnd() * 0.4;
-  // Not machine-even: a little thicker and thinner, the twist a little
-  // tighter and looser.
-  const wob = [rnd() * 6, rnd() * 6, 0.03 + rnd() * 0.02, 0.07 + rnd() * 0.03];
-  const thick = (s: number) => 1 + 0.1 * Math.sin(s * wob[2] + wob[0]) + 0.05 * Math.sin(s * wob[3] + wob[1]);
-  const turn = (s: number) => (2 * Math.PI * s) / PITCH + 0.4 * Math.sin(s * wob[3] + wob[0]);
-  const back: string[] = [];
-  const front: string[] = [];
-  const groove: string[] = [];
-  for (let ply = 0; ply < 2; ply++) {
-    let was: boolean | null = null;
-    for (const { p, tx, ty, s } of steps) {
-      const a = turn(s) + Math.PI * ply;
-      const off = R * thick(s) * Math.sin(a);
-      const facing = Math.cos(a) > 0;
-      (facing ? front : back).push(`${was === facing ? "L" : "M"}${n1(p.x - ty * off)} ${n1(p.y + tx * off)}`);
-      was = facing;
-    }
-  }
-  // Where the plies meet, once each half turn: a fine slanted line across.
-  let last = turn(0);
-  for (const { p, tx, ty, s } of steps) {
-    const a = turn(s);
-    if (Math.floor(a / Math.PI) !== Math.floor(last / Math.PI)) {
-      const w = R * thick(s) * 0.95;
-      const lean = 0.45;
-      groove.push(
-        `M${n1(p.x + ty * w - tx * lean)} ${n1(p.y - tx * w - ty * lean)}L${n1(p.x - ty * w + tx * lean)} ${n1(p.y + tx * w + ty * lean)}`,
-      );
-    }
-    last = a;
-  }
-  const hairs: string[] = [];
-  const strays: string[] = [];
-  for (const { p, tx, ty } of walk(curve, 1)) {
-    if (rnd() < 0.05) {
-      // Lying along it, just off it.
-      const side = rnd() < 0.5 ? -1 : 1;
-      const o = R * (0.8 + rnd() * 0.6) * side;
-      const len = (1 + rnd() * 2.5) * (rnd() < 0.5 ? -1 : 1);
-      const tilt = (rnd() - 0.5) * 0.5;
-      const sx = p.x - ty * o;
-      const sy = p.y + tx * o;
-      hairs.push(
-        `M${n1(sx)} ${n1(sy)}l${n1((tx * Math.cos(tilt) - ty * Math.sin(tilt)) * len)} ${n1((ty * Math.cos(tilt) + tx * Math.sin(tilt)) * len)}`,
-      );
-    }
-    if (rnd() < 0.006) {
-      // Now and then one standing off it, curling.
-      const side = rnd() < 0.5 ? -1 : 1;
-      const len = 3 + rnd() * 4;
-      const ang = (0.4 + rnd() * 0.6) * side;
-      const dir = rnd() < 0.5 ? -1 : 1;
-      const ux = (tx * Math.cos(ang) - ty * Math.sin(ang)) * dir;
-      const uy = (ty * Math.cos(ang) + tx * Math.sin(ang)) * dir;
-      const sx = p.x - ty * R * side;
-      const sy = p.y + tx * R * side;
-      const curl = (rnd() - 0.5) * len * 0.6;
-      strays.push(
-        `M${n1(sx)} ${n1(sy)}q${n1(ux * len * 0.5 - uy * curl)} ${n1(uy * len * 0.5 + ux * curl)} ${n1(ux * len)} ${n1(uy * len)}`,
-      );
-    }
-  }
-  return { back: back.join(""), front: front.join(""), groove: groove.join(""), hairs: hairs.join(""), strays: strays.join("") };
-}
-
-/** A length of fine twine across the card, sagging a little, tied in a bow
- *  at `knot` — `width` long, `at` down from the top. */
-function Twine({ width, at, knot }: { width: number; at: number; knot: number }) {
-  const id = useId().replace(/:/g, "");
-  const y = at;
-  const k = knot;
-  const P = (x: number, yy: number) => ({ x, y: yy });
-  const curves: Curve[] = [
-    [P(0, y - 1), P(width * 0.33, y + 1.5), P(width * 0.66, y - 1.5), P(width, y + 0.5)],
-    // The bow: two long, slim loops, not quite alike, and two tails.
-    [P(k - 1, y), P(k - 26, y - 25), P(k - 54, y - 8), P(k - 2, y + 1)],
-    [P(k + 1, y), P(k + 30, y - 20), P(k + 56, y - 1), P(k + 2, y + 1.5)],
-    [P(k - 1, y + 1), P(k - 11, y + 13), P(k - 24, y + 25), P(k - 37, y + 39)],
-    [P(k + 1, y + 1), P(k + 9, y + 16), P(k + 21, y + 30), P(k + 35, y + 43)],
-    // The knot, small and tight.
-    [P(k - 3, y - 2), P(k + 2, y - 3.5), P(k + 3.5, y + 2.5), P(k - 2, y + 2.5)],
-    [P(k + 2.5, y - 1.5), P(k - 2.5, y - 3), P(k - 3.5, y + 3), P(k + 2, y + 3)],
-  ];
-  const ropes = curves.map((c, i) => rope(c, 17 + i * 31));
-  return (
-    <svg className={styles.twine} width={width} height={y + 60} aria-hidden>
-      <defs>
-        <filter id={`${id}-jute`} x="-2%" y="-20%" width="104%" height="140%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="1" seed="4" result="n" />
-          <feDisplacementMap in="SourceGraphic" in2="n" scale="0.5" xChannelSelector="R" yChannelSelector="G" result="rough" />
-          <feGaussianBlur in="SourceAlpha" stdDeviation="0.7" result="blur" />
-          <feOffset in="blur" dx="0.5" dy="1.1" result="drop" />
-          <feColorMatrix in="drop" type="matrix" values="0 0 0 0 0.24  0 0 0 0 0.18  0 0 0 0 0.12  0 0 0 0.32 0" result="shadow" />
-          <feMerge>
-            <feMergeNode in="shadow" />
-            <feMergeNode in="rough" />
-          </feMerge>
-        </filter>
-      </defs>
-      <g filter={`url(#${id}-jute)`}>
-        {/* Each length whole before the next goes over it. */}
-        {ropes.map((r, i) => (
-          <g key={i}>
-            <path d={r.strays} className={styles.stray} />
-            <path d={r.back} className={styles.plyBack} />
-            <path d={r.front} className={styles.plyFront} />
-            <path d={r.groove} className={styles.groove} />
-            <path d={r.hairs} className={styles.hair} />
-          </g>
-        ))}
-      </g>
     </svg>
   );
 }
@@ -467,8 +298,54 @@ function Onion({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** The recipe's photos, each on a square of kraft card, tied to the card
- *  with twine and a sprig, hanging off it on the side `toward`. */
+/**
+ * "RECIPE" across the top of the card, blind debossed: pressed into the
+ * paper without ink, so it is the paper's own colour, seen only by the light
+ * — the upper and left walls of each letter in shade, the lower and right
+ * ones catching the light, and the floor of it a shade deeper.
+ */
+function Deboss({ text }: { text: string }) {
+  const id = useId().replace(/:/g, "");
+  return (
+    <svg className={styles.deboss} width="100%" height="1.5em" role="img" aria-label={text}>
+      <defs>
+        <filter id={`${id}-press`} x="-5%" y="-30%" width="110%" height="160%" colorInterpolationFilters="sRGB">
+          {/* The floor: the paper pressed down, a shade deeper. */}
+          <feFlood floodColor="#5a4c40" floodOpacity="0.07" result="deep" />
+          <feComposite in="deep" in2="SourceAlpha" operator="in" result="floor" />
+
+          {/* The walls in shade: where the letter, moved down and right,
+              no longer covers itself. */}
+          <feOffset in="SourceAlpha" dx="1.1" dy="1.4" result="down" />
+          <feComposite in="SourceAlpha" in2="down" operator="out" result="upper" />
+          <feGaussianBlur in="upper" stdDeviation="0.55" result="upperSoft" />
+          <feFlood floodColor="#3f342b" floodOpacity="0.55" result="shade" />
+          <feComposite in="shade" in2="upperSoft" operator="in" result="shaded" />
+
+          {/* The walls in the light: the same, the other way. */}
+          <feOffset in="SourceAlpha" dx="-0.8" dy="-1" result="up" />
+          <feComposite in="SourceAlpha" in2="up" operator="out" result="lower" />
+          <feGaussianBlur in="lower" stdDeviation="0.5" result="lowerSoft" />
+          <feFlood floodColor="#ffffff" floodOpacity="0.9" result="light" />
+          <feComposite in="light" in2="lowerSoft" operator="in" result="lit" />
+
+          <feMerge result="pressed">
+            <feMergeNode in="floor" />
+            <feMergeNode in="shaded" />
+            <feMergeNode in="lit" />
+          </feMerge>
+          <feComposite in="pressed" in2="SourceAlpha" operator="in" />
+        </filter>
+      </defs>
+      <text x="50%" dx="0.21em" y="1.1em" textAnchor="middle" className={styles.debossText} filter={`url(#${id}-press)`}>
+        {text}
+      </text>
+    </svg>
+  );
+}
+
+/** The recipe's photos, each on a square of brown card, with a sprig laid
+ *  over them, hanging off the card on the side `toward`. */
 function Photos({ photos, width, toward }: { photos: Recipe["photos"]; width: number; toward: "left" | "right" }) {
   const w = Math.round(Math.min(width * 0.42, 300));
   const h = Math.round(w * 0.8);
@@ -476,8 +353,7 @@ function Photos({ photos, width, toward }: { photos: Recipe["photos"]; width: nu
   const left = toward === "right" ? width - w + over : -over;
   const fan = 16;
   const high = h + 40 + (photos.length - 1) * fan;
-  const knot = toward === "right" ? left + w * 0.22 : left + w * 0.78;
-  const span = { x0: Math.min(left, BLEED), x1: Math.max(left + w, width - BLEED) };
+  const tuck = toward === "right" ? left + w * 0.22 : left + w * 0.78;
   const tornId = useId().replace(/:/g, "") + "torn";
   return (
     <div className={styles.photos} style={{ height: high, marginLeft: -PAD_X, width }}>
@@ -507,7 +383,7 @@ function Photos({ photos, width, toward }: { photos: Recipe["photos"]; width: nu
         <div
           className={styles.sprig}
           style={{
-            left: knot - h * 0.5,
+            left: tuck - h * 0.5,
             top: 14 + h * 0.1,
             width: h * 0.75,
             transform: `rotate(${toward === "right" ? -38 : 38}deg) scaleX(${toward === "right" ? 1 : -1})`,
@@ -516,9 +392,6 @@ function Photos({ photos, width, toward }: { photos: Recipe["photos"]; width: nu
           <Drawn image={SPRIG} width={h * 0.75} />
         </div>
       ) : null}
-      <div className={styles.tie} style={{ left: span.x0 }}>
-        <Twine width={span.x1 - span.x0} at={14 + h * 0.46} knot={knot - span.x0} />
-      </div>
     </div>
   );
 }
@@ -580,6 +453,7 @@ export default function RecipePaper({
     >
       {height && textured ? <Sheet width={width} height={height} /> : null}
       <div className={styles.words} style={lead === undefined ? undefined : { paddingTop: lead }}>
+        <Deboss text="RECIPE" />
         <h2 className={styles.name}>{inline(recipe.name || title)}</h2>
         {recipe.portion ? (
           <p className={styles.portion}>

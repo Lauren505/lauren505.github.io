@@ -31,6 +31,22 @@
   padding: calc(var(--bleed) + 4.2em) var(--pad-x) calc(var(--bleed) + 3.4em);
 }
 
+/* "RECIPE", pressed into the top of the card: as wide-set as the name,
+   larger, and lighter in weight, as blind debossing is. */
+.deboss {
+  display: block;
+  margin: 0 0 1.2em;
+  overflow: visible;
+  font-size: 2.1em;
+}
+
+.debossText {
+  fill: #000;
+  font-size: 1em;
+  font-weight: 400;
+  letter-spacing: 0.42em;
+}
+
 .name {
   margin: 0;
   font-weight: 400;
@@ -261,53 +277,3 @@
   pointer-events: none;
 }
 
-.tie {
-  position: absolute;
-  top: 0;
-  pointer-events: none;
-}
-
-.twine {
-  display: block;
-  overflow: visible;
-}
-
-/* Fine twine, linen-pale: the plies lighter where they come round to the
-   front, a fine dark line where they meet, the odd hair paler still. */
-.plyBack {
-  fill: none;
-  stroke: #a9967a;
-  stroke-width: 1.45;
-  stroke-linecap: round;
-}
-
-.plyFront {
-  fill: none;
-  stroke: #d9cbad;
-  stroke-width: 0.85;
-  stroke-linecap: round;
-}
-
-.groove {
-  fill: none;
-  stroke: #84715a;
-  stroke-width: 0.35;
-  stroke-linecap: round;
-  opacity: 0.75;
-}
-
-.hair {
-  fill: none;
-  stroke: #ded2b8;
-  stroke-width: 0.3;
-  stroke-linecap: round;
-  opacity: 0.8;
-}
-
-.stray {
-  fill: none;
-  stroke: #cfc2a5;
-  stroke-width: 0.3;
-  stroke-linecap: round;
-  opacity: 0.7;
-}
