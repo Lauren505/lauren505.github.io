@@ -321,7 +321,7 @@ function Kraft({ torn }: { torn: string }) {
               into shade along the bottom and right — and soft. */}
           <feGaussianBlur in="cut" stdDeviation="0.6" result="soft" />
           <feGaussianBlur in="soft" stdDeviation="1.6" result="height" />
-          <feDiffuseLighting in="height" surfaceScale="1.6" diffuseConstant="1" lightingColor="#ffffff" result="bevel">
+          <feDiffuseLighting in="height" surfaceScale="0.8" diffuseConstant="1" lightingColor="#ffffff" result="bevel">
             <feDistantLight azimuth="225" elevation="45" />
           </feDiffuseLighting>
           <feComposite in="tooth" in2="bevel" operator="arithmetic" k1="1.38" result="rounded" />
@@ -329,8 +329,8 @@ function Kraft({ torn }: { torn: string }) {
 
           {/* And thick enough that its cut side shows, along the bottom and
               right, a shade darker. */}
-          <feOffset in="soft" dx="0.7" dy="1.1" result="under" />
-          <feFlood floodColor="#806549" result="side" />
+          <feOffset in="soft" dx="0.35" dy="0.55" result="under" />
+          <feFlood floodColor="#8f7456" result="side" />
           <feComposite in="side" in2="under" operator="in" result="thickness" />
           <feMerge>
             <feMergeNode in="thickness" />

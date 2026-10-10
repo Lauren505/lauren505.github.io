@@ -235,7 +235,7 @@
   box-sizing: border-box;
   /* Card has weight: it lies close, so a tight shadow under it, and a soft
      one further out. */
-  filter: drop-shadow(0 1px 1px rgba(50, 35, 20, 0.32)) drop-shadow(0 4px 7px rgba(60, 40, 25, 0.2));
+  filter: drop-shadow(0 1px 1px rgba(50, 35, 20, 0.16)) drop-shadow(0 3px 6px rgba(60, 40, 25, 0.22));
 }
 
 .kraftSheet {
