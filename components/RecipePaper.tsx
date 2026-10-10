@@ -4,7 +4,8 @@ import Image from "next/image";
 import { Fragment, useId, useLayoutEffect, useRef, useState } from "react";
 import Drawn from "@/components/Drawn";
 import { garamond } from "@/components/recipeFonts";
-import { decorations, type Recipe } from "@/content";
+import { decorations, type Fastener, type PhotoPlace, type Recipe, type RecipeCard } from "@/content";
+import handles from "./TableSetting.module.css";
 import styles from "./RecipePaper.module.css";
 
 /** How far in from the box the sheet's edge is, in pixels: room for its torn
@@ -90,6 +91,82 @@ function Sheet({ width, height }: { width: number; height: number }) {
   );
 }
 
+/** The square of brown card under a photo: board with a fine, even, sandy
+ *  grain — specks a little darker and lighter than it, a few pale fibres, a
+ *  felted surface — cut clean, with a soft edge and a side to it. */
+function Kraft() {
+  const id = useId().replace(/:/g, "");
+  return (
+    <svg className={styles.kraftSheet} width="100%" height="100%" preserveAspectRatio="none" aria-hidden>
+      <defs>
+        <filter id={`${id}-kraft`} x="-2%" y="-2%" width="104%" height="104%" colorInterpolationFilters="sRGB">
+          {/* Cut clean, only a little furred where the knife went through. */}
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="21" result="fur" />
+          <feDisplacementMap in="SourceGraphic" in2="fur" scale="1.4" xChannelSelector="R" yChannelSelector="G" result="cut" />
+
+          {/* Barely uneven: the faintest drift of light and dark across it. */}
+          <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="2" seed="9" result="drift" />
+          <feColorMatrix in="drift" type="matrix" values="0 0 0 0 0.44  0 0 0 0 0.34  0 0 0 0 0.24  0.5 0 0 0 -0.18" result="tone" />
+          <feComposite in="tone" in2="cut" operator="atop" result="toned" />
+
+          {/* The grain of the board: close all over, like sand, soft — specks
+              a shade darker and a shade lighter than it, some bigger, some
+              smaller, which goes unevenly across it. */}
+          <feTurbulence type="fractalNoise" baseFrequency="0.48" numOctaves="2" seed="2" result="big" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="27" result="small" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="15" result="mix" />
+          <feComposite in="big" in2="mix" operator="arithmetic" k1="1.1" k3="-0.05" result="bigHere" />
+          <feComposite in="small" in2="mix" operator="arithmetic" k1="-1.1" k2="1" k3="0.05" result="smallHere" />
+          <feComposite in="bigHere" in2="smallHere" operator="arithmetic" k2="1" k3="1" result="sandSharp" />
+          <feGaussianBlur in="sandSharp" stdDeviation="0.25" result="sand" />
+          <feColorMatrix in="sand" type="matrix" values="0 0 0 0 0.4  0 0 0 0 0.31  0 0 0 0 0.22  -2 0 0 0 0.92" result="dark" />
+          <feColorMatrix in="sand" type="matrix" values="0 0 0 0 0.75  0 0 0 0 0.66  0 0 0 0 0.55  0 2 0 0 -1.05" result="light" />
+          <feMerge result="grains">
+            <feMergeNode in="dark" />
+            <feMergeNode in="light" />
+          </feMerge>
+          <feComposite in="grains" in2="toned" operator="atop" result="sanded" />
+
+          {/* A few longer fibres, a little paler, caught in the surface. */}
+          <feTurbulence type="turbulence" baseFrequency="0.06 0.05" numOctaves="3" seed="13" result="thread" />
+          <feColorMatrix in="thread" type="matrix" values="0 0 0 0 0.74  0 0 0 0 0.66  0 0 0 0 0.55  -7 0 0 0 0.2" result="threads" />
+          <feComposite in="threads" in2="sanded" operator="atop" result="fibred" />
+
+          {/* And the felt of it, lit from the top left. */}
+          <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="3" seed="6" result="felt" />
+          <feDiffuseLighting in="felt" surfaceScale="0.9" diffuseConstant="1.05" lightingColor="#ffffff" result="lit">
+            <feDistantLight azimuth="225" elevation="62" />
+          </feDiffuseLighting>
+          <feComposite in="lit" in2="fibred" operator="arithmetic" k1="0.2" k3="0.83" result="tooth" />
+
+          {/* It is board, not paper: its edges rounded a little by the cut,
+              catching the light along the top and left and falling away
+              into shade along the bottom and right — and soft. */}
+          <feGaussianBlur in="cut" stdDeviation="0.6" result="soft" />
+          <feGaussianBlur in="soft" stdDeviation="1.6" result="height" />
+          <feDiffuseLighting in="height" surfaceScale="0.4" diffuseConstant="1" lightingColor="#ffffff" result="bevel">
+            <feDistantLight azimuth="225" elevation="45" />
+          </feDiffuseLighting>
+          <feComposite in="tooth" in2="bevel" operator="arithmetic" k1="1.38" result="rounded" />
+          <feComposite in="rounded" in2="soft" operator="in" result="face" />
+
+          {/* And thick enough that its cut side shows, along the bottom and
+              right, a shade darker. */}
+          <feOffset in="soft" dx="0.2" dy="0.3" result="under" />
+          <feFlood floodColor="#977b5d" result="side" />
+          <feComposite in="side" in2="under" operator="in" result="thickness" />
+          <feMerge>
+            <feMergeNode in="thickness" />
+            <feMergeNode in="face" />
+          </feMerge>
+        </filter>
+      </defs>
+      <rect width="100%" height="100%" fill="#9e8263" filter={`url(#${id}-kraft)`} />
+    </svg>
+  );
+}
+
+
 /**
  * The card a photo is mounted on: white cotton card, its edges torn by hand
  * against a rule — so the full thickness of it stops at a line that is all
@@ -157,9 +234,35 @@ function Mount() {
   );
 }
 
-/** What holds the onion skin on: a steel gem clip, a gold teardrop clip, or
- *  a gold stud pin through it. */
-export type Fastener = "gem" | "drop" | "stud";
+/** A part of the card the editor can take hold of: a photo, the sheet the
+ *  steps are on, or what holds that on. */
+export type CardPart = { part: "photo"; i: number } | { part: "sheet" } | { part: "fastener" };
+
+/** Making up the card in the editor, in development only — see
+ *  RecipeEditor: which part is chosen, and the card as it is changed. */
+export type CardEdit = {
+  selected: CardPart | null;
+  select: (part: CardPart | null) => void;
+  change: (card: RecipeCard) => void;
+};
+
+/** How a part is taken hold of: dragged, sized from its corner, or turned
+ *  from the stalk above it. */
+type Grip = "move" | "size" | "turn";
+type Grab = (part: CardPart, grip: Grip, e: React.PointerEvent<HTMLElement>) => void;
+
+const same = (a: CardPart | null | undefined, b: CardPart) =>
+  !!a && a.part === b.part && (a.part !== "photo" || (b.part === "photo" && a.i === b.i));
+
+/** The corner and the stalk a chosen part is sized and turned by. */
+function Handles({ part, grab, size = true }: { part: CardPart; grab: Grab; size?: boolean }) {
+  return (
+    <>
+      <span className={handles.turn} onPointerDown={(e) => grab(part, "turn", e)} />
+      {size ? <span className={handles.size} onPointerDown={(e) => grab(part, "size", e)} /> : null}
+    </>
+  );
+}
 
 /** The clips, each in two halves: the wire that lies over the paper, and the
  *  wire that goes behind it — seen through it, onion skin being as thin as
@@ -186,7 +289,24 @@ const CLIPS = {
   },
 } as const;
 
-function Clip({ kind, part, id }: { kind: "gem" | "drop"; part: "front" | "back"; id: string }) {
+/** Where along the sheet's top edge a fastener `wide` across is: the usual
+ *  place, near the right, or a fraction of the way along. */
+const along = (at: number | undefined, wide: number): React.CSSProperties =>
+  at === undefined ? {} : { left: `calc(${at * 100}% - ${wide / 2}px)`, right: "auto" };
+
+function Clip({
+  kind,
+  part,
+  id,
+  at,
+  onGrab,
+}: {
+  kind: "gem" | "drop";
+  part: "front" | "back";
+  id: string;
+  at?: number;
+  onGrab?: (e: React.PointerEvent<HTMLElement>) => void;
+}) {
   const c = CLIPS[kind];
   const [w, h] = c.box;
   return (
@@ -194,10 +314,12 @@ function Clip({ kind, part, id }: { kind: "gem" | "drop"; part: "front" | "back"
       className={styles.clip}
       data-part={part}
       data-kind={kind}
+      data-grabbable={onGrab ? "" : undefined}
       width={(w + 2) * c.scale}
       height={(h + 2) * c.scale}
       viewBox={`-1 -1 ${w + 2} ${h + 2}`}
-      style={{ top: -(c.edge + 1) * c.scale }}
+      style={{ top: -(c.edge + 1) * c.scale, ...along(at, (w + 2) * c.scale) }}
+      onPointerDown={onGrab as unknown as React.PointerEventHandler<SVGSVGElement>}
       aria-hidden
     >
       <defs>
@@ -216,9 +338,18 @@ function Clip({ kind, part, id }: { kind: "gem" | "drop"; part: "front" | "back"
 
 /** A gold stud pin through the sheet into the card: a small domed head,
  *  lit from the top left. */
-function Stud({ id }: { id: string }) {
+function Stud({ id, at, onGrab }: { id: string; at?: number; onGrab?: (e: React.PointerEvent<HTMLElement>) => void }) {
   return (
-    <svg className={styles.stud} width="11" height="11" viewBox="0 0 11 11" aria-hidden>
+    <svg
+      className={styles.stud}
+      data-grabbable={onGrab ? "" : undefined}
+      width="11"
+      height="11"
+      viewBox="0 0 11 11"
+      style={along(at, 11)}
+      onPointerDown={onGrab as unknown as React.PointerEventHandler<SVGSVGElement>}
+      aria-hidden
+    >
       <defs>
         <radialGradient id={`${id}-dome`} cx="0.36" cy="0.32" r="0.75">
           <stop offset="0" stopColor="#fbf0c8" />
@@ -233,25 +364,40 @@ function Stud({ id }: { id: string }) {
   );
 }
 
-/** Which fastener a recipe's sheet has: one of them, by its name, so it is
- *  always the same one. */
-const fastenerFor = (id: string): Fastener => {
-  let h = 0;
-  for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return (["gem", "drop", "stud"] as const)[h % 3];
-};
-
 /**
  * A sheet of onion skin clipped over the foot of the card: so thin the card
  * shows through it, with a fine grain and the faint cockle that thin paper
- * takes on — and held on by `fastener`: a clip on its top edge, or a pin
- * through it.
+ * takes on — and held on by its fastener: a clip on its top edge, or a pin
+ * through it. Where it lies, and what holds it, is the card's `sheet`.
  */
-function Onion({ fastener, children }: { fastener: Fastener; children: React.ReactNode }) {
+function Onion({
+  sheet,
+  width,
+  grab,
+  chosen,
+  children,
+}: {
+  sheet: RecipeCard["sheet"];
+  width: number;
+  grab?: Grab;
+  chosen?: CardPart | null;
+  children: React.ReactNode;
+}) {
   const id = useId().replace(/:/g, "");
+  const fastener: Fastener = sheet.fastener;
+  const onGrab = grab ? (e: React.PointerEvent<HTMLElement>) => grab({ part: "fastener" }, "move", e) : undefined;
   return (
-    <div className={styles.onionLay}>
-      {fastener !== "stud" ? <Clip kind={fastener} part="back" id={id} /> : null}
+    <div
+      className={styles.onionLay}
+      data-grab=""
+      data-editing={grab ? "" : undefined}
+      data-selected={same(chosen, { part: "sheet" }) || undefined}
+      style={{ transform: `translate(${sheet.x * width}px, ${sheet.y * width}px) rotate(${sheet.rotate}deg)` }}
+      onPointerDown={grab ? (e) => grab({ part: "sheet" }, "move", e) : undefined}
+    >
+      {fastener === "gem" || fastener === "drop" ? (
+        <Clip kind={fastener} part="back" id={id} at={sheet.fastenerAt} />
+      ) : null}
       <div className={styles.onion}>
         <svg className={styles.onionSkin} width="100%" height="100%" aria-hidden>
           <defs>
@@ -322,9 +468,14 @@ function Onion({ fastener, children }: { fastener: Fastener; children: React.Rea
           </defs>
           <rect width="100%" height="100%" fill="#fff" filter={`url(#${id}-skin)`} />
         </svg>
-        {fastener !== "stud" ? <Clip kind={fastener} part="front" id={id} /> : <Stud id={id} />}
+        {fastener === "gem" || fastener === "drop" ? (
+          <Clip kind={fastener} part="front" id={id} at={sheet.fastenerAt} onGrab={onGrab} />
+        ) : fastener === "stud" ? (
+          <Stud id={id} at={sheet.fastenerAt} onGrab={onGrab} />
+        ) : null}
         <div className={styles.onionWords}>{children}</div>
       </div>
+      {grab && same(chosen, { part: "sheet" }) ? <Handles part={{ part: "sheet" }} grab={grab} size={false} /> : null}
     </div>
   );
 }
@@ -383,51 +534,98 @@ function Deboss({ text, crest }: { text: string; crest?: number }) {
   );
 }
 
-/** The recipe's photos, each on a square of torn white card, with a sprig laid
- *  over them, hanging off the card on the side `toward`. */
-function Photos({ photos, width, toward }: { photos: Recipe["photos"]; width: number; toward: "left" | "right" }) {
-  const w = Math.round(Math.min(width * 0.42, 300));
-  const h = Math.round(w * 0.8);
-  const over = w * 0.24;
-  const left = toward === "right" ? width - w + over : -over;
-  const fan = 16;
-  const high = h + 40 + (photos.length - 1) * fan;
-  const tuck = toward === "right" ? left + w * 0.22 : left + w * 0.78;
+/** How tall a photo is for how wide. */
+const TALL = 0.8;
+
+/** One photo, mounted as `place` says: on a square of brown card with a
+ *  torn white one on it, on either alone, or on nothing. */
+function Photo({ photo, wide }: { photo: Recipe["photos"][number]; wide: number }) {
+  return (
+    <div className={styles.photo}>
+      <Image src={photo.image} alt={photo.alt} fill sizes={`${Math.round(wide)}px`} />
+    </div>
+  );
+}
+
+/** The recipe's photos at the foot of the card, each where the card's
+ *  `places` say — as they are on the right-hand side, mirrored on the left —
+ *  with a sprig laid over the first, hanging off the card on the side
+ *  `toward`. */
+function Photos({
+  photos,
+  places,
+  width,
+  toward,
+  grab,
+  chosen,
+}: {
+  photos: Recipe["photos"];
+  places: PhotoPlace[];
+  width: number;
+  toward: "left" | "right";
+  grab?: Grab;
+  chosen?: CardPart | null;
+}) {
+  const flip = toward === "left";
+  const at = places.map((p) => {
+    const w = p.width * width;
+    return {
+      left: (flip ? 1 - p.x - p.width : p.x) * width,
+      top: p.y * width,
+      w,
+      h: w * TALL,
+      rotate: flip ? -p.rotate : p.rotate,
+    };
+  });
+  // As tall as the usual fan of them, so that moving one up does not move
+  // the rest; taller if one is moved further down.
+  const usual = (0.42 * TALL + ((photos.length - 1) * 16 + 14) / 600) * width;
+  const high = Math.max(usual, ...at.map((a) => a.top + a.h)) + 26;
+  const first = at[0];
   return (
     <div className={styles.photos} style={{ height: high, marginLeft: -PAD_X, width }}>
-      {[...photos].reverse().map((p, n) => {
-        const k = photos.length - 1 - n;
-        const inward = (toward === "right" ? -1 : 1) * k * w * 0.14;
-        return (
-          <figure
-            key={k}
-            className={styles.mount}
-            style={{
-              left: left + inward,
-              top: 14 + (photos.length - 1 - k) * fan,
-              width: w,
-              height: h,
-              transform: `rotate(${[-2.5, 3, -1.2, 2][k % 4]}deg)`,
-            }}
-          >
-            <Mount />
-            <div className={styles.photo}>
-              <Image src={p.image} alt={p.alt} fill sizes={`${w}px`} />
-            </div>
-          </figure>
-        );
-      })}
-      {SPRIG ? (
+      {/* The first on top: the rest laid down before it. */}
+      {photos
+        .map((photo, k) => ({ photo, k }))
+        .reverse()
+        .map(({ photo, k }) => {
+          const a = at[k];
+          const mount = places[k]?.mount ?? "both";
+          if (!a) return null;
+          const part = { part: "photo", i: k } as const;
+          return (
+            <figure
+              key={k}
+              className={styles.frame}
+              data-mount={mount}
+              data-grab=""
+              data-editing={grab ? "" : undefined}
+              data-selected={same(chosen, part) || undefined}
+              style={{ left: a.left, top: a.top, width: a.w, height: a.h, transform: `rotate(${a.rotate}deg)` }}
+              onPointerDown={grab ? (e) => grab(part, "move", e) : undefined}
+            >
+              {mount === "both" || mount === "kraft" ? <Kraft /> : null}
+              <div className={styles.onCard}>
+                <div className={styles.whiteCard}>
+                  {mount === "both" || mount === "white" ? <Mount /> : null}
+                  <Photo photo={photo} wide={a.w} />
+                </div>
+              </div>
+              {grab && same(chosen, part) ? <Handles part={part} grab={grab} /> : null}
+            </figure>
+          );
+        })}
+      {SPRIG && first ? (
         <div
           className={styles.sprig}
           style={{
-            left: tuck - h * 0.5,
-            top: 14 + h * 0.1,
-            width: h * 0.75,
-            transform: `rotate(${toward === "right" ? -38 : 38}deg) scaleX(${toward === "right" ? 1 : -1})`,
+            left: first.left + first.w * (flip ? 0.78 : 0.22) - first.h * 0.5,
+            top: first.top + first.h * 0.1,
+            width: first.h * 0.75,
+            transform: `rotate(${flip ? 38 : -38}deg) scaleX(${flip ? -1 : 1})`,
           }}
         >
-          <Drawn image={SPRIG} width={h * 0.75} />
+          <Drawn image={SPRIG} width={first.h * 0.75} />
         </div>
       ) : null}
     </div>
@@ -451,6 +649,8 @@ export default function RecipePaper({
   toward = "right",
   textured = true,
   onHeight,
+  card,
+  edit,
 }: {
   recipe: Recipe;
   title: string;
@@ -464,6 +664,10 @@ export default function RecipePaper({
   /** Whether to draw the paper yet — it is slow to: the words come first. */
   textured?: boolean;
   onHeight?: (h: number) => void;
+  /** How the card is made up: where its photos and its sheet lie. */
+  card: RecipeCard;
+  /** In the editor: the parts of the card can be taken hold of. */
+  edit?: CardEdit;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
@@ -485,6 +689,90 @@ export default function RecipePaper({
     document.fonts?.ready.then(read);
     return () => watch.disconnect();
   }, [width]);
+
+  /** Taking hold of a part: drag it, size it from its corner or turn it from
+   *  its stalk, until the pointer lets go. Moves are in fractions of the
+   *  card's width, and mirrored for the photos when they hang off the left. */
+  const grab: Grab | undefined = edit
+    ? (part, grip, e) => {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+        e.preventDefault();
+        edit.select(part);
+        const el = (e.currentTarget.closest("[data-grab]") as HTMLElement | null) ?? e.currentTarget;
+        const r = el.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const x0 = e.clientX;
+        const y0 = e.clientY;
+        const angle = (x: number, y: number) => (Math.atan2(y - cy, x - cx) * 180) / Math.PI;
+        const a0 = angle(x0, y0);
+        const start = card;
+        const flip = toward === "left" ? -1 : 1;
+        const move = (ev: PointerEvent) => {
+          const dx = (ev.clientX - x0) / width;
+          const dy = (ev.clientY - y0) / width;
+          const turn = angle(ev.clientX, ev.clientY) - a0;
+          if (part.part === "photo") {
+            const p = start.photos[part.i];
+            let q = p;
+            if (grip === "move") q = { ...p, x: p.x + dx * flip, y: p.y + dy };
+            else if (grip === "size") {
+              const w = Math.max(0.12, Math.min(0.9, p.width + dx));
+              // Its near edge stays where it is, whichever side it hangs.
+              q = { ...p, width: w, x: flip < 0 ? p.x - (w - p.width) : p.x };
+            } else q = { ...p, rotate: p.rotate + turn * flip };
+            edit.change({ ...start, photos: start.photos.map((o, k) => (k === part.i ? q : o)) });
+          } else if (part.part === "sheet") {
+            const sh = start.sheet;
+            edit.change({
+              ...start,
+              sheet: grip === "turn" ? { ...sh, rotate: sh.rotate + turn } : { ...sh, x: sh.x + dx, y: sh.y + dy },
+            });
+          } else {
+            // Along the top edge of the sheet.
+            const lay = el.closest("[data-grab]")?.parentElement?.closest("[data-grab]") as HTMLElement | null;
+            const box = (lay ?? el.parentElement)?.getBoundingClientRect();
+            if (!box) return;
+            const f = Math.max(0, Math.min(1, (ev.clientX - box.left) / box.width));
+            edit.change({ ...start, sheet: { ...start.sheet, fastenerAt: f } });
+          }
+        };
+        const up = () => {
+          window.removeEventListener("pointermove", move);
+          window.removeEventListener("pointerup", up);
+        };
+        window.addEventListener("pointermove", move);
+        window.addEventListener("pointerup", up);
+      }
+    : undefined;
+  const chosen = edit?.selected;
+
+  const steps = (
+    <>
+      {recipe.steps.length ? (
+        <section>
+          <h3 className={styles.heading}>Steps</h3>
+          <ol className={styles.steps}>
+            {recipe.steps.map((step, k) => (
+              <li key={k}>{inline(step)}</li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
+
+      {recipe.notes.length ? (
+        <section>
+          {recipe.notes.map((n, k) => (
+            <Fragment key={k}>
+              {n.heading ? <h3 className={styles.heading}>{inline(n.heading)}</h3> : null}
+              <p className={styles.note}>{inline(n.text)}</p>
+            </Fragment>
+          ))}
+        </section>
+      ) : null}
+    </>
+  );
 
   return (
     <div
@@ -522,32 +810,25 @@ export default function RecipePaper({
         ) : null}
 
         {recipe.steps.length || recipe.notes.length ? (
-          <Onion fastener={fastenerFor(recipe.id)}>
-            {recipe.steps.length ? (
-              <section>
-                <h3 className={styles.heading}>Steps</h3>
-                <ol className={styles.steps}>
-                  {recipe.steps.map((step, k) => (
-                    <li key={k}>{inline(step)}</li>
-                  ))}
-                </ol>
-              </section>
-            ) : null}
-
-            {recipe.notes.length ? (
-              <section>
-                {recipe.notes.map((n, k) => (
-                  <Fragment key={k}>
-                    {n.heading ? <h3 className={styles.heading}>{inline(n.heading)}</h3> : null}
-                    <p className={styles.note}>{inline(n.text)}</p>
-                  </Fragment>
-                ))}
-              </section>
-            ) : null}
-          </Onion>
+          card.sheet.paper === "onion" ? (
+            <Onion sheet={card.sheet} width={width} grab={grab} chosen={chosen}>
+              {steps}
+            </Onion>
+          ) : (
+            <div className={styles.onCardSteps}>{steps}</div>
+          )
         ) : null}
 
-        {recipe.photos.length ? <Photos photos={recipe.photos} width={width} toward={toward} /> : null}
+        {recipe.photos.length ? (
+          <Photos
+            photos={recipe.photos}
+            places={card.photos}
+            width={width}
+            toward={toward}
+            grab={grab}
+            chosen={chosen}
+          />
+        ) : null}
       </div>
     </div>
   );

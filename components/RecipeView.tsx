@@ -2,13 +2,17 @@
 
 import Image from "next/image";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { createPortal } from "react-dom";
 import Drawn from "@/components/Drawn";
-import RecipePaper from "@/components/RecipePaper";
+import RecipePaper, { type CardPart } from "@/components/RecipePaper";
 import type { Laid, Vec } from "@/components/bakeryLayout";
 import { garamond } from "@/components/recipeFonts";
-import { TABLE_WIDTH, decorations, type Recipe } from "@/content";
+import { TABLE_WIDTH, cardFor, decorations, usualCard, type Recipe, type RecipeCard } from "@/content";
 import styles from "./RecipeView.module.css";
+
+const DEV = process.env.NODE_ENV === "development";
+const RecipeEditor = DEV ? dynamic(() => import("@/components/RecipeEditor"), { ssr: false }) : null;
 
 /** The hand that takes hold of the plate and brings it up to the reader. */
 const GRAB = decorations.find((d) => d.id === "hand4")?.image ?? decorations.find((d) => d.kind === "hand")?.image;
@@ -333,6 +337,14 @@ export default function RecipeView({
   const card = useRef<HTMLDivElement>(null);
   const [paperH, setPaperH] = useState(0);
 
+  // How the card is made up: as content/recipeCards.ts has it — and, while
+  // it is being made up in the editor (in development only), as it is.
+  const saved = cardFor(recipe.id, recipe.photos.length);
+  const [draft, setDraft] = useState<RecipeCard | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [chosen, choose] = useState<CardPart | null>(null);
+  const made = draft ?? saved;
+
   /** How far down the window the middle of "back to the table" is: the
    *  card's "RECIPE" is set level with it. */
   const backRef = useRef<HTMLButtonElement>(null);
@@ -462,7 +474,11 @@ export default function RecipeView({
       <div
         className={styles.scroller}
         onClick={(e) => {
-          if (!(e.target as Element).closest("[data-card]")) onClose();
+          if ((e.target as Element).closest("[data-card]")) return;
+          // In the editor, a click off the card only lets go of what was
+          // chosen.
+          if (editing) choose(null);
+          else onClose();
         }}
       >
         <div className={styles.reach} style={{ height: reach }} />
@@ -487,6 +503,8 @@ export default function RecipeView({
             toward={narrow ? "right" : side < 0 ? "left" : "right"}
             onHeight={setPaperH}
             textured={dressed}
+            card={made}
+            edit={editing ? { selected: chosen, select: choose, change: setDraft } : undefined}
           />
         </div>
       </div>
@@ -501,6 +519,24 @@ export default function RecipeView({
       >
         back to the table
       </button>
+
+      {RecipeEditor && paperUp ? (
+        <RecipeEditor
+          recipe={recipe}
+          editing={editing}
+          setEditing={(on) => {
+            setEditing(on);
+            if (!on) choose(null);
+          }}
+          card={made}
+          saved={saved}
+          change={setDraft}
+          usual={usualCard(recipe.id, recipe.photos.length)}
+          selected={chosen}
+          select={choose}
+          side={side < 0 && !narrow ? "left" : "right"}
+        />
+      ) : null}
     </div>,
     document.body,
   );

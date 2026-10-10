@@ -168,7 +168,30 @@
   --hang: 30px;
   position: relative;
   margin: 2.4em calc(var(--bleed) - var(--pad-x) - var(--hang)) 0 -1.3em;
-  transform: rotate(-1.1deg);
+}
+
+/* The steps printed on the card itself, when they are on no sheet. */
+.onCardSteps {
+  margin-top: 0.6em;
+}
+
+/* In the editor: what can be taken hold of, and what has been. */
+.frame[data-editing],
+.onionLay[data-editing] {
+  cursor: move;
+  touch-action: none;
+}
+
+.frame[data-selected],
+.onionLay[data-selected] {
+  outline: 1.5px solid rgb(60, 90, 200);
+  outline-offset: 2px;
+}
+
+.clip[data-grabbable],
+.stud[data-grabbable] {
+  pointer-events: auto;
+  cursor: ew-resize;
 }
 
 .onion {
@@ -259,27 +282,58 @@
   box-sizing: content-box;
 }
 
-/* A photo on its square of torn white card: a clean margin round it, wider
-   than the tear at its edge. */
-.mount {
+/* A photo as it is mounted: on a square of brown card, a square of torn
+   white card on that, and the photo on that — or on either alone, or on
+   nothing (see `data-mount`). */
+.frame {
   position: absolute;
   margin: 0;
-  padding: 5%;
-  box-sizing: border-box;
-  filter: drop-shadow(0 1px 1.5px rgba(60, 45, 30, 0.14)) drop-shadow(0 4px 8px rgba(60, 45, 30, 0.12));
+  /* Card has weight: it lies close, so a tight shadow under it, and a soft
+     one further out. */
+  filter: drop-shadow(0 1px 1px rgba(50, 35, 20, 0.08)) drop-shadow(0 2px 4px rgba(60, 40, 25, 0.22));
 }
 
+.kraftSheet,
 .mountSheet {
   position: absolute;
   inset: 0;
   overflow: visible;
 }
 
-.photo {
+/* The white card, in from the brown one's edge so a margin of it shows. */
+.onCard {
+  position: absolute;
+  inset: 0;
+}
+
+.frame[data-mount="both"] .onCard {
+  inset: 5.5%;
+}
+
+.frame[data-mount="kraft"] .onCard {
+  inset: 2.5%;
+}
+
+.whiteCard {
   position: relative;
   width: 100%;
   height: 100%;
+}
+
+.frame[data-mount="both"] .whiteCard {
+  filter: drop-shadow(0 0.5px 1px rgba(60, 45, 30, 0.16)) drop-shadow(0 2px 3px rgba(60, 45, 30, 0.1));
+}
+
+/* The photo, in from the white card's torn edge by a clean margin. */
+.photo {
+  position: absolute;
+  inset: 0;
   overflow: hidden;
+}
+
+.frame[data-mount="both"] .photo,
+.frame[data-mount="white"] .photo {
+  inset: 7% 6.5%;
 }
 
 .photo img {
