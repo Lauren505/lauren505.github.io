@@ -316,16 +316,16 @@ function Deboss({ text }: { text: string }) {
 
           {/* The walls in shade: where the letter, moved down and right,
               no longer covers itself. */}
-          <feOffset in="SourceAlpha" dx="1.1" dy="1.4" result="down" />
+          <feOffset in="SourceAlpha" dx="0.75" dy="0.95" result="down" />
           <feComposite in="SourceAlpha" in2="down" operator="out" result="upper" />
-          <feGaussianBlur in="upper" stdDeviation="0.55" result="upperSoft" />
+          <feGaussianBlur in="upper" stdDeviation="0.4" result="upperSoft" />
           <feFlood floodColor="#3f342b" floodOpacity="0.55" result="shade" />
           <feComposite in="shade" in2="upperSoft" operator="in" result="shaded" />
 
           {/* The walls in the light: the same, the other way. */}
-          <feOffset in="SourceAlpha" dx="-0.8" dy="-1" result="up" />
+          <feOffset in="SourceAlpha" dx="-0.55" dy="-0.7" result="up" />
           <feComposite in="SourceAlpha" in2="up" operator="out" result="lower" />
-          <feGaussianBlur in="lower" stdDeviation="0.5" result="lowerSoft" />
+          <feGaussianBlur in="lower" stdDeviation="0.35" result="lowerSoft" />
           <feFlood floodColor="#ffffff" floodOpacity="0.9" result="light" />
           <feComposite in="light" in2="lowerSoft" operator="in" result="lit" />
 

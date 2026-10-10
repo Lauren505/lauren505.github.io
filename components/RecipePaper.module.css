@@ -31,13 +31,14 @@
   padding: calc(var(--bleed) + 4.2em) var(--pad-x) calc(var(--bleed) + 3.4em);
 }
 
-/* "RECIPE", pressed into the top of the card: as wide-set as the name,
-   larger, and lighter in weight, as blind debossing is. */
+/* "RECIPE", pressed into the card near its top edge, small and wide-set,
+   above everything else. */
 .deboss {
-  display: block;
-  margin: 0 0 1.2em;
+  position: absolute;
+  top: calc(var(--bleed) + 1.5em);
+  left: 0;
   overflow: visible;
-  font-size: 2.1em;
+  font-size: 1.05em;
 }
 
 .debossText {
