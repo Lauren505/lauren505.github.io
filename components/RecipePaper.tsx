@@ -315,7 +315,27 @@ function Kraft({ torn }: { torn: string }) {
             <feDistantLight azimuth="225" elevation="62" />
           </feDiffuseLighting>
           <feComposite in="lit" in2="fibred" operator="arithmetic" k1="0.2" k3="0.83" result="tooth" />
-          <feComposite in="tooth" in2="cut" operator="in" />
+
+          {/* It is board, not paper: its edges rounded a little by the cut,
+              catching the light along the top and left and falling away
+              into shade along the bottom and right — and soft. */}
+          <feGaussianBlur in="cut" stdDeviation="0.6" result="soft" />
+          <feGaussianBlur in="soft" stdDeviation="1.6" result="height" />
+          <feDiffuseLighting in="height" surfaceScale="1.6" diffuseConstant="1" lightingColor="#ffffff" result="bevel">
+            <feDistantLight azimuth="225" elevation="45" />
+          </feDiffuseLighting>
+          <feComposite in="tooth" in2="bevel" operator="arithmetic" k1="1.38" result="rounded" />
+          <feComposite in="rounded" in2="soft" operator="in" result="face" />
+
+          {/* And thick enough that its cut side shows, along the bottom and
+              right, a shade darker. */}
+          <feOffset in="soft" dx="0.7" dy="1.1" result="under" />
+          <feFlood floodColor="#806549" result="side" />
+          <feComposite in="side" in2="under" operator="in" result="thickness" />
+          <feMerge>
+            <feMergeNode in="thickness" />
+            <feMergeNode in="face" />
+          </feMerge>
         </filter>
       </defs>
       <rect width="100%" height="100%" fill="#9e8263" filter={`url(#${id}-kraft)`} />
