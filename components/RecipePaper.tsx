@@ -286,20 +286,27 @@ function Kraft({ torn }: { torn: string }) {
           <feColorMatrix in="drift" type="matrix" values="0 0 0 0 0.44  0 0 0 0 0.34  0 0 0 0 0.24  0.5 0 0 0 -0.18" result="tone" />
           <feComposite in="tone" in2="cut" operator="atop" result="toned" />
 
-          {/* The grain of the board: fine and close all over, like sand —
-              specks a little darker and a little lighter than it. */}
-          <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="2" result="sand" />
-          <feColorMatrix in="sand" type="matrix" values="0 0 0 0 0.3  0 0 0 0 0.22  0 0 0 0 0.15  -1.5 0 0 0 0.68" result="dark" />
-          <feColorMatrix in="sand" type="matrix" values="0 0 0 0 0.93  0 0 0 0 0.87  0 0 0 0 0.78  0 1.5 0 0 -0.8" result="light" />
+          {/* The grain of the board: close all over, like sand, soft — specks
+              a shade darker and a shade lighter than it, some bigger, some
+              smaller, which goes unevenly across it. */}
+          <feTurbulence type="fractalNoise" baseFrequency="0.48" numOctaves="2" seed="2" result="big" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="27" result="small" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="15" result="mix" />
+          <feComposite in="big" in2="mix" operator="arithmetic" k1="1.1" k3="-0.05" result="bigHere" />
+          <feComposite in="small" in2="mix" operator="arithmetic" k1="-1.1" k2="1" k3="0.05" result="smallHere" />
+          <feComposite in="bigHere" in2="smallHere" operator="arithmetic" k2="1" k3="1" result="sandSharp" />
+          <feGaussianBlur in="sandSharp" stdDeviation="0.25" result="sand" />
+          <feColorMatrix in="sand" type="matrix" values="0 0 0 0 0.4  0 0 0 0 0.31  0 0 0 0 0.22  -2 0 0 0 0.92" result="dark" />
+          <feColorMatrix in="sand" type="matrix" values="0 0 0 0 0.75  0 0 0 0 0.66  0 0 0 0 0.55  0 2 0 0 -1.05" result="light" />
           <feMerge result="grains">
             <feMergeNode in="dark" />
             <feMergeNode in="light" />
           </feMerge>
           <feComposite in="grains" in2="toned" operator="atop" result="sanded" />
 
-          {/* A few longer fibres, pale, caught in the surface. */}
+          {/* A few longer fibres, a little paler, caught in the surface. */}
           <feTurbulence type="turbulence" baseFrequency="0.06 0.05" numOctaves="3" seed="13" result="thread" />
-          <feColorMatrix in="thread" type="matrix" values="0 0 0 0 0.9  0 0 0 0 0.84  0 0 0 0 0.74  -9 0 0 0 0.32" result="threads" />
+          <feColorMatrix in="thread" type="matrix" values="0 0 0 0 0.74  0 0 0 0 0.66  0 0 0 0 0.55  -7 0 0 0 0.2" result="threads" />
           <feComposite in="threads" in2="sanded" operator="atop" result="fibred" />
 
           {/* And the felt of it, lit from the top left. */}
@@ -307,7 +314,7 @@ function Kraft({ torn }: { torn: string }) {
           <feDiffuseLighting in="felt" surfaceScale="0.9" diffuseConstant="1.05" lightingColor="#ffffff" result="lit">
             <feDistantLight azimuth="225" elevation="62" />
           </feDiffuseLighting>
-          <feComposite in="lit" in2="fibred" operator="arithmetic" k1="0.28" k3="0.75" result="tooth" />
+          <feComposite in="lit" in2="fibred" operator="arithmetic" k1="0.2" k3="0.83" result="tooth" />
           <feComposite in="tooth" in2="cut" operator="in" />
         </filter>
       </defs>
