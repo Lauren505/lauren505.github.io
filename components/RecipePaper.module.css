@@ -158,17 +158,14 @@
   position: relative;
   z-index: 1;
   padding: 1.5em calc(var(--pad-x) - var(--bleed) + var(--hang)) 1.7em 1.3em;
-  background: rgba(239, 240, 237, 0.46);
-  box-shadow:
-    inset 0 0 0 0.75px rgba(255, 255, 255, 0.7),
-    0 0 0 0.5px rgba(70, 65, 60, 0.22),
-    0 1px 2px rgba(60, 45, 30, 0.1),
-    0 8px 16px -10px rgba(60, 45, 30, 0.3);
 }
 
+/* The sheet itself — its colour, its edge and its shadow — is drawn, so
+   that none of it is ruled straight. */
 .onionSkin {
   position: absolute;
   inset: 0;
+  overflow: visible;
   pointer-events: none;
 }
 

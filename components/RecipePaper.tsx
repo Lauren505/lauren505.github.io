@@ -366,27 +366,62 @@ function Onion({ children }: { children: React.ReactNode }) {
       <div className={styles.onion}>
         <svg className={styles.onionSkin} width="100%" height="100%" aria-hidden>
           <defs>
-            <filter id={`${id}-skin`} x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
+            <filter id={`${id}-skin`} x="-4%" y="-8%" width="108%" height="120%" colorInterpolationFilters="sRGB">
+              {/* Its edge: cut, but not ruled — wandering a little, and soft,
+                  the paper being so thin. */}
+              <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="12" result="edgeNoise" />
+              <feDisplacementMap in="SourceGraphic" in2="edgeNoise" scale="4" xChannelSelector="R" yChannelSelector="G" result="cut" />
+              <feGaussianBlur in="cut" stdDeviation="0.8" result="sheet" />
+
+              {/* Thicker and thinner in patches, as it was made: how much of
+                  the card shows through goes with them. */}
+              <feTurbulence type="fractalNoise" baseFrequency="0.018 0.026" numOctaves="4" seed="31" result="cloud" />
+              <feColorMatrix
+                in="cloud"
+                type="matrix"
+                values="0 0 0 0 0.965  0 0 0 0 0.968  0 0 0 0 0.955  0.7 0 0 0 0.16"
+                result="density"
+              />
+              <feComposite in="density" in2="sheet" operator="in" result="body" />
+
               {/* The cockle: long, low swells, lit from the top left. */}
-              <feTurbulence type="fractalNoise" baseFrequency="0.006 0.014" numOctaves="3" seed="12" result="swell" />
+              <feTurbulence type="fractalNoise" baseFrequency="0.007 0.011" numOctaves="3" seed="12" result="swell" />
               <feDiffuseLighting in="swell" surfaceScale="3" diffuseConstant="1" lightingColor="#ffffff" result="lit">
                 <feDistantLight azimuth="225" elevation="50" />
               </feDiffuseLighting>
               <feColorMatrix
                 in="lit"
                 type="matrix"
-                values="0 0 0 0 0.35  0 0 0 0 0.33  0 0 0 0 0.3  -0.5 0 0 0 0.42"
-                result="shade"
+                values="0 0 0 0 0.35  0 0 0 0 0.33  0 0 0 0 0.3  -0.35 0 0 0 0.27"
+                result="swells"
               />
-              {/* The grain: fine fibres, a little lighter. */}
-              <feTurbulence type="fractalNoise" baseFrequency="0.12 0.75" numOctaves="2" seed="4" result="fibre" />
+              <feComposite in="swells" in2="sheet" operator="in" result="shade" />
+
+              {/* The fibres: fine threads every which way, a little denser
+                  than the paper round them. */}
+              <feTurbulence type="turbulence" baseFrequency="0.09" numOctaves="4" seed="4" result="fibre" />
               <feColorMatrix
                 in="fibre"
                 type="matrix"
-                values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 0.98  1.1 0 0 0 -0.52"
-                result="grain"
+                values="0 0 0 0 0.78  0 0 0 0 0.77  0 0 0 0 0.74  -3.2 0 0 0 0.2"
+                result="fibres"
               />
+              <feComposite in="fibres" in2="sheet" operator="in" result="grain" />
+
+              {/* And the shadow it casts, as soft as its edge — only beyond
+                  it: under the sheet, it would show through it. */}
+              <feGaussianBlur in="sheet" stdDeviation="3" result="blur" />
+              <feOffset in="blur" dx="0" dy="2.5" result="drop" />
+              <feColorMatrix
+                in="drop"
+                type="matrix"
+                values="0 0 0 0 0.24  0 0 0 0 0.18  0 0 0 0 0.12  0 0 0 0.22 0"
+                result="dark"
+              />
+              <feComposite in="dark" in2="sheet" operator="out" result="shadow" />
               <feMerge>
+                <feMergeNode in="shadow" />
+                <feMergeNode in="body" />
                 <feMergeNode in="shade" />
                 <feMergeNode in="grain" />
               </feMerge>
