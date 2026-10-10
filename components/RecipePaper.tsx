@@ -326,6 +326,81 @@ function Kraft({ torn }: { torn: string }) {
   );
 }
 
+/** A gem paper clip, in two halves: the loop that lies over the paper,
+ *  and the loop that goes behind it — seen through it, onion skin being as
+ *  thin as it is. Drawn 16 by 66, the paper's edge 20 down. */
+const CLIP = {
+  front: "M4 18 V52 A4 4 0 0 0 12 52 V6 A5.5 5.5 0 0 0 1 6",
+  back: "M1 6 V58 A7 7 0 0 0 15 58 V22",
+};
+
+function Clip({ part, id }: { part: "front" | "back"; id: string }) {
+  return (
+    <svg className={styles.clip} data-part={part} width="23" height="92" viewBox="-1 -1 18 68" aria-hidden>
+      {part === "front" ? (
+        <defs>
+          <linearGradient id={`${id}-steel`} x1="0" y1="0" x2="1" y2="0.15">
+            <stop offset="0" stopColor="#5d6269" />
+            <stop offset="0.45" stopColor="#c9ced4" />
+            <stop offset="0.6" stopColor="#eef1f4" />
+            <stop offset="1" stopColor="#80868e" />
+          </linearGradient>
+        </defs>
+      ) : null}
+      <path d={CLIP[part]} className={styles.wire} stroke={`url(#${id}-steel)`} />
+      <path d={CLIP[part]} className={styles.glint} />
+    </svg>
+  );
+}
+
+/**
+ * A sheet of onion skin clipped over the foot of the card: so thin the card
+ * shows through it, with a fine grain and the faint cockle that thin paper
+ * takes on — and a paper clip on its top edge, holding it on.
+ */
+function Onion({ children }: { children: React.ReactNode }) {
+  const id = useId().replace(/:/g, "");
+  return (
+    <div className={styles.onionLay}>
+      <Clip part="back" id={id} />
+      <div className={styles.onion}>
+        <svg className={styles.onionSkin} width="100%" height="100%" aria-hidden>
+          <defs>
+            <filter id={`${id}-skin`} x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
+              {/* The cockle: long, low swells, lit from the top left. */}
+              <feTurbulence type="fractalNoise" baseFrequency="0.006 0.014" numOctaves="3" seed="12" result="swell" />
+              <feDiffuseLighting in="swell" surfaceScale="3" diffuseConstant="1" lightingColor="#ffffff" result="lit">
+                <feDistantLight azimuth="225" elevation="50" />
+              </feDiffuseLighting>
+              <feColorMatrix
+                in="lit"
+                type="matrix"
+                values="0 0 0 0 0.35  0 0 0 0 0.33  0 0 0 0 0.3  -0.5 0 0 0 0.42"
+                result="shade"
+              />
+              {/* The grain: fine fibres, a little lighter. */}
+              <feTurbulence type="fractalNoise" baseFrequency="0.12 0.75" numOctaves="2" seed="4" result="fibre" />
+              <feColorMatrix
+                in="fibre"
+                type="matrix"
+                values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 0.98  1.1 0 0 0 -0.52"
+                result="grain"
+              />
+              <feMerge>
+                <feMergeNode in="shade" />
+                <feMergeNode in="grain" />
+              </feMerge>
+            </filter>
+          </defs>
+          <rect width="100%" height="100%" fill="#fff" filter={`url(#${id}-skin)`} />
+        </svg>
+        <Clip part="front" id={id} />
+        <div className={styles.onionWords}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
 /** The recipe's photos, each on a square of kraft card, tied to the card
  *  with twine and a sprig, hanging off it on the side `toward`. */
 function Photos({ photos, width, toward }: { photos: Recipe["photos"]; width: number; toward: "left" | "right" }) {
@@ -465,26 +540,30 @@ export default function RecipePaper({
           </section>
         ) : null}
 
-        {recipe.steps.length ? (
-          <section>
-            <h3 className={styles.heading}>Steps</h3>
-            <ol className={styles.steps}>
-              {recipe.steps.map((step, k) => (
-                <li key={k}>{inline(step)}</li>
-              ))}
-            </ol>
-          </section>
-        ) : null}
+        {recipe.steps.length || recipe.notes.length ? (
+          <Onion>
+            {recipe.steps.length ? (
+              <section>
+                <h3 className={styles.heading}>Steps</h3>
+                <ol className={styles.steps}>
+                  {recipe.steps.map((step, k) => (
+                    <li key={k}>{inline(step)}</li>
+                  ))}
+                </ol>
+              </section>
+            ) : null}
 
-        {recipe.notes.length ? (
-          <section>
-            {recipe.notes.map((n, k) => (
-              <Fragment key={k}>
-                {n.heading ? <h3 className={styles.heading}>{inline(n.heading)}</h3> : null}
-                <p className={styles.note}>{inline(n.text)}</p>
-              </Fragment>
-            ))}
-          </section>
+            {recipe.notes.length ? (
+              <section>
+                {recipe.notes.map((n, k) => (
+                  <Fragment key={k}>
+                    {n.heading ? <h3 className={styles.heading}>{inline(n.heading)}</h3> : null}
+                    <p className={styles.note}>{inline(n.text)}</p>
+                  </Fragment>
+                ))}
+              </section>
+            ) : null}
+          </Onion>
         ) : null}
 
         {recipe.photos.length ? <Photos photos={recipe.photos} width={width} toward={toward} /> : null}
