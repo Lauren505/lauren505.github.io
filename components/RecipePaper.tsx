@@ -367,11 +367,9 @@ function Onion({ children }: { children: React.ReactNode }) {
         <svg className={styles.onionSkin} width="100%" height="100%" aria-hidden>
           <defs>
             <filter id={`${id}-skin`} x="-4%" y="-8%" width="108%" height="120%" colorInterpolationFilters="sRGB">
-              {/* Its edge: cut, but not ruled — wandering a little, and soft,
-                  the paper being so thin. */}
-              <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="12" result="edgeNoise" />
-              <feDisplacementMap in="SourceGraphic" in2="edgeNoise" scale="4" xChannelSelector="R" yChannelSelector="G" result="cut" />
-              <feGaussianBlur in="cut" stdDeviation="0.8" result="sheet" />
+              {/* Its edge: cut straight, against the torn card under it, but
+                  soft, the paper being so thin. */}
+              <feGaussianBlur in="SourceGraphic" stdDeviation="0.7" result="sheet" />
 
               {/* Thicker and thinner in patches, as it was made: how much of
                   the card shows through goes with them. */}
@@ -379,7 +377,7 @@ function Onion({ children }: { children: React.ReactNode }) {
               <feColorMatrix
                 in="cloud"
                 type="matrix"
-                values="0 0 0 0 0.965  0 0 0 0 0.968  0 0 0 0 0.955  0.7 0 0 0 0.16"
+                values="0 0 0 0 0.937  0 0 0 0 0.941  0 0 0 0 0.929  0.5 0 0 0 0.22"
                 result="density"
               />
               <feComposite in="density" in2="sheet" operator="in" result="body" />
@@ -397,16 +395,22 @@ function Onion({ children }: { children: React.ReactNode }) {
               />
               <feComposite in="swells" in2="sheet" operator="in" result="shade" />
 
-              {/* The fibres: fine threads every which way, a little denser
-                  than the paper round them. */}
-              <feTurbulence type="turbulence" baseFrequency="0.09" numOctaves="4" seed="4" result="fibre" />
+              {/* The grain: fine, lighter streaks running across it, the way
+                  the fibres lie — a coarser grain and a finer one, stronger in
+                  some places than others. */}
+              <feTurbulence type="fractalNoise" baseFrequency="0.1 0.8" numOctaves="3" seed="4" result="coarse" />
+              <feTurbulence type="fractalNoise" baseFrequency="0.3 1.5" numOctaves="2" seed="19" result="fine" />
+              <feComposite in="coarse" in2="fine" operator="arithmetic" k2="0.6" k3="0.4" result="streak" />
               <feColorMatrix
-                in="fibre"
+                in="streak"
                 type="matrix"
-                values="0 0 0 0 0.78  0 0 0 0 0.77  0 0 0 0 0.74  -3.2 0 0 0 0.2"
-                result="fibres"
+                values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 0.99  2.4 0 0 0 -1.0"
+                result="streaks"
               />
-              <feComposite in="fibres" in2="sheet" operator="in" result="grain" />
+              <feTurbulence type="fractalNoise" baseFrequency="0.015 0.04" numOctaves="2" seed="7" result="where" />
+              <feColorMatrix in="where" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1.8 0 0 0 -0.35" result="strength" />
+              <feComposite in="streaks" in2="strength" operator="arithmetic" k1="1" result="grainy" />
+              <feComposite in="grainy" in2="sheet" operator="in" result="grain" />
 
               {/* And the shadow it casts, as soft as its edge — only beyond
                   it: under the sheet, it would show through it. */}
