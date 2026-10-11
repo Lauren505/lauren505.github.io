@@ -508,7 +508,10 @@ function Strewn({ active, still }: { active: number; still: boolean }) {
   return (
     <div ref={layer} className={styles.strewn} aria-hidden data-chrome>
       {win
-        ? shown.map(({ i, leaving }) =>
+        ? // One flat list, each piece keyed by its project: nested lists would
+          // be matched by position, and the arriving lot, moving up a place
+          // when the leaving lot goes, would be drawn again from scratch.
+          shown.flatMap(({ i, leaving }) =>
             strew(projects[i], win.w, win.h).map((piece, j) => (
               <div
                 key={`${projects[i].slug}-${j}`}
