@@ -199,6 +199,12 @@
   bottom: auto;
 }
 
+/* In the editor, chosen, it comes up over the steps, so that its corner and
+   stalk can be taken hold of wherever they are — the steps show through it. */
+.onionPaper[data-selected] {
+  z-index: 2;
+}
+
 .onion {
   position: absolute;
   inset: 0;
