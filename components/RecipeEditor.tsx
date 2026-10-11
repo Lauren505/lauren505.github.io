@@ -192,10 +192,14 @@ export default function RecipeEditor({
 
   const sheet = card.sheet;
   const setSheet = (patch: Partial<RecipeCard["sheet"]>) => change({ ...card, sheet: { ...sheet, ...patch } });
+  const setPin = (patch: Partial<NonNullable<RecipeCard["sheet"]["pin"]>>) =>
+    sheet.pin && setSheet({ pin: { ...sheet.pin, ...patch } });
   const k = selected?.part === "photo" ? selected.i : -1;
   const photo = card.photos[k];
   const setPhoto = (patch: Partial<PhotoPlace>) =>
     change({ ...card, photos: card.photos.map((p, j) => (j === k ? { ...p, ...patch } : p)) });
+  const setCrop = (patch: Partial<NonNullable<PhotoPlace["crop"]>>) =>
+    setPhoto({ crop: { zoom: 1, x: 50, y: 50, ...photo?.crop, ...patch } });
 
   return (
     <aside
@@ -215,9 +219,9 @@ export default function RecipeEditor({
 
       <div className={styles.body}>
         <p className={styles.hint}>
-          On the card: drag a photo or the steps&apos; sheet to move it, a photo&apos;s corner to size it, the stalk
-          above either to turn it, and the clip or pin along the sheet&apos;s top edge. Sizes are fractions of the
-          card&apos;s width.
+          On the card: drag a photo, the steps&apos; sheet or its clip or pin to move it, its corner to size it, and
+          the stalk above it to turn it. ⌥ Option-drag a photo to move the picture in its frame. Sizes are fractions
+          of the card&apos;s width.
         </p>
 
         <section>
@@ -234,15 +238,56 @@ export default function RecipeEditor({
                 <Num label="Across" value={sheet.x} step={0.01} onChange={(x) => setSheet({ x })} />
                 <Num label="Down" value={sheet.y} step={0.01} onChange={(y) => setSheet({ y })} />
                 <Num label="Turn (°)" value={sheet.rotate} step={0.5} onChange={(rotate) => setSheet({ rotate })} />
-                {sheet.fastener !== "none" ? (
-                  <Num
-                    label="Fastener along (0–1)"
-                    value={sheet.fastenerAt ?? 0.88}
-                    step={0.02}
-                    onChange={(fastenerAt) => setSheet({ fastenerAt: Math.max(0, Math.min(1, fastenerAt)) })}
-                  />
-                ) : null}
               </div>
+              <h4 style={{ marginTop: "0.6rem" }}>Size</h4>
+              {sheet.width === undefined ? (
+                <p className={styles.sub}>As wide as the words, as tall as the steps — drag its corner to size it.</p>
+              ) : (
+                <>
+                  <div className={styles.grid}>
+                    <Num
+                      label="Width"
+                      value={sheet.width}
+                      step={0.01}
+                      onChange={(width) => setSheet({ width: Math.max(0.25, width) })}
+                    />
+                    <Num
+                      label="Least height"
+                      value={sheet.height ?? 0}
+                      step={0.01}
+                      onChange={(height) => setSheet({ height: Math.max(0, height) })}
+                    />
+                  </div>
+                  <button type="button" style={{ marginTop: "0.4rem" }} onClick={() => setSheet({ width: undefined, height: undefined })}>
+                    Fit to the words
+                  </button>
+                </>
+              )}
+              {sheet.fastener !== "none" ? (
+                <>
+                  <h4 style={{ marginTop: "0.6rem" }}>The {sheet.fastener === "stud" ? "pin" : "clip"}</h4>
+                  {sheet.pin ? (
+                    <>
+                      <div className={styles.grid}>
+                        <Num label="Along (0–1)" value={sheet.pin.x} step={0.02} onChange={(x) => setPin({ x })} />
+                        <Num label="Down" value={sheet.pin.y} step={0.01} onChange={(y) => setPin({ y })} />
+                        <Num
+                          label="Size"
+                          value={sheet.pin.scale}
+                          step={0.05}
+                          onChange={(scale) => setPin({ scale: Math.max(0.4, Math.min(4, scale)) })}
+                        />
+                        <Num label="Turn (°)" value={sheet.pin.rotate} step={1} onChange={(rotate) => setPin({ rotate })} />
+                      </div>
+                      <button type="button" style={{ marginTop: "0.4rem" }} onClick={() => setSheet({ pin: undefined })}>
+                        Back to its usual place
+                      </button>
+                    </>
+                  ) : (
+                    <p className={styles.sub}>In its usual place — drag it to move it, its corner to size it, its stalk to turn it.</p>
+                  )}
+                </>
+              ) : null}
             </>
           ) : null}
         </section>
@@ -275,10 +320,63 @@ export default function RecipeEditor({
                     label="Width"
                     value={photo.width}
                     step={0.01}
-                    onChange={(width) => setPhoto({ width: Math.max(0.12, Math.min(0.9, width)) })}
+                    onChange={(width) => setPhoto({ width: Math.max(0.08, Math.min(0.95, width)) })}
+                  />
+                  <Num
+                    label="Height"
+                    value={photo.height ?? photo.width * 0.8}
+                    step={0.01}
+                    onChange={(height) => setPhoto({ height: Math.max(0.06, Math.min(1.2, height)) })}
                   />
                   <Num label="Turn (°)" value={photo.rotate} step={0.5} onChange={(rotate) => setPhoto({ rotate })} />
                 </div>
+                {photo.mount === "both" || photo.mount === "kraft" ? (
+                  <div className={styles.grid} style={{ marginTop: "0.35rem" }}>
+                    <Num
+                      label="Brown margin"
+                      value={photo.kraftMargin ?? (photo.mount === "both" ? 0.055 : 0.025)}
+                      step={0.005}
+                      onChange={(kraftMargin) => setPhoto({ kraftMargin: Math.max(0, Math.min(0.3, kraftMargin)) })}
+                    />
+                    {photo.mount === "both" ? (
+                      <Num
+                        label="White margin"
+                        value={photo.whiteMargin ?? 0.065}
+                        step={0.005}
+                        onChange={(whiteMargin) => setPhoto({ whiteMargin: Math.max(0, Math.min(0.3, whiteMargin)) })}
+                      />
+                    ) : null}
+                  </div>
+                ) : photo.mount === "white" ? (
+                  <div className={styles.grid} style={{ marginTop: "0.35rem" }}>
+                    <Num
+                      label="White margin"
+                      value={photo.whiteMargin ?? 0.065}
+                      step={0.005}
+                      onChange={(whiteMargin) => setPhoto({ whiteMargin: Math.max(0, Math.min(0.3, whiteMargin)) })}
+                    />
+                  </div>
+                ) : null}
+                <h4 style={{ marginTop: "0.6rem" }}>Crop</h4>
+                <div className={styles.grid}>
+                  <Num
+                    label="Zoom"
+                    value={photo.crop?.zoom ?? 1}
+                    step={0.05}
+                    onChange={(zoom) => setCrop({ zoom: Math.max(1, Math.min(5, zoom)) })}
+                  />
+                  <Num label="Middle across (%)" value={photo.crop?.x ?? 50} step={1} onChange={(x) => setCrop({ x })} />
+                  <Num label="Middle down (%)" value={photo.crop?.y ?? 50} step={1} onChange={(y) => setCrop({ y })} />
+                </div>
+                <p className={styles.sub}>
+                  The frame&apos;s corner sizes it to any shape, cutting the picture to fit; ⌥ Option-drag the photo to
+                  move the picture in its frame.
+                </p>
+                {photo.crop ? (
+                  <button type="button" onClick={() => setPhoto({ crop: undefined })}>
+                    Show the whole picture
+                  </button>
+                ) : null}
               </>
             ) : (
               <p className={styles.sub}>Choose a photo, here or on the card.</p>

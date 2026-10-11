@@ -4,7 +4,7 @@ import Image from "next/image";
 import { Fragment, useId, useLayoutEffect, useRef, useState } from "react";
 import Drawn from "@/components/Drawn";
 import { garamond } from "@/components/recipeFonts";
-import { decorations, type Fastener, type PhotoPlace, type Recipe, type RecipeCard } from "@/content";
+import { decorations, type Fastener, type PhotoPlace, type PinPlace, type Recipe, type RecipeCard } from "@/content";
 import handles from "./TableSetting.module.css";
 import styles from "./RecipePaper.module.css";
 
@@ -168,12 +168,13 @@ function Kraft() {
 
 
 /**
- * The card a photo is mounted on: white cotton card, its edges torn by hand
- * against a rule — so the full thickness of it stops at a line that is all
- * but straight, a little ridge, and beyond that the tear: thinner, fibrous,
- * ragged at its edge, the light coming through it.
+ * The card a photo is mounted on: white cotton card, cut clean, but torn by
+ * hand against a rule along some stretches of its edges — where it is, the
+ * full thickness of it stops at a line that is all but straight, a little
+ * ridge, and beyond that the tear: thinner, fibrous, ragged at its edge, the
+ * light coming through it. Which stretches goes by `seed`.
  */
-function Mount() {
+function Mount({ seed = 1 }: { seed?: number }) {
   const id = useId().replace(/:/g, "");
   return (
     <svg className={styles.mountSheet} width="100%" height="100%" preserveAspectRatio="none" aria-hidden>
@@ -199,10 +200,17 @@ function Mount() {
               the fibres are. */}
           <feComposite in="outer" in2="core" operator="out" result="fringe0" />
           <feColorMatrix in="fibreNoise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -3 0 0 0 1.2" result="fibres" />
-          <feComposite in="fringe0" in2="fibres" operator="arithmetic" k1="0.25" k2="0.75" result="fringe" />
+          <feComposite in="fringe0" in2="fibres" operator="arithmetic" k1="0.12" k2="0.9" result="fringe" />
+          {/* Where it was torn, and where left as cut: long stretches of
+              each, unevenly. Cut, it is the card whole to its edge. */}
+          <feTurbulence type="fractalNoise" baseFrequency="0.006" numOctaves="1" seed={seed} result="stretch" />
+          <feColorMatrix in="stretch" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  14 0 0 0 -6.9" result="torn" />
+          <feComposite in="SourceAlpha" in2="torn" operator="out" result="cut" />
+          <feComposite in="fringe" in2="torn" operator="in" result="tornFringe" />
           <feMerge result="shape">
-            <feMergeNode in="fringe" />
+            <feMergeNode in="tornFringe" />
             <feMergeNode in="core" />
+            <feMergeNode in="cut" />
           </feMerge>
 
           {/* Cotton white, with a tooth to it, lit from the top left. */}
@@ -219,7 +227,8 @@ function Mount() {
               just past it, more along the bottom and right. */}
           <feGaussianBlur in="core" stdDeviation="0.9" result="coreSoft" />
           <feOffset in="coreSoft" dx="0.5" dy="0.8" result="coreDown" />
-          <feComposite in="coreDown" in2="core" operator="out" result="lip0" />
+          <feComposite in="coreDown" in2="core" operator="out" result="lip1" />
+          <feComposite in="lip1" in2="torn" operator="in" result="lip0" />
           <feFlood floodColor="#7d7262" floodOpacity="0.42" result="lipShade" />
           <feComposite in="lipShade" in2="lip0" operator="in" result="lip" />
 
@@ -246,9 +255,9 @@ export type CardEdit = {
   change: (card: RecipeCard) => void;
 };
 
-/** How a part is taken hold of: dragged, sized from its corner, or turned
- *  from the stalk above it. */
-type Grip = "move" | "size" | "turn";
+/** How a part is taken hold of: dragged, sized from its corner, turned from
+ *  the stalk above it — or, for a photo, the picture moved in its frame. */
+type Grip = "move" | "size" | "turn" | "crop";
 type Grab = (part: CardPart, grip: Grip, e: React.PointerEvent<HTMLElement>) => void;
 
 const same = (a: CardPart | null | undefined, b: CardPart) =>
@@ -289,39 +298,36 @@ const CLIPS = {
   },
 } as const;
 
-/** Where along the sheet's top edge a fastener `wide` across is: the usual
- *  place, near the right, or a fraction of the way along. */
-const along = (at: number | undefined, wide: number): React.CSSProperties =>
-  at === undefined ? {} : { left: `calc(${at * 100}% - ${wide / 2}px)`, right: "auto" };
+/** How big each fastener is drawn, and how far above the sheet's top edge
+ *  it starts: a clip straddles the edge, a pin is through the sheet. */
+const PIN = {
+  gem: { w: 18 * CLIPS.gem.scale, h: 68 * CLIPS.gem.scale, top: -(CLIPS.gem.edge + 1) * CLIPS.gem.scale, rotate: 4 },
+  drop: { w: 31 * CLIPS.drop.scale, h: 46 * CLIPS.drop.scale, top: -(CLIPS.drop.edge + 1) * CLIPS.drop.scale, rotate: -8 },
+  stud: { w: 11, h: 11, top: 15, rotate: 0 },
+} as const;
 
-function Clip({
-  kind,
-  part,
-  id,
-  at,
-  onGrab,
-}: {
-  kind: "gem" | "drop";
-  part: "front" | "back";
-  id: string;
-  at?: number;
-  onGrab?: (e: React.PointerEvent<HTMLElement>) => void;
-}) {
+/** Where a fastener is, on a sheet the card is `width` wide: the usual
+ *  place, near the right of its top edge, or where `pin` says. */
+const pinned = (kind: keyof typeof PIN, pin: PinPlace | undefined, width: number): React.CSSProperties => {
+  const k = PIN[kind];
+  if (!pin) return { width: k.w, height: k.h, top: k.top, transform: `rotate(${k.rotate}deg)` };
+  const w = k.w * pin.scale;
+  const h = k.h * pin.scale;
+  return {
+    width: w,
+    height: h,
+    left: `calc(${pin.x * 100}% - ${w / 2}px)`,
+    right: "auto",
+    top: k.top * pin.scale + pin.y * width,
+    transform: `rotate(${pin.rotate}deg)`,
+  };
+};
+
+function Clip({ kind, part, id }: { kind: "gem" | "drop"; part: "front" | "back"; id: string }) {
   const c = CLIPS[kind];
   const [w, h] = c.box;
   return (
-    <svg
-      className={styles.clip}
-      data-part={part}
-      data-kind={kind}
-      data-grabbable={onGrab ? "" : undefined}
-      width={(w + 2) * c.scale}
-      height={(h + 2) * c.scale}
-      viewBox={`-1 -1 ${w + 2} ${h + 2}`}
-      style={{ top: -(c.edge + 1) * c.scale, ...along(at, (w + 2) * c.scale) }}
-      onPointerDown={onGrab as unknown as React.PointerEventHandler<SVGSVGElement>}
-      aria-hidden
-    >
+    <svg width="100%" height="100%" viewBox={`-1 -1 ${w + 2} ${h + 2}`} overflow="visible" aria-hidden>
       <defs>
         <linearGradient id={`${id}-${part}-metal`} x1="0" y1="0" x2="1" y2="0.15">
           <stop offset="0" stopColor={c.metal[0]} />
@@ -338,18 +344,9 @@ function Clip({
 
 /** A gold stud pin through the sheet into the card: a small domed head,
  *  lit from the top left. */
-function Stud({ id, at, onGrab }: { id: string; at?: number; onGrab?: (e: React.PointerEvent<HTMLElement>) => void }) {
+function Stud({ id }: { id: string }) {
   return (
-    <svg
-      className={styles.stud}
-      data-grabbable={onGrab ? "" : undefined}
-      width="11"
-      height="11"
-      viewBox="0 0 11 11"
-      style={along(at, 11)}
-      onPointerDown={onGrab as unknown as React.PointerEventHandler<SVGSVGElement>}
-      aria-hidden
-    >
+    <svg width="100%" height="100%" viewBox="0 0 11 11" overflow="visible" aria-hidden>
       <defs>
         <radialGradient id={`${id}-dome`} cx="0.36" cy="0.32" r="0.75">
           <stop offset="0" stopColor="#fbf0c8" />
@@ -364,11 +361,49 @@ function Stud({ id, at, onGrab }: { id: string; at?: number; onGrab?: (e: React.
   );
 }
 
+/** A fastener, or the half of a clip behind the sheet, where it is. */
+function Fasten({
+  kind,
+  part,
+  id,
+  pin,
+  width,
+  grab,
+  chosen,
+}: {
+  kind: "gem" | "drop" | "stud";
+  part: "front" | "back";
+  id: string;
+  pin?: PinPlace;
+  width: number;
+  grab?: Grab;
+  chosen?: CardPart | null;
+}) {
+  const me = { part: "fastener" } as const;
+  const live = grab && part === "front";
+  return (
+    <span
+      className={styles.fasten}
+      data-kind={kind}
+      data-part={part}
+      data-grab={live ? "" : undefined}
+      data-editing={live ? "" : undefined}
+      data-selected={(live && same(chosen, me)) || undefined}
+      style={pinned(kind, pin, width)}
+      onPointerDown={live ? (e) => grab(me, "move", e) : undefined}
+    >
+      {kind === "stud" ? <Stud id={id} /> : <Clip kind={kind} part={part} id={id} />}
+      {live && same(chosen, me) ? <Handles part={me} grab={grab} /> : null}
+    </span>
+  );
+}
+
 /**
  * A sheet of onion skin clipped over the foot of the card: so thin the card
  * shows through it, with a fine grain and the faint cockle that thin paper
  * takes on — and held on by its fastener: a clip on its top edge, or a pin
- * through it. Where it lies, and what holds it, is the card's `sheet`.
+ * through it. Where it lies, how big it is and what holds it is the card's
+ * `sheet`.
  */
 function Onion({
   sheet,
@@ -385,20 +420,25 @@ function Onion({
 }) {
   const id = useId().replace(/:/g, "");
   const fastener: Fastener = sheet.fastener;
-  const onGrab = grab ? (e: React.PointerEvent<HTMLElement>) => grab({ part: "fastener" }, "move", e) : undefined;
+  const me = { part: "sheet" } as const;
   return (
     <div
       className={styles.onionLay}
       data-grab=""
+      data-sheet=""
+      data-sized={sheet.width !== undefined || undefined}
       data-editing={grab ? "" : undefined}
-      data-selected={same(chosen, { part: "sheet" }) || undefined}
-      style={{ transform: `translate(${sheet.x * width}px, ${sheet.y * width}px) rotate(${sheet.rotate}deg)` }}
-      onPointerDown={grab ? (e) => grab({ part: "sheet" }, "move", e) : undefined}
+      data-selected={same(chosen, me) || undefined}
+      style={{
+        transform: `translate(${sheet.x * width}px, ${sheet.y * width}px) rotate(${sheet.rotate}deg)`,
+        width: sheet.width === undefined ? undefined : sheet.width * width,
+      }}
+      onPointerDown={grab ? (e) => grab(me, "move", e) : undefined}
     >
       {fastener === "gem" || fastener === "drop" ? (
-        <Clip kind={fastener} part="back" id={id} at={sheet.fastenerAt} />
+        <Fasten kind={fastener} part="back" id={id} pin={sheet.pin} width={width} />
       ) : null}
-      <div className={styles.onion}>
+      <div className={styles.onion} style={{ minHeight: sheet.height === undefined ? undefined : sheet.height * width }}>
         <svg className={styles.onionSkin} width="100%" height="100%" aria-hidden>
           <defs>
             <filter id={`${id}-skin`} x="-4%" y="-8%" width="108%" height="120%" colorInterpolationFilters="sRGB">
@@ -468,14 +508,12 @@ function Onion({
           </defs>
           <rect width="100%" height="100%" fill="#fff" filter={`url(#${id}-skin)`} />
         </svg>
-        {fastener === "gem" || fastener === "drop" ? (
-          <Clip kind={fastener} part="front" id={id} at={sheet.fastenerAt} onGrab={onGrab} />
-        ) : fastener === "stud" ? (
-          <Stud id={id} at={sheet.fastenerAt} onGrab={onGrab} />
+        {fastener !== "none" ? (
+          <Fasten kind={fastener} part="front" id={id} pin={sheet.pin} width={width} grab={grab} chosen={chosen} />
         ) : null}
         <div className={styles.onionWords}>{children}</div>
       </div>
-      {grab && same(chosen, { part: "sheet" }) ? <Handles part={{ part: "sheet" }} grab={grab} size={false} /> : null}
+      {grab && same(chosen, me) ? <Handles part={me} grab={grab} /> : null}
     </div>
   );
 }
@@ -537,12 +575,37 @@ function Deboss({ text, crest }: { text: string; crest?: number }) {
 /** How tall a photo is for how wide. */
 const TALL = 0.8;
 
-/** One photo, mounted as `place` says: on a square of brown card with a
- *  torn white one on it, on either alone, or on nothing. */
-function Photo({ photo, wide }: { photo: Recipe["photos"][number]; wide: number }) {
+/** How much of the brown card shows round the white one, and of the white
+ *  round the photo, as fractions of the photo's width, if not chosen. */
+const KRAFT_MARGIN = { both: 0.055, kraft: 0.025, white: 0, none: 0 };
+const WHITE_MARGIN = 0.065;
+
+/** One photo in its frame, cropped as `crop` says. */
+function Photo({
+  photo,
+  wide,
+  inset,
+  crop,
+}: {
+  photo: Recipe["photos"][number];
+  wide: number;
+  inset: number;
+  crop?: PhotoPlace["crop"];
+}) {
+  const c = crop ?? { zoom: 1, x: 50, y: 50 };
   return (
-    <div className={styles.photo}>
-      <Image src={photo.image} alt={photo.alt} fill sizes={`${Math.round(wide)}px`} />
+    <div className={styles.photo} style={{ inset }}>
+      <Image
+        src={photo.image}
+        alt={photo.alt}
+        fill
+        sizes={`${Math.round(wide * c.zoom)}px`}
+        style={{
+          objectPosition: `${c.x}% ${c.y}%`,
+          transform: c.zoom === 1 ? undefined : `scale(${c.zoom})`,
+          transformOrigin: `${c.x}% ${c.y}%`,
+        }}
+      />
     </div>
   );
 }
@@ -573,7 +636,7 @@ function Photos({
       left: (flip ? 1 - p.x - p.width : p.x) * width,
       top: p.y * width,
       w,
-      h: w * TALL,
+      h: (p.height ?? p.width * TALL) * width,
       rotate: flip ? -p.rotate : p.rotate,
     };
   });
@@ -590,8 +653,11 @@ function Photos({
         .reverse()
         .map(({ photo, k }) => {
           const a = at[k];
-          const mount = places[k]?.mount ?? "both";
+          const place = places[k];
+          const mount = place?.mount ?? "both";
           if (!a) return null;
+          const kraft = (place?.kraftMargin ?? KRAFT_MARGIN[mount]) * a.w;
+          const white = mount === "both" || mount === "white" ? (place?.whiteMargin ?? WHITE_MARGIN) * a.w : 0;
           const part = { part: "photo", i: k } as const;
           return (
             <figure
@@ -602,13 +668,13 @@ function Photos({
               data-editing={grab ? "" : undefined}
               data-selected={same(chosen, part) || undefined}
               style={{ left: a.left, top: a.top, width: a.w, height: a.h, transform: `rotate(${a.rotate}deg)` }}
-              onPointerDown={grab ? (e) => grab(part, "move", e) : undefined}
+              onPointerDown={grab ? (e) => grab(part, e.altKey ? "crop" : "move", e) : undefined}
             >
               {mount === "both" || mount === "kraft" ? <Kraft /> : null}
-              <div className={styles.onCard}>
+              <div className={styles.onCard} style={{ inset: mount === "both" || mount === "kraft" ? kraft : 0 }}>
                 <div className={styles.whiteCard}>
-                  {mount === "both" || mount === "white" ? <Mount /> : null}
-                  <Photo photo={photo} wide={a.w} />
+                  {mount === "both" || mount === "white" ? <Mount seed={7 + k * 13} /> : null}
+                  <Photo photo={photo} wide={a.w} inset={white} crop={place?.crop} />
                 </div>
               </div>
               {grab && same(chosen, part) ? <Handles part={part} grab={grab} /> : null}
@@ -715,27 +781,62 @@ export default function RecipePaper({
           const turn = angle(ev.clientX, ev.clientY) - a0;
           if (part.part === "photo") {
             const p = start.photos[part.i];
+            const h0 = p.height ?? p.width * TALL;
             let q = p;
             if (grip === "move") q = { ...p, x: p.x + dx * flip, y: p.y + dy };
             else if (grip === "size") {
-              const w = Math.max(0.12, Math.min(0.9, p.width + dx));
+              const w = Math.max(0.08, Math.min(0.95, p.width + dx));
+              const h = Math.max(0.06, Math.min(1.2, h0 + dy));
               // Its near edge stays where it is, whichever side it hangs.
-              q = { ...p, width: w, x: flip < 0 ? p.x - (w - p.width) : p.x };
+              q = { ...p, width: w, height: h, x: flip < 0 ? p.x - (w - p.width) : p.x };
+            } else if (grip === "crop") {
+              // The picture moved in its frame: dragging it right shows
+              // more of its left.
+              const c = p.crop ?? { zoom: 1, x: 50, y: 50 };
+              const k = 100 / c.zoom;
+              const clamp = (v: number) => Math.max(0, Math.min(100, v));
+              q = { ...p, crop: { ...c, x: clamp(c.x - (dx / p.width) * k * flip), y: clamp(c.y - (dy / h0) * k) } };
             } else q = { ...p, rotate: p.rotate + turn * flip };
             edit.change({ ...start, photos: start.photos.map((o, k) => (k === part.i ? q : o)) });
           } else if (part.part === "sheet") {
             const sh = start.sheet;
-            edit.change({
-              ...start,
-              sheet: grip === "turn" ? { ...sh, rotate: sh.rotate + turn } : { ...sh, x: sh.x + dx, y: sh.y + dy },
-            });
+            if (grip === "size") {
+              // From how big it is drawn, the first time.
+              const w0 = sh.width ?? el.offsetWidth / width;
+              const h0 = sh.height ?? (el.querySelector(`.${styles.onion}`) as HTMLElement | null)?.offsetHeight ?? 0;
+              const hh = sh.height ?? h0 / width;
+              edit.change({
+                ...start,
+                sheet: { ...sh, width: Math.max(0.25, w0 + dx), height: Math.max(0.08, hh + dy) },
+              });
+            } else
+              edit.change({
+                ...start,
+                sheet: grip === "turn" ? { ...sh, rotate: sh.rotate + turn } : { ...sh, x: sh.x + dx, y: sh.y + dy },
+              });
           } else {
-            // Along the top edge of the sheet.
-            const lay = el.closest("[data-grab]")?.parentElement?.closest("[data-grab]") as HTMLElement | null;
-            const box = (lay ?? el.parentElement)?.getBoundingClientRect();
-            if (!box) return;
-            const f = Math.max(0, Math.min(1, (ev.clientX - box.left) / box.width));
-            edit.change({ ...start, sheet: { ...start.sheet, fastenerAt: f } });
+            // The fastener: from where it is drawn, the first time.
+            const sheetEl = el.closest("[data-sheet]") as HTMLElement | null;
+            const kind = start.sheet.fastener === "none" ? "stud" : start.sheet.fastener;
+            const pin0: PinPlace = start.sheet.pin ?? {
+              x: sheetEl ? (cx - sheetEl.getBoundingClientRect().left) / sheetEl.getBoundingClientRect().width : 0.9,
+              y: 0,
+              scale: 1,
+              rotate: PIN[kind].rotate,
+            };
+            const sw = (sheetEl?.offsetWidth ?? width) / width;
+            const pin: PinPlace =
+              grip === "move"
+                ? { ...pin0, x: pin0.x + dx / sw, y: pin0.y + dy }
+                : grip === "size"
+                  ? {
+                      ...pin0,
+                      // The corner follows the pointer: as much bigger as it
+                      // is dragged out.
+                      scale: Math.max(0.4, Math.min(4, pin0.scale + ((dx + dy) * width) / 2 / Math.max(PIN[kind].w, PIN[kind].h))),
+                    }
+                  : { ...pin0, rotate: pin0.rotate + turn };
+            edit.change({ ...start, sheet: { ...start.sheet, pin } });
           }
         };
         const up = () => {

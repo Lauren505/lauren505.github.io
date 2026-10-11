@@ -35,10 +35,26 @@ export type PhotoPlace = {
   /** Its top, from the top of the photos, under the steps. */
   y: number;
   width: number;
+  /** Four fifths of its width, if left out. */
+  height?: number;
   /** Degrees, clockwise. */
   rotate: number;
   mount: PhotoMount;
+  /** How much of the brown card shows round the white one, and of the white
+   *  round the photo, as fractions of its width; the usual, if left out. */
+  kraftMargin?: number;
+  whiteMargin?: number;
+  /** What of the picture shows: how far it is enlarged (1 is just covering
+   *  the frame), and which part of it is in the middle, 0–100 across and
+   *  down. The whole picture, centred, if left out. */
+  crop?: { zoom: number; x: number; y: number };
 };
+
+/** Where the clip or pin is on the sheet: `x` its middle, from the sheet's
+ *  left edge as a fraction of its width; `y` how far down from where it
+ *  usually sits, as a fraction of the card's width; `scale` its size, 1
+ *  being the usual; `rotate` in degrees. */
+export type PinPlace = { x: number; y: number; scale: number; rotate: number };
 
 export type RecipeCard = {
   sheet: {
@@ -47,10 +63,15 @@ export type RecipeCard = {
     x: number;
     y: number;
     rotate: number;
+    /** Its width, and the least it is tall, as fractions of the card's
+     *  width: the steps wrap to the width. As wide as the words, and as tall
+     *  as the steps, if left out. */
+    width?: number;
+    height?: number;
     fastener: Fastener;
-    /** Where along its top edge the fastener is, from 0 at its left to 1 at
-     *  its right; the usual place if left out. */
-    fastenerAt?: number;
+    /** Where the fastener is: the usual place, near the right of its top
+     *  edge, if left out. */
+    pin?: PinPlace;
   };
   photos: PhotoPlace[];
 };

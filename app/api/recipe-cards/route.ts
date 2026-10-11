@@ -14,6 +14,7 @@ const START = "export const recipeCards: Record<string, RecipeCard> = ";
 const END = ";\n// end of recipeCards";
 
 const num = (v: unknown) => typeof v === "number" && Number.isFinite(v);
+const maybe = (v: unknown) => v === undefined || num(v);
 const one = (v: unknown, of: readonly string[]) => typeof v === "string" && of.includes(v);
 
 const valid = (cards: unknown): cards is Record<string, RecipeCard> =>
@@ -26,10 +27,16 @@ const valid = (cards: unknown): cards is Record<string, RecipeCard> =>
       one(c.sheet.paper, ["onion", "none"]) &&
       one(c.sheet.fastener, ["gem", "drop", "stud", "none"]) &&
       ["x", "y", "rotate"].every((k) => num(c.sheet[k as "x"])) &&
-      (c.sheet.fastenerAt === undefined || num(c.sheet.fastenerAt)) &&
+      ["width", "height"].every((k) => maybe(c.sheet[k as "width"])) &&
+      (c.sheet.pin === undefined || ["x", "y", "scale", "rotate"].every((k) => num(c.sheet.pin?.[k as "x"]))) &&
       Array.isArray(c.photos) &&
       c.photos.every(
-        (p) => !!p && ["x", "y", "width", "rotate"].every((k) => num(p[k as "x"])) && one(p.mount, ["both", "kraft", "white", "none"]),
+        (p) =>
+          !!p &&
+          ["x", "y", "width", "rotate"].every((k) => num(p[k as "x"])) &&
+          ["height", "kraftMargin", "whiteMargin"].every((k) => maybe(p[k as "height"])) &&
+          (p.crop === undefined || ["zoom", "x", "y"].every((k) => num(p.crop?.[k as "x"]))) &&
+          one(p.mount, ["both", "kraft", "white", "none"]),
       ),
   );
 
