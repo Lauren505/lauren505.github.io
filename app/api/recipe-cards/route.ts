@@ -16,6 +16,9 @@ const END = ";\n// end of recipeCards";
 const num = (v: unknown) => typeof v === "number" && Number.isFinite(v);
 const maybe = (v: unknown) => v === undefined || num(v);
 const one = (v: unknown, of: readonly string[]) => typeof v === "string" && of.includes(v);
+const has = (o: unknown, keys: string[]) =>
+  !!o && typeof o === "object" && keys.every((k) => num((o as Record<string, unknown>)[k]));
+const box = (b: unknown) => has(b, ["x", "y", "width", "height", "rotate"]);
 
 const valid = (cards: unknown): cards is Record<string, RecipeCard> =>
   !!cards &&
@@ -23,21 +26,26 @@ const valid = (cards: unknown): cards is Record<string, RecipeCard> =>
   Object.entries(cards as Record<string, RecipeCard>).every(
     ([id, c]) =>
       /^[\w-]+$/.test(id) &&
-      !!c?.sheet &&
+      !!c &&
+      num(c.nameDrop) &&
+      has(c.steps, ["x", "y", "rotate"]) &&
+      maybe(c.steps.width) &&
+      !!c.sheet &&
       one(c.sheet.paper, ["onion", "none"]) &&
       one(c.sheet.fastener, ["gem", "drop", "stud", "none"]) &&
-      ["x", "y", "rotate"].every((k) => num(c.sheet[k as "x"])) &&
-      ["width", "height"].every((k) => maybe(c.sheet[k as "width"])) &&
-      (c.sheet.pin === undefined || ["x", "y", "scale", "rotate"].every((k) => num(c.sheet.pin?.[k as "x"]))) &&
+      (c.sheet.box === undefined || box(c.sheet.box)) &&
+      (c.sheet.pin === undefined || has(c.sheet.pin, ["x", "y", "scale", "rotate"])) &&
       Array.isArray(c.photos) &&
       c.photos.every(
         (p) =>
           !!p &&
-          ["x", "y", "width", "rotate"].every((k) => num(p[k as "x"])) &&
-          ["height", "kraftMargin", "whiteMargin"].every((k) => maybe(p[k as "height"])) &&
-          (p.crop === undefined || ["zoom", "x", "y"].every((k) => num(p.crop?.[k as "x"]))) &&
-          one(p.mount, ["both", "kraft", "white", "none"]),
-      ),
+          box(p.print) &&
+          typeof p.white === "boolean" &&
+          maybe(p.whiteMargin) &&
+          (p.crop === undefined || has(p.crop, ["zoom", "x", "y"])) &&
+          (p.kraft === null || box(p.kraft)),
+      ) &&
+      (c.sprig === null || (box(c.sprig) && typeof c.sprig?.mirror === "boolean")),
   );
 
 /** Short, the way the file is easiest read: three places at most. */
