@@ -17,14 +17,19 @@ export type Recipe = {
   portion?: string;
   portionLabel?: string;
   /** In groups, each under its sub-heading if it has one. */
-  ingredients: { heading?: string; items: string[] }[];
-  steps: string[];
+  ingredients: { heading?: string; lines: Line[] }[];
+  steps: Line[];
   /** Any other section, as paragraphs, each under its heading if it opens
    *  one. */
   notes: { heading?: string; text: string }[];
   /** Photos, tied to the recipe card, in the order the file names them. */
   photos: { image: StaticImageData; alt: string }[];
 };
+
+/** A line of a list as the file has it: an item — a bullet, or a numbered
+ *  step, with its number — or, if it is neither, words of their own, not in
+ *  the list: a note between the steps, a sub-heading of them. */
+export type Line = { text: string; item: boolean; n?: number };
 
 /** A recipe as its file has it: the photos only named, not yet looked up. */
 type Parsed = Omit<Recipe, "photos"> & { named: { src: string; alt: string }[] };
@@ -60,7 +65,7 @@ const sectionOf = (heading: string): Section =>
         : "notes";
 
 const IMAGE = /^!\[([^\]]*)\]\(\s*<?([^)>]+?)>?(?:\s+"[^"]*")?\s*\)$/;
-const ITEM = /^(?:[-*+]|\d+[.)])\s+(.*)$/;
+const ITEM = /^(?:[-*+]|(\d+)[.)])\s+(.*)$/;
 const PORTION = /^(portions?|serves|servings|makes|yield|size)\s*:\s*(.+)$/i;
 
 /** One recipe file, read leniently: whatever it has of a name, a portion,
@@ -73,13 +78,13 @@ const parseRecipe = (id: string, text: string): Parsed => {
    *  paragraph runs over lines until a blank one. */
   let carry: ((more: string) => void) | null = null;
 
-  const add = (list: string[], words: string) => {
-    const at = list.push(words) - 1;
-    carry = (more) => (list[at] += ` ${more}`);
+  const add = (list: Line[], line: Line) => {
+    list.push(line);
+    carry = (more) => (line.text += ` ${more}`);
   };
   const group = () => {
     let g = recipe.ingredients[recipe.ingredients.length - 1];
-    if (!g) recipe.ingredients.push((g = { items: [] }));
+    if (!g) recipe.ingredients.push((g = { lines: [] }));
     return g;
   };
 
@@ -104,7 +109,7 @@ const parseRecipe = (id: string, text: string): Parsed => {
       continue;
     }
     if ((m = /^###+\s+(.*)$/.exec(line))) {
-      if (section === "ingredients") recipe.ingredients.push({ heading: m[1], items: [] });
+      if (section === "ingredients") recipe.ingredients.push({ heading: m[1], lines: [] });
       else heading = m[1];
       carry = null;
       continue;
@@ -122,13 +127,14 @@ const parseRecipe = (id: string, text: string): Parsed => {
       continue;
     }
     const item = ITEM.exec(line);
-    const words = item ? item[1] : line;
+    const words = item ? item[2] : line;
     if (carry && !item) {
       carry(words);
       continue;
     }
-    if (section === "ingredients") add(group().items, words);
-    else if (section === "steps") add(recipe.steps, words);
+    const as: Line = { text: words, item: !!item, ...(item?.[1] ? { n: Number(item[1]) } : {}) };
+    if (section === "ingredients") add(group().lines, as);
+    else if (section === "steps") add(recipe.steps, as);
     else if (section === "portion") {
       recipe.portion = recipe.portion ? `${recipe.portion} ${words}` : words;
       carry = (more) => (recipe.portion += ` ${more}`);

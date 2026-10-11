@@ -20,7 +20,7 @@ const has = (o: unknown, keys: string[]) =>
 const box = (b: unknown) => has(b, ["x", "y", "width", "height", "rotate"]);
 
 const item = (it: unknown) => {
-  if (it === "steps") return true;
+  if (it === "steps" || it === "notes") return true;
   if (!it || typeof it !== "object") return false;
   const i = it as Record<string, unknown>;
   return (
@@ -47,6 +47,8 @@ const valid = (cards: unknown): cards is Record<string, RecipeCard> =>
       num(c.nameDrop) &&
       has(c.steps, ["x", "y", "rotate"]) &&
       maybe(c.steps.width) &&
+      // Cards kept before the notes were apart from the steps have none.
+      (c.notes === undefined || (has(c.notes, ["x", "y", "rotate"]) && maybe(c.notes.width))) &&
       Array.isArray(c.items) &&
       c.items.every(item),
   );

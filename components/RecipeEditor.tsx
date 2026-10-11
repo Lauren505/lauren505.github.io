@@ -9,6 +9,7 @@ import {
   type Box,
   type Item,
   type ItemKind,
+  type Layer,
   type Recipe,
   type RecipeCard,
 } from "@/content";
@@ -80,8 +81,14 @@ function Num({
 }
 
 /** What a thing is called in the list. */
-const nameOf = (it: Item | "steps") =>
-  it === "steps" ? "Steps" : it.kind === "photo" ? `Photo ${(it.photo ?? 0) + 1}` : KINDS[it.kind].name;
+const nameOf = (it: Layer) =>
+  it === "steps"
+    ? "Steps"
+    : it === "notes"
+      ? "Notes"
+      : it.kind === "photo"
+        ? `Photo ${(it.photo ?? 0) + 1}`
+        : KINDS[it.kind].name;
 
 export default function RecipeEditor({
   recipe,
@@ -120,8 +127,9 @@ export default function RecipeEditor({
   }, [card, recipe.id, change]);
 
   const chosenItem =
-    selected?.part === "item" ? card.items.find((x): x is Item => x !== "steps" && x.id === selected.id) : undefined;
-  const at = chosenItem ? card.items.indexOf(chosenItem) : selected?.part === "steps" ? card.items.indexOf("steps") : -1;
+    selected?.part === "item" ? card.items.find((x): x is Item => typeof x !== "string" && x.id === selected.id) : undefined;
+  const wordsPart = selected?.part === "steps" || selected?.part === "notes" ? selected.part : null;
+  const at = chosenItem ? card.items.indexOf(chosenItem) : wordsPart ? card.items.indexOf(wordsPart) : -1;
 
   const remove = useCallback(() => {
     if (!chosenItem) return;
@@ -196,7 +204,8 @@ export default function RecipeEditor({
   };
   const setCrop = (patch: Partial<NonNullable<Item["crop"]>>) =>
     setItem({ crop: { zoom: 1, x: 50, y: 50, ...chosenItem?.crop, ...patch } });
-  const setSteps = (patch: Partial<RecipeCard["steps"]>) => change({ ...card, steps: { ...card.steps, ...patch } });
+  const setWords = (patch: Partial<RecipeCard["steps"]>) =>
+    wordsPart && change({ ...card, [wordsPart]: { ...card[wordsPart], ...patch } });
 
   /** The numbers of a box: where it is, how big, how turned. */
   const boxFields = (b: Box, set: (b: Box) => void, keepShape = false) => (
@@ -274,10 +283,10 @@ export default function RecipeEditor({
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: "0.5rem" }}>
             {[...card.items].reverse().map((it) => {
-              const part: CardPart = it === "steps" ? { part: "steps" } : { part: "item", id: it.id };
+              const part: CardPart = typeof it === "string" ? { part: it } : { part: "item", id: it.id };
               return (
                 <button
-                  key={it === "steps" ? "steps" : it.id}
+                  key={typeof it === "string" ? it : it.id}
                   type="button"
                   data-on={samePart(selected, part) || undefined}
                   style={{ textAlign: "left" }}
@@ -374,24 +383,24 @@ export default function RecipeEditor({
           </section>
         ) : null}
 
-        {selected?.part === "steps" ? (
+        {wordsPart ? (
           <section>
-            <h3>Steps</h3>
+            <h3>{wordsPart === "steps" ? "Steps" : "Notes"}</h3>
             <div className={styles.grid}>
-              <Num label="Across" value={card.steps.x} step={0.01} onChange={(x) => setSteps({ x })} />
-              <Num label="Down" value={card.steps.y} step={0.01} onChange={(y) => setSteps({ y })} />
-              <Num label="Turn (°)" value={card.steps.rotate} step={0.5} onChange={(rotate) => setSteps({ rotate })} />
-              {card.steps.width !== undefined ? (
+              <Num label="Across" value={card[wordsPart].x} step={0.01} onChange={(x) => setWords({ x })} />
+              <Num label="Down" value={card[wordsPart].y} step={0.01} onChange={(y) => setWords({ y })} />
+              <Num label="Turn (°)" value={card[wordsPart].rotate} step={0.5} onChange={(rotate) => setWords({ rotate })} />
+              {card[wordsPart].width !== undefined ? (
                 <Num
                   label="Width"
-                  value={card.steps.width}
+                  value={card[wordsPart].width}
                   step={0.01}
-                  onChange={(width) => setSteps({ width: Math.max(0.2, width) })}
+                  onChange={(width) => setWords({ width: Math.max(0.2, width) })}
                 />
               ) : null}
             </div>
-            {card.steps.width !== undefined ? (
-              <button type="button" style={{ marginTop: "0.4rem" }} onClick={() => setSteps({ width: undefined })}>
+            {card[wordsPart].width !== undefined ? (
+              <button type="button" style={{ marginTop: "0.4rem" }} onClick={() => setWords({ width: undefined })}>
                 As wide as the words
               </button>
             ) : (

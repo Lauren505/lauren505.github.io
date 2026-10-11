@@ -54,11 +54,22 @@ export type RecipeCard = {
   /** The steps: how far they are moved from where they fall under the
    *  ingredients, how far turned, and how wide — they wrap to it; as wide
    *  as the rest of the words, if left out. */
-  steps: { x: number; y: number; rotate: number; width?: number };
-  /** What lies on the card, the furthest back first; "steps" is where the
-   *  steps are among them. */
-  items: (Item | "steps")[];
+  steps: Words;
+  /** The notes, after the steps — any other section of the recipe — the
+   *  same way. */
+  notes: Words;
+  /** What lies on the card, the furthest back first; "steps" and "notes"
+   *  are where those are among them. */
+  items: Layer[];
 };
+
+/** Words on the card that can be moved: how far from where they fall, how
+ *  far turned, and how wide — they wrap to it; as wide as the rest of the
+ *  words, if left out. */
+export type Words = { x: number; y: number; rotate: number; width?: number };
+
+/** One of the things on a card, or the words among them. */
+export type Layer = Item | "steps" | "notes";
 
 /** How each kind is drawn: what it is called, whether it keeps its shape as
  *  it is sized, where it is measured from, and where a new one goes. */
@@ -112,8 +123,14 @@ export const cardFor = (id: string, photos: number): RecipeCard => {
   const listed = kept?.[id];
   // One kept before cards were made up this way is made up the usual way.
   if (!listed || !Array.isArray(listed.items)) return usualCard(id, photos);
-  // A photo no longer in the recipe is left out.
-  return { ...listed, items: listed.items.filter((it) => it === "steps" || it.kind !== "photo" || (it.photo ?? 0) < photos) };
+  // A photo no longer in the recipe is left out; the notes, kept before
+  // they were apart from the steps, go just in front of them.
+  let items = listed.items.filter((it) => typeof it === "string" || it.kind !== "photo" || (it.photo ?? 0) < photos);
+  if (!items.includes("notes")) {
+    const at = items.indexOf("steps");
+    items = at < 0 ? [...items, "notes"] : [...items.slice(0, at + 1), "notes", ...items.slice(at + 1)];
+  }
+  return { ...listed, notes: listed.notes ?? { x: 0, y: 0, rotate: -1.1 }, items };
 };
 
 /* ------------------------------------------------------- the usual card */
@@ -168,9 +185,11 @@ export const usualCard = (id: string, photos: number): RecipeCard => {
   return {
     nameDrop: 0,
     steps: { x: 0, y: 0, rotate: -1.1 },
+    notes: { x: 0, y: 0, rotate: -1.1 },
     items: [
       { id: "onion", kind: "onion", at: "steps" },
       "steps",
+      "notes",
       { id: fastener, kind: fastener, at: "steps", box: KINDS[fastener].box },
       ...Array.from({ length: photos }, (_, k) => usualPhoto(photos - 1 - k, photos)).flat(),
       ...(photos

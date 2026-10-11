@@ -4,7 +4,7 @@ import Image from "next/image";
 import { Fragment, useId, useLayoutEffect, useRef, useState } from "react";
 import Drawn from "@/components/Drawn";
 import { garamond } from "@/components/recipeFonts";
-import { KINDS, decorations, type Box, type Item, type Recipe, type RecipeCard } from "@/content";
+import { KINDS, decorations, type Box, type Item, type Layer, type Line, type Recipe, type RecipeCard } from "@/content";
 import handles from "./TableSetting.module.css";
 import styles from "./RecipePaper.module.css";
 
@@ -243,7 +243,7 @@ function Mount({ seed = 1 }: { seed?: number }) {
 
 /** A part of the card the editor can take hold of: one of the things laid
  *  on it, the steps, or the name. */
-export type CardPart = { part: "item"; id: string } | { part: "steps" } | { part: "name" };
+export type CardPart = { part: "item"; id: string } | { part: "steps" } | { part: "notes" } | { part: "name" };
 
 /** Making up the card in the editor, in development only — see
  *  RecipeEditor: which part is chosen, and the card as it is changed. */
@@ -319,9 +319,10 @@ const CLIPS = {
   },
 } as const;
 
-/** A clip, its two halves: the wire over the paper, and the wire behind it,
- *  seen through it — onion skin being as thin as it is. */
-function ClipArt({ kind, id }: { kind: "gem" | "drop"; id: string }) {
+/** One half of a clip: the wire over the papers it holds, or the wire
+ *  behind them — seen through onion skin, as thin as it is, and hidden by
+ *  anything thicker. */
+function ClipArt({ kind, id, half }: { kind: "gem" | "drop"; id: string; half: "front" | "back" }) {
   const c = CLIPS[kind];
   const [w, h] = c.box;
   return (
@@ -334,11 +335,14 @@ function ClipArt({ kind, id }: { kind: "gem" | "drop"; id: string }) {
           <stop offset="1" stopColor={c.metal[3]} />
         </linearGradient>
       </defs>
-      <g className={styles.behind}>
+      {half === "back" ? (
         <path d={c.back} className={styles.wire} stroke={`url(#${id}-metal)`} />
-      </g>
-      <path d={c.front} className={styles.wire} stroke={`url(#${id}-metal)`} />
-      <path d={c.front} className={styles.glint} />
+      ) : (
+        <>
+          <path d={c.front} className={styles.wire} stroke={`url(#${id}-metal)`} />
+          <path d={c.front} className={styles.glint} />
+        </>
+      )}
     </svg>
   );
 }
@@ -499,7 +503,9 @@ function Deboss({ text, crest }: { text: string; crest?: number }) {
 
 /**
  * One thing laid on the card, where its `box` says — mirrored if `flip` —
- * and `z` in front of the card: in the editor it can be taken hold of.
+ * and `z` in front of the card: in the editor it can be taken hold of. A
+ * clip is drawn in its two halves, the back one `under` in front of the
+ * card, behind the papers it holds.
  */
 function Thing({
   item,
@@ -507,6 +513,7 @@ function Thing({
   width,
   flip,
   z,
+  under,
   grab,
   chosen,
 }: {
@@ -515,6 +522,7 @@ function Thing({
   width: number;
   flip: boolean;
   z: number;
+  under: number;
   grab?: Grab;
   chosen?: CardPart | null;
 }) {
@@ -525,7 +533,7 @@ function Thing({
   if (item.kind === "onion") art = <OnionArt />;
   else if (item.kind === "kraft") art = <Kraft />;
   else if (item.kind === "white") art = <Mount seed={item.seed ?? 7} />;
-  else if (item.kind === "gem" || item.kind === "drop") art = <ClipArt kind={item.kind} id={id} />;
+  else if (item.kind === "gem" || item.kind === "drop") art = <ClipArt kind={item.kind} id={id} half="front" />;
   else if (item.kind === "stud") art = <StudArt id={id} />;
   else if (item.kind === "flower" && SPRIG && b)
     art = (
@@ -553,19 +561,68 @@ function Thing({
         </div>
       );
   }
+  const place = b ? placeOf(b, width, flip) : {};
   return (
-    <div
-      className={styles.thing}
-      data-kind={item.kind}
-      data-fitted={!b || undefined}
-      {...holdable(me, grab, chosen, (e) => (item.kind === "photo" && e.altKey ? "crop" : "move"))}
-      style={{ ...(b ? placeOf(b, width, flip) : {}), zIndex: z }}
-    >
-      {art}
-      {grab && same(chosen, me) ? <Handles part={me} grab={grab} /> : null}
-    </div>
+    <>
+      {(item.kind === "gem" || item.kind === "drop") && b ? (
+        <div className={styles.thing} data-kind={item.kind} data-half="back" style={{ ...place, zIndex: under }}>
+          <ClipArt kind={item.kind} id={`${id}b`} half="back" />
+        </div>
+      ) : null}
+      <div
+        className={styles.thing}
+        data-kind={item.kind}
+        data-thing={item.id}
+        data-fitted={!b || undefined}
+        {...holdable(me, grab, chosen, (e) => (item.kind === "photo" && e.altKey ? "crop" : "move"))}
+        style={{ ...place, zIndex: z }}
+      >
+        {art}
+        {grab && same(chosen, me) ? <Handles part={me} grab={grab} /> : null}
+      </div>
+    </>
   );
 }
+
+/** Lines of a list as the file has them: each run of items one list — the
+ *  steps numbered from where the file numbers them — and any other line
+ *  words of its own between them. */
+function Lines({ lines, numbered = false }: { lines: Line[]; numbered?: boolean }) {
+  const runs: (Line | Line[])[] = [];
+  for (const l of lines) {
+    const last = runs[runs.length - 1];
+    if (l.item && Array.isArray(last)) last.push(l);
+    else runs.push(l.item ? [l] : l);
+  }
+  return (
+    <>
+      {runs.map((r, k) =>
+        !Array.isArray(r) ? (
+          <p key={k} className={numbered ? styles.stepWords : styles.itemWords}>
+            {inline(r.text)}
+          </p>
+        ) : numbered ? (
+          <ol key={k} className={styles.steps} start={r[0].n ?? 1}>
+            {r.map((l, j) => (
+              <li key={j} value={l.n}>
+                {inline(l.text)}
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <ul key={k} className={styles.items}>
+            {r.map((l, j) => (
+              <li key={j}>{inline(l.text)}</li>
+            ))}
+          </ul>
+        ),
+      )}
+    </>
+  );
+}
+
+/** Which kinds of things are paper, for a clip or pin to hold. */
+const PAPER = new Set<Item["kind"]>(["onion", "kraft", "white", "photo"]);
 
 /**
  * A recipe, printed on a card of handmade paper the way a menu is: the name,
@@ -660,7 +717,7 @@ export default function RecipePaper({
           const dy = (ev.clientY - y0) / width;
           const turn = angle(ev.clientX, ev.clientY) - a0;
           if (part.part === "item") {
-            const it = start.items.find((x): x is Item => x !== "steps" && x.id === part.id);
+            const it = start.items.find((x): x is Item => typeof x !== "string" && x.id === part.id);
             if (!it) return;
             const f = it.at === "foot" && flipFoot ? -1 : 1;
             const b = it.box ?? drawn;
@@ -681,11 +738,11 @@ export default function RecipePaper({
               next = { ...it, box: { ...b, width: w, height: h, x: f < 0 ? b.x - (w - b.width) : b.x } };
             } else next = { ...it, box: { ...b, rotate: b.rotate + turn * f } };
             edit.change({ ...start, items: start.items.map((x) => (x === it ? next : x)) });
-          } else if (part.part === "steps") {
-            const st = start.steps;
+          } else if (part.part === "steps" || part.part === "notes") {
+            const st = start[part.part];
             edit.change({
               ...start,
-              steps:
+              [part.part]:
                 grip === "move"
                   ? { ...st, x: st.x + dx, y: st.y + dy }
                   : grip === "size"
@@ -706,13 +763,41 @@ export default function RecipePaper({
     : undefined;
   const chosen = edit?.selected;
 
-  // What is laid on the card, each in its place in front of the one before;
-  // and how far down under the steps it reaches, so the card is long enough.
+  // What is laid on the card, each in its place in front of the one before
+  // — two apart, so a clip's back half can go between — and how far down
+  // under the steps it reaches, so the card is long enough.
   const order = card.items;
-  const zOf = (x: Item | "steps") => order.indexOf(x) + 1;
+  const zOf = (x: Layer) => 2 * (order.indexOf(x) + 1);
+
+  // A clip holds every paper it is over: its back half behind the furthest
+  // back of them, its front half in front of the furthest forward — and a
+  // pin goes through them all, its head in front. Found from where they are
+  // drawn.
+  const [grips, setGrips] = useState<Record<string, { under: number; over: number }>>({});
+  useLayoutEffect(() => {
+    const root = box.current;
+    if (!root) return;
+    const rectOf = (id: string) => root.querySelector(`[data-thing="${id}"]`)?.getBoundingClientRect();
+    const papers = order
+      .filter((x): x is Item => typeof x !== "string" && PAPER.has(x.kind))
+      .map((p) => ({ z: zOf(p), r: rectOf(p.id) }));
+    const next: Record<string, { under: number; over: number }> = {};
+    for (const x of order) {
+      if (typeof x === "string" || PAPER.has(x.kind) || x.kind === "flower") continue;
+      const r = rectOf(x.id);
+      const own = zOf(x);
+      const held = r
+        ? papers.filter((p) => p.r && p.r.left < r.right && p.r.right > r.left && p.r.top < r.bottom && p.r.bottom > r.top)
+        : [];
+      next[x.id] = held.length
+        ? { under: Math.min(...held.map((p) => p.z)) - 1, over: Math.max(own, ...held.map((p) => p.z + 1)) }
+        : { under: own - 1, over: own };
+    }
+    if (JSON.stringify(next) !== JSON.stringify(grips)) setGrips(next);
+  });
   const things = (at: Item["at"]) =>
     order
-      .filter((x): x is Item => x !== "steps" && x.at === at)
+      .filter((x): x is Item => typeof x !== "string" && x.at === at)
       .map((it) => (
         <Thing
           key={it.id}
@@ -720,39 +805,31 @@ export default function RecipePaper({
           photos={recipe.photos}
           width={width}
           flip={at === "foot" && flipFoot}
-          z={zOf(it)}
+          z={grips[it.id]?.over ?? zOf(it)}
+          under={grips[it.id]?.under ?? zOf(it) - 1}
           grab={grab}
           chosen={chosen}
         />
       ));
-  const footItems = order.filter((x): x is Item => x !== "steps" && x.at === "foot" && !!x.box);
+  const footItems = order.filter((x): x is Item => typeof x !== "string" && x.at === "foot" && !!x.box);
   const footHigh = footItems.length ? Math.max(0, ...footItems.map((it) => (it.box!.y + it.box!.height) * width)) + 26 : 0;
-  const stepsZ = order.includes("steps") ? zOf("steps") : 1;
 
-  const steps = (
-    <>
-      {recipe.steps.length ? (
-        <section>
-          <h3 className={styles.heading}>Steps</h3>
-          <ol className={styles.steps}>
-            {recipe.steps.map((step, k) => (
-              <li key={k}>{inline(step)}</li>
-            ))}
-          </ol>
-        </section>
-      ) : null}
-
-      {recipe.notes.length ? (
-        <section>
-          {recipe.notes.map((n, k) => (
-            <Fragment key={k}>
-              {n.heading ? <h3 className={styles.heading}>{inline(n.heading)}</h3> : null}
-              <p className={styles.note}>{inline(n.text)}</p>
-            </Fragment>
-          ))}
-        </section>
-      ) : null}
-    </>
+  /** The steps, or the notes, where the card has them and in their place
+   *  among what is laid on it. */
+  const words = (part: "steps" | "notes", children: React.ReactNode) => (
+    <div
+      className={styles.stepsText}
+      data-words={part}
+      {...holdable({ part }, grab, chosen)}
+      style={{
+        transform: `translate(${card[part].x * width}px, ${card[part].y * width}px) rotate(${card[part].rotate}deg)`,
+        width: card[part].width === undefined ? undefined : card[part].width * width,
+        zIndex: order.includes(part) ? zOf(part) : 2,
+      }}
+    >
+      {children}
+      {grab && same(chosen, { part }) ? <Handles part={{ part }} grab={grab} /> : null}
+    </div>
   );
 
   return (
@@ -778,18 +855,14 @@ export default function RecipePaper({
           </p>
         ) : null}
 
-        {recipe.ingredients.some((g) => g.items.length) ? (
+        {recipe.ingredients.some((g) => g.lines.length) ? (
           <section>
             <h3 className={styles.heading}>Ingredients</h3>
             <div className={styles.shopping} data-grouped={recipe.ingredients.length > 1 || undefined}>
               {recipe.ingredients.map((g, i) => (
                 <div key={i} className={styles.group}>
                   {g.heading ? <h4 className={styles.sub}>{inline(g.heading)}</h4> : null}
-                  <ul className={styles.items}>
-                    {g.items.map((item, k) => (
-                      <li key={k}>{inline(item)}</li>
-                    ))}
-                  </ul>
+                  <Lines lines={g.lines} />
                 </div>
               ))}
             </div>
@@ -800,20 +873,28 @@ export default function RecipePaper({
             measured from, whether there are any steps or not. */}
         <div className={styles.stepsArea}>
           <div className={styles.layer}>{things("steps")}</div>
-          {recipe.steps.length || recipe.notes.length ? (
-            <div
-              className={styles.stepsText}
-              {...holdable({ part: "steps" }, grab, chosen)}
-              style={{
-                transform: `translate(${card.steps.x * width}px, ${card.steps.y * width}px) rotate(${card.steps.rotate}deg)`,
-                width: card.steps.width === undefined ? undefined : card.steps.width * width,
-                zIndex: stepsZ,
-              }}
-            >
-              {steps}
-              {grab && same(chosen, { part: "steps" }) ? <Handles part={{ part: "steps" }} grab={grab} /> : null}
-            </div>
-          ) : null}
+          {recipe.steps.length
+            ? words(
+                "steps",
+                <section>
+                  <h3 className={styles.heading}>Steps</h3>
+                  <Lines lines={recipe.steps} numbered />
+                </section>,
+              )
+            : null}
+          {recipe.notes.length
+            ? words(
+                "notes",
+                <section>
+                  {recipe.notes.map((n, k) => (
+                    <Fragment key={k}>
+                      {n.heading ? <h3 className={styles.heading}>{inline(n.heading)}</h3> : null}
+                      <p className={styles.note}>{inline(n.text)}</p>
+                    </Fragment>
+                  ))}
+                </section>,
+              )
+            : null}
         </div>
 
         {/* Under the steps, at the foot of the card: the photos, as a rule. */}
