@@ -4,15 +4,7 @@ import Image from "next/image";
 import { Fragment, useId, useLayoutEffect, useRef, useState } from "react";
 import Drawn from "@/components/Drawn";
 import { garamond } from "@/components/recipeFonts";
-import {
-  decorations,
-  type Box,
-  type Fastener,
-  type PhotoPlace,
-  type PinPlace,
-  type Recipe,
-  type RecipeCard,
-} from "@/content";
+import { KINDS, decorations, type Box, type Item, type Recipe, type RecipeCard } from "@/content";
 import handles from "./TableSetting.module.css";
 import styles from "./RecipePaper.module.css";
 
@@ -22,7 +14,7 @@ const BLEED = 12;
 /** How far in from the sheet's edge the words are, at the sides. */
 const PAD_X = BLEED + 36;
 
-/** The sprig laid over the photos. */
+/** The flower that can be laid on the card. */
 const SPRIG = decorations.find((d) => d.id === "flower3")?.image;
 
 /** *Italic* and **bold**, which is all a recipe needs of markdown in a line. */
@@ -249,17 +241,9 @@ function Mount({ seed = 1 }: { seed?: number }) {
   );
 }
 
-/** A part of the card the editor can take hold of: a photo on its paper,
- *  the brown card under one, the flower, the steps, the onion skin over
- *  them, what holds that on, or the name. */
-export type CardPart =
-  | { part: "print"; i: number }
-  | { part: "kraft"; i: number }
-  | { part: "sprig" }
-  | { part: "steps" }
-  | { part: "sheet" }
-  | { part: "fastener" }
-  | { part: "name" };
+/** A part of the card the editor can take hold of: one of the things laid
+ *  on it, the steps, or the name. */
+export type CardPart = { part: "item"; id: string } | { part: "steps" } | { part: "name" };
 
 /** Making up the card in the editor, in development only — see
  *  RecipeEditor: which part is chosen, and the card as it is changed. */
@@ -270,26 +254,31 @@ export type CardEdit = {
 };
 
 /** How a part is taken hold of: dragged, sized from its corner, turned from
- *  the stalk above it — or, for a photo, the picture moved in its frame. */
+ *  the stalk above it — or, for a photo, the picture moved in its box. */
 type Grip = "move" | "size" | "turn" | "crop";
 type Grab = (part: CardPart, grip: Grip, e: React.PointerEvent<HTMLElement>) => void;
 
 export const samePart = (a: CardPart | null | undefined, b: CardPart) =>
-  !!a && a.part === b.part && (!("i" in a) || ("i" in b && a.i === b.i));
+  !!a && a.part === b.part && (a.part !== "item" || (b.part === "item" && a.id === b.id));
 const same = samePart;
 
 /** The corner and the stalk a chosen part is sized and turned by. */
-function Handles({ part, grab, size = true, turn = true }: { part: CardPart; grab: Grab; size?: boolean; turn?: boolean }) {
+function Handles({ part, grab }: { part: CardPart; grab: Grab }) {
   return (
     <>
-      {turn ? <span className={handles.turn} onPointerDown={(e) => grab(part, "turn", e)} /> : null}
-      {size ? <span className={handles.size} onPointerDown={(e) => grab(part, "size", e)} /> : null}
+      <span className={handles.turn} onPointerDown={(e) => grab(part, "turn", e)} />
+      <span className={handles.size} onPointerDown={(e) => grab(part, "size", e)} />
     </>
   );
 }
 
 /** What the editor puts on a part it can take hold of. */
-const holdable = (part: CardPart, grab: Grab | undefined, chosen: CardPart | null | undefined, grip: (e: React.PointerEvent<HTMLElement>) => Grip = () => "move") => ({
+const holdable = (
+  part: CardPart,
+  grab: Grab | undefined,
+  chosen: CardPart | null | undefined,
+  grip: (e: React.PointerEvent<HTMLElement>) => Grip = () => "move",
+) => ({
   "data-grab": "",
   "data-editing": grab ? "" : undefined,
   "data-selected": (grab && same(chosen, part)) || undefined,
@@ -330,53 +319,33 @@ const CLIPS = {
   },
 } as const;
 
-/** How big each fastener is drawn, and how far above the sheet's top edge
- *  it starts: a clip straddles the edge, a pin is through the sheet. */
-const PIN = {
-  gem: { w: 18 * CLIPS.gem.scale, h: 68 * CLIPS.gem.scale, top: -(CLIPS.gem.edge + 1) * CLIPS.gem.scale, rotate: 4 },
-  drop: { w: 31 * CLIPS.drop.scale, h: 46 * CLIPS.drop.scale, top: -(CLIPS.drop.edge + 1) * CLIPS.drop.scale, rotate: -8 },
-  stud: { w: 11, h: 11, top: 15, rotate: 0 },
-} as const;
-
-/** Where a fastener is, on a sheet the card is `width` wide: the usual
- *  place, near the right of its top edge, or where `pin` says. */
-const pinned = (kind: keyof typeof PIN, pin: PinPlace | undefined, width: number): React.CSSProperties => {
-  const k = PIN[kind];
-  if (!pin) return { width: k.w, height: k.h, top: k.top, transform: `rotate(${k.rotate}deg)` };
-  const w = k.w * pin.scale;
-  const h = k.h * pin.scale;
-  return {
-    width: w,
-    height: h,
-    left: `calc(${pin.x * 100}% - ${w / 2}px)`,
-    right: "auto",
-    top: k.top * pin.scale + pin.y * width,
-    transform: `rotate(${pin.rotate}deg)`,
-  };
-};
-
-function Clip({ kind, part, id }: { kind: "gem" | "drop"; part: "front" | "back"; id: string }) {
+/** A clip, its two halves: the wire over the paper, and the wire behind it,
+ *  seen through it — onion skin being as thin as it is. */
+function ClipArt({ kind, id }: { kind: "gem" | "drop"; id: string }) {
   const c = CLIPS[kind];
   const [w, h] = c.box;
   return (
-    <svg width="100%" height="100%" viewBox={`-1 -1 ${w + 2} ${h + 2}`} overflow="visible" aria-hidden>
+    <svg width="100%" height="100%" viewBox={`-1 -1 ${w + 2} ${h + 2}`} preserveAspectRatio="none" overflow="visible" aria-hidden>
       <defs>
-        <linearGradient id={`${id}-${part}-metal`} x1="0" y1="0" x2="1" y2="0.15">
+        <linearGradient id={`${id}-metal`} x1="0" y1="0" x2="1" y2="0.15">
           <stop offset="0" stopColor={c.metal[0]} />
           <stop offset="0.45" stopColor={c.metal[1]} />
           <stop offset="0.6" stopColor={c.metal[2]} />
           <stop offset="1" stopColor={c.metal[3]} />
         </linearGradient>
       </defs>
-      <path d={c[part]} className={styles.wire} stroke={`url(#${id}-${part}-metal)`} />
-      <path d={c[part]} className={styles.glint} />
+      <g className={styles.behind}>
+        <path d={c.back} className={styles.wire} stroke={`url(#${id}-metal)`} />
+      </g>
+      <path d={c.front} className={styles.wire} stroke={`url(#${id}-metal)`} />
+      <path d={c.front} className={styles.glint} />
     </svg>
   );
 }
 
-/** A gold stud pin through the sheet into the card: a small domed head,
+/** A gold stud pin through the paper into the card: a small domed head,
  *  lit from the top left. */
-function Stud({ id }: { id: string }) {
+function StudArt({ id }: { id: string }) {
   return (
     <svg width="100%" height="100%" viewBox="0 0 11 11" overflow="visible" aria-hidden>
       <defs>
@@ -393,75 +362,14 @@ function Stud({ id }: { id: string }) {
   );
 }
 
-/** A fastener, or the half of a clip behind the sheet, where it is. */
-function Fasten({
-  kind,
-  part,
-  id,
-  pin,
-  width,
-  grab,
-  chosen,
-}: {
-  kind: "gem" | "drop" | "stud";
-  part: "front" | "back";
-  id: string;
-  pin?: PinPlace;
-  width: number;
-  grab?: Grab;
-  chosen?: CardPart | null;
-}) {
-  const me = { part: "fastener" } as const;
-  const live = grab && part === "front";
-  return (
-    <span
-      className={styles.fasten}
-      data-kind={kind}
-      data-part={part}
-      data-grab={live ? "" : undefined}
-      data-editing={live ? "" : undefined}
-      data-selected={(live && same(chosen, me)) || undefined}
-      style={pinned(kind, pin, width)}
-      onPointerDown={live ? (e) => grab(me, "move", e) : undefined}
-    >
-      {kind === "stud" ? <Stud id={id} /> : <Clip kind={kind} part={part} id={id} />}
-      {live && same(chosen, me) ? <Handles part={me} grab={grab} /> : null}
-    </span>
-  );
-}
-
 /**
- * A sheet of onion skin laid over the steps: so thin the card shows through
- * it, with a fine grain and the faint cockle that thin paper takes on — and
- * held on by its fastener: a clip on its top edge, or a pin through it. Just
- * round the steps as they fall, unless the card's `sheet` puts it somewhere.
+ * A sheet of onion skin: so thin the card shows through it, with a fine
+ * grain and the faint cockle that thin paper takes on.
  */
-function Onion({
-  sheet,
-  width,
-  grab,
-  chosen,
-}: {
-  sheet: RecipeCard["sheet"];
-  width: number;
-  grab?: Grab;
-  chosen?: CardPart | null;
-}) {
+function OnionArt() {
   const id = useId().replace(/:/g, "");
-  const fastener: Fastener = sheet.fastener;
-  const me = { part: "sheet" } as const;
   return (
-    <div
-      className={styles.onionPaper}
-      data-sheet=""
-      data-placed={sheet.box ? "" : undefined}
-      {...holdable(me, grab, chosen)}
-      style={sheet.box ? placeOf(sheet.box, width) : undefined}
-    >
-      {fastener === "gem" || fastener === "drop" ? (
-        <Fasten kind={fastener} part="back" id={id} pin={sheet.pin} width={width} />
-      ) : null}
-      <div className={styles.onion}>
+    <div className={styles.onion}>
         <svg className={styles.onionSkin} width="100%" height="100%" aria-hidden>
           <defs>
             <filter id={`${id}-skin`} x="-4%" y="-8%" width="108%" height="120%" colorInterpolationFilters="sRGB">
@@ -531,11 +439,6 @@ function Onion({
           </defs>
           <rect width="100%" height="100%" fill="#fff" filter={`url(#${id}-skin)`} />
         </svg>
-        {fastener !== "none" ? (
-          <Fasten kind={fastener} part="front" id={id} pin={sheet.pin} width={width} grab={grab} chosen={chosen} />
-        ) : null}
-      </div>
-      {grab && same(chosen, me) ? <Handles part={me} grab={grab} /> : null}
     </div>
   );
 }
@@ -594,114 +497,72 @@ function Deboss({ text, crest }: { text: string; crest?: number }) {
   );
 }
 
-/** How much of the white paper shows round a photo, as a fraction of the
- *  paper's width, if not chosen. */
-const WHITE_MARGIN = 0.073;
-
-/** One photo in its frame, cropped as `crop` says. */
-function Photo({
-  photo,
-  wide,
-  inset,
-  crop,
-}: {
-  photo: Recipe["photos"][number];
-  wide: number;
-  inset: number;
-  crop?: PhotoPlace["crop"];
-}) {
-  const c = crop ?? { zoom: 1, x: 50, y: 50 };
-  return (
-    <div className={styles.photo} style={{ inset }}>
-      <Image
-        src={photo.image}
-        alt={photo.alt}
-        fill
-        sizes={`${Math.round(wide * c.zoom)}px`}
-        style={{
-          objectPosition: `${c.x}% ${c.y}%`,
-          transform: c.zoom === 1 ? undefined : `scale(${c.zoom})`,
-          transformOrigin: `${c.x}% ${c.y}%`,
-        }}
-      />
-    </div>
-  );
-}
-
-/** The recipe's photos at the foot of the card, each on its paper and its
- *  brown card where the card's `places` say, and the flower where `sprig`
- *  says — as they are on the right-hand side, mirrored on the left, the side
- *  `toward`. */
-function Photos({
+/**
+ * One thing laid on the card, where its `box` says — mirrored if `flip` —
+ * and `z` in front of the card: in the editor it can be taken hold of.
+ */
+function Thing({
+  item,
   photos,
-  places,
-  sprig,
   width,
-  toward,
+  flip,
+  z,
   grab,
   chosen,
 }: {
+  item: Item;
   photos: Recipe["photos"];
-  places: PhotoPlace[];
-  sprig: RecipeCard["sprig"];
   width: number;
-  toward: "left" | "right";
+  flip: boolean;
+  z: number;
   grab?: Grab;
   chosen?: CardPart | null;
 }) {
-  const flip = toward === "left";
-  // As tall as the usual fan of them, so that moving one up does not move
-  // the rest; taller if one is moved further down.
-  const usual = (0.42 * 0.8 + ((photos.length - 1) * 16 + 14) / 600) * width;
-  const bottoms = places.flatMap((p) => [p.print, ...(p.kraft ? [p.kraft] : [])]).map((b) => (b.y + b.height) * width);
-  const high = Math.max(usual, ...bottoms) + 26;
-  return (
-    <div className={styles.photos} style={{ height: high, marginLeft: -PAD_X, width }}>
-      {/* The first on top: the rest laid down before it, each card under its
-          photo. */}
-      {photos
-        .map((photo, k) => ({ photo, k }))
-        .reverse()
-        .map(({ photo, k }) => {
-          const place = places[k];
-          if (!place) return null;
-          const card = { part: "kraft", i: k } as const;
-          const print = { part: "print", i: k } as const;
-          const wide = place.print.width * width;
-          return (
-            <Fragment key={k}>
-              {place.kraft ? (
-                <div className={styles.kraftPiece} {...holdable(card, grab, chosen)} style={placeOf(place.kraft, width, flip)}>
-                  <Kraft />
-                  {grab && same(chosen, card) ? <Handles part={card} grab={grab} /> : null}
-                </div>
-              ) : null}
-              <figure
-                className={styles.print}
-                data-white={place.white || undefined}
-                {...holdable(print, grab, chosen, (e) => (e.altKey ? "crop" : "move"))}
-                style={placeOf(place.print, width, flip)}
-              >
-                {place.white ? <Mount seed={7 + k * 13} /> : null}
-                <Photo
-                  photo={photo}
-                  wide={wide}
-                  inset={place.white ? (place.whiteMargin ?? WHITE_MARGIN) * wide : 0}
-                  crop={place.crop}
-                />
-                {grab && same(chosen, print) ? <Handles part={print} grab={grab} /> : null}
-              </figure>
-            </Fragment>
-          );
-        })}
-      {SPRIG && sprig ? (
-        <div className={styles.sprig} {...holdable({ part: "sprig" }, grab, chosen)} style={placeOf(sprig, width, flip)}>
-          <div style={{ transform: sprig.mirror !== flip ? "scaleX(-1)" : undefined }}>
-            <Drawn image={SPRIG} width={sprig.width * width} />
-          </div>
-          {grab && same(chosen, { part: "sprig" }) ? <Handles part={{ part: "sprig" }} grab={grab} /> : null}
+  const id = useId().replace(/:/g, "");
+  const me = { part: "item", id: item.id } as const;
+  const b = item.box;
+  let art: React.ReactNode = null;
+  if (item.kind === "onion") art = <OnionArt />;
+  else if (item.kind === "kraft") art = <Kraft />;
+  else if (item.kind === "white") art = <Mount seed={item.seed ?? 7} />;
+  else if (item.kind === "gem" || item.kind === "drop") art = <ClipArt kind={item.kind} id={id} />;
+  else if (item.kind === "stud") art = <StudArt id={id} />;
+  else if (item.kind === "flower" && SPRIG && b)
+    art = (
+      <div style={{ transform: !!item.mirror !== flip ? "scaleX(-1)" : undefined }}>
+        <Drawn image={SPRIG} width={b.width * width} />
+      </div>
+    );
+  else if (item.kind === "photo") {
+    const photo = photos[item.photo ?? 0];
+    const c = item.crop ?? { zoom: 1, x: 50, y: 50 };
+    if (photo && b)
+      art = (
+        <div className={styles.photo}>
+          <Image
+            src={photo.image}
+            alt={photo.alt}
+            fill
+            sizes={`${Math.round(b.width * width * c.zoom)}px`}
+            style={{
+              objectPosition: `${c.x}% ${c.y}%`,
+              transform: c.zoom === 1 ? undefined : `scale(${c.zoom})`,
+              transformOrigin: `${c.x}% ${c.y}%`,
+            }}
+          />
         </div>
-      ) : null}
+      );
+  }
+  return (
+    <div
+      className={styles.thing}
+      data-kind={item.kind}
+      data-fitted={!b || undefined}
+      {...holdable(me, grab, chosen, (e) => (item.kind === "photo" && e.altKey ? "crop" : "move"))}
+      style={{ ...(b ? placeOf(b, width, flip) : {}), zIndex: z }}
+    >
+      {art}
+      {grab && same(chosen, me) ? <Handles part={me} grab={grab} /> : null}
     </div>
   );
 }
@@ -764,9 +625,11 @@ export default function RecipePaper({
     return () => watch.disconnect();
   }, [width]);
 
+  const flipFoot = toward === "left";
+
   /** Taking hold of a part: drag it, size it from its corner or turn it from
    *  its stalk, until the pointer lets go. Moves are in fractions of the
-   *  card's width, and mirrored for what is at its foot when it hangs off the
+   *  card's width — mirrored, under the steps, when things hang off the
    *  left. */
   const grab: Grab | undefined = edit
     ? (part, grip, e) => {
@@ -783,9 +646,8 @@ export default function RecipePaper({
         const angle = (x: number, y: number) => (Math.atan2(y - cy, x - cx) * 180) / Math.PI;
         const a0 = angle(x0, y0);
         const start = card;
-        const flip = toward === "left" ? -1 : 1;
-        // Where a part is drawn as it is taken hold of, for when the card
-        // has it nowhere of its own yet.
+        // Where it is drawn as it is taken hold of, for onion skin that is
+        // just round the steps, and so has no box of its own yet.
         const drawn: Box = {
           x: el.offsetLeft / width,
           y: el.offsetTop / width,
@@ -797,43 +659,28 @@ export default function RecipePaper({
           const dx = (ev.clientX - x0) / width;
           const dy = (ev.clientY - y0) / width;
           const turn = angle(ev.clientX, ev.clientY) - a0;
-          /** A box moved, sized from its far corner, or turned. */
-          const shift = <B extends Box>(b: B, f = flip): B => {
-            if (grip === "move") return { ...b, x: b.x + dx * f, y: b.y + dy };
-            if (grip === "size") {
-              const w = Math.max(0.03, b.width + dx);
-              const h = Math.max(0.03, b.height + dy);
-              // Its near edge stays where it is, whichever way it is drawn.
-              return { ...b, width: w, height: h, x: f < 0 ? b.x - (w - b.width) : b.x };
-            }
-            return { ...b, rotate: b.rotate + turn * f };
-          };
-          const photo = (i: number, q: Partial<PhotoPlace>) =>
-            edit.change({ ...start, photos: start.photos.map((o, k) => (k === i ? { ...o, ...q } : o)) });
-
-          if (part.part === "print") {
-            const p = start.photos[part.i];
+          if (part.part === "item") {
+            const it = start.items.find((x): x is Item => x !== "steps" && x.id === part.id);
+            if (!it) return;
+            const f = it.at === "foot" && flipFoot ? -1 : 1;
+            const b = it.box ?? drawn;
+            let next: Item;
             if (grip === "crop") {
-              // The picture moved in its frame: dragging it right shows
-              // more of its left.
-              const c = p.crop ?? { zoom: 1, x: 50, y: 50 };
+              // The picture moved in its box: dragging it right shows more
+              // of its left.
+              const c = it.crop ?? { zoom: 1, x: 50, y: 50 };
               const k = 100 / c.zoom;
               const clamp = (v: number) => Math.max(0, Math.min(100, v));
-              photo(part.i, {
-                crop: { ...c, x: clamp(c.x - (dx / p.print.width) * k * flip), y: clamp(c.y - (dy / p.print.height) * k) },
-              });
-            } else photo(part.i, { print: shift(p.print) });
-          } else if (part.part === "kraft") {
-            const k = start.photos[part.i].kraft;
-            if (k) photo(part.i, { kraft: shift(k) });
-          } else if (part.part === "sprig") {
-            if (start.sprig) {
-              const sp = shift(start.sprig);
-              // Kept square: the drawing is as tall as it is wide.
-              edit.change({ ...start, sprig: grip === "size" ? { ...sp, height: sp.width } : sp });
-            }
-          } else if (part.part === "sheet") {
-            edit.change({ ...start, sheet: { ...start.sheet, box: shift(start.sheet.box ?? drawn, 1) } });
+              next = { ...it, crop: { ...c, x: clamp(c.x - (dx / b.width) * k * f), y: clamp(c.y - (dy / b.height) * k) } };
+            } else if (grip === "move") next = { ...it, box: { ...b, x: b.x + dx * f, y: b.y + dy } };
+            else if (grip === "size") {
+              const w = Math.max(0.01, b.width + dx);
+              // Clips, pins and the flower keep their shape.
+              const h = KINDS[it.kind].keepShape ? (w * b.height) / b.width : Math.max(0.01, b.height + dy);
+              // Its near edge stays where it is, whichever way it is drawn.
+              next = { ...it, box: { ...b, width: w, height: h, x: f < 0 ? b.x - (w - b.width) : b.x } };
+            } else next = { ...it, box: { ...b, rotate: b.rotate + turn * f } };
+            edit.change({ ...start, items: start.items.map((x) => (x === it ? next : x)) });
           } else if (part.part === "steps") {
             const st = start.steps;
             edit.change({
@@ -845,32 +692,8 @@ export default function RecipePaper({
                     ? { ...st, width: Math.max(0.2, (st.width ?? drawn.width) + dx) }
                     : { ...st, rotate: st.rotate + turn },
             });
-          } else if (part.part === "name") {
-            edit.change({ ...start, nameDrop: start.nameDrop + dy });
           } else {
-            // The fastener: from where it is drawn, the first time.
-            const sheetEl = el.closest("[data-sheet]") as HTMLElement | null;
-            const kind = start.sheet.fastener === "none" ? "stud" : start.sheet.fastener;
-            const sr = sheetEl?.getBoundingClientRect();
-            const pin0: PinPlace = start.sheet.pin ?? {
-              x: sr ? (cx - sr.left) / sr.width : 0.9,
-              y: 0,
-              scale: 1,
-              rotate: PIN[kind].rotate,
-            };
-            const sw = (sheetEl?.offsetWidth ?? width) / width;
-            const pin: PinPlace =
-              grip === "move"
-                ? { ...pin0, x: pin0.x + dx / sw, y: pin0.y + dy }
-                : grip === "size"
-                  ? {
-                      ...pin0,
-                      // The corner follows the pointer: as much bigger as it
-                      // is dragged out.
-                      scale: Math.max(0.4, Math.min(4, pin0.scale + ((dx + dy) * width) / 2 / Math.max(PIN[kind].w, PIN[kind].h))),
-                    }
-                  : { ...pin0, rotate: pin0.rotate + turn };
-            edit.change({ ...start, sheet: { ...start.sheet, pin } });
+            edit.change({ ...start, nameDrop: start.nameDrop + dy });
           }
         };
         const up = () => {
@@ -882,6 +705,29 @@ export default function RecipePaper({
       }
     : undefined;
   const chosen = edit?.selected;
+
+  // What is laid on the card, each in its place in front of the one before;
+  // and how far down under the steps it reaches, so the card is long enough.
+  const order = card.items;
+  const zOf = (x: Item | "steps") => order.indexOf(x) + 1;
+  const things = (at: Item["at"]) =>
+    order
+      .filter((x): x is Item => x !== "steps" && x.at === at)
+      .map((it) => (
+        <Thing
+          key={it.id}
+          item={it}
+          photos={recipe.photos}
+          width={width}
+          flip={at === "foot" && flipFoot}
+          z={zOf(it)}
+          grab={grab}
+          chosen={chosen}
+        />
+      ));
+  const footItems = order.filter((x): x is Item => x !== "steps" && x.at === "foot" && !!x.box);
+  const footHigh = footItems.length ? Math.max(0, ...footItems.map((it) => (it.box!.y + it.box!.height) * width)) + 26 : 0;
+  const stepsZ = order.includes("steps") ? zOf("steps") : 1;
 
   const steps = (
     <>
@@ -950,34 +796,32 @@ export default function RecipePaper({
           </section>
         ) : null}
 
-        {recipe.steps.length || recipe.notes.length ? (
-          <div className={styles.stepsArea}>
-            {card.sheet.paper === "onion" ? <Onion sheet={card.sheet} width={width} grab={grab} chosen={chosen} /> : null}
+        {/* Where the steps are — and where what is laid round them is
+            measured from, whether there are any steps or not. */}
+        <div className={styles.stepsArea}>
+          <div className={styles.layer}>{things("steps")}</div>
+          {recipe.steps.length || recipe.notes.length ? (
             <div
               className={styles.stepsText}
               {...holdable({ part: "steps" }, grab, chosen)}
               style={{
                 transform: `translate(${card.steps.x * width}px, ${card.steps.y * width}px) rotate(${card.steps.rotate}deg)`,
                 width: card.steps.width === undefined ? undefined : card.steps.width * width,
+                zIndex: stepsZ,
               }}
             >
               {steps}
               {grab && same(chosen, { part: "steps" }) ? <Handles part={{ part: "steps" }} grab={grab} /> : null}
             </div>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
-        {recipe.photos.length ? (
-          <Photos
-            photos={recipe.photos}
-            places={card.photos}
-            sprig={card.sprig}
-            width={width}
-            toward={toward}
-            grab={grab}
-            chosen={chosen}
-          />
-        ) : null}
+        {/* Under the steps, at the foot of the card: the photos, as a rule. */}
+        <div className={styles.foot} style={{ height: footHigh, marginLeft: -PAD_X, width, paddingTop: footHigh ? undefined : 0 }}>
+          <div className={styles.layer} style={{ left: 0 }}>
+            {things("foot")}
+          </div>
+        </div>
       </div>
     </div>
   );

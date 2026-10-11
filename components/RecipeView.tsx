@@ -8,7 +8,7 @@ import Drawn from "@/components/Drawn";
 import RecipePaper, { type CardPart } from "@/components/RecipePaper";
 import type { Laid, Vec } from "@/components/bakeryLayout";
 import { garamond } from "@/components/recipeFonts";
-import { TABLE_WIDTH, cardFor, decorations, usualCard, type Recipe, type RecipeCard } from "@/content";
+import { TABLE_WIDTH, cardFor, decorations, loadRecipeCards, usualCard, type Recipe, type RecipeCard } from "@/content";
 import styles from "./RecipeView.module.css";
 
 const DEV = process.env.NODE_ENV === "development";
@@ -339,6 +339,14 @@ export default function RecipeView({
 
   // How the card is made up: as content/recipeCards.ts has it — and, while
   // it is being made up in the editor (in development only), as it is.
+  const [, cardsRead] = useState(0);
+  useEffect(() => {
+    let off = false;
+    loadRecipeCards().then(() => !off && cardsRead((n) => n + 1));
+    return () => {
+      off = true;
+    };
+  }, []);
   const saved = cardFor(recipe.id, recipe.photos.length);
   const [draft, setDraft] = useState<RecipeCard | null>(null);
   const [editing, setEditing] = useState(false);

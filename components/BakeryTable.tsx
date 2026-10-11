@@ -7,7 +7,7 @@ import RecipeView from "@/components/RecipeView";
 import Tablecloth from "@/components/Tablecloth";
 import TableSetting, { type Edit, type Grip, type Part } from "@/components/TableSetting";
 import { laidOut, layTable, placements, type Laid, type Table } from "@/components/bakeryLayout";
-import { TABLE_WIDTH, lostLine, recipes } from "@/content";
+import { TABLE_WIDTH, loadRecipeCards, lostLine, recipes } from "@/content";
 import styles from "./SideQuestsBody.module.css";
 
 /** The editor is for laying the table while the site is being worked on, and
@@ -106,6 +106,12 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
 
   // Measured rather than rendered on the server: it is the window's size.
   const [win, setWin] = useState<View | null>(null);
+
+  // How each recipe's card is made up, read now, so it is there by the
+  // time one is opened.
+  useEffect(() => {
+    void loadRecipeCards();
+  }, []);
   useLayoutEffect(() => {
     const read = () =>
       setWin((was) => {
@@ -423,7 +429,8 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
         />
       ) : null}
 
-      {TableEditor && !still && showing ? (
+      {/* Not while a recipe is out: that has its own editor. */}
+      {TableEditor && !still && showing && shown === null ? (
         <TableEditor
           editing={editing}
           setEditing={setEditing}

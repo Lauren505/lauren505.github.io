@@ -4,21 +4,38 @@ import type { RecipeCard } from "@/content";
 
 /**
  * Where the recipe editor saves to, while `next dev` is running and never
- * otherwise: it rewrites the `recipeCards` list in content/recipeCards.ts
- * with the cards as they were made up in the browser, and leaves the rest of
- * the file — the notes, the types, `cardFor` — as it was.
+ * otherwise: it writes public/recipe-cards.json with every recipe's card as
+ * it was made up in the browser. The page reads that file as it is used —
+ * see content/recipeCards.ts — so writing it does not reload the page.
  */
 
-const FILE = path.join(process.cwd(), "content", "recipeCards.ts");
-const START = "export const recipeCards: Record<string, RecipeCard> = ";
-const END = ";\n// end of recipeCards";
+const FILE = path.join(process.cwd(), "public", "recipe-cards.json");
+
+const KINDS = ["onion", "kraft", "white", "photo", "gem", "drop", "stud", "flower"];
 
 const num = (v: unknown) => typeof v === "number" && Number.isFinite(v);
 const maybe = (v: unknown) => v === undefined || num(v);
-const one = (v: unknown, of: readonly string[]) => typeof v === "string" && of.includes(v);
 const has = (o: unknown, keys: string[]) =>
   !!o && typeof o === "object" && keys.every((k) => num((o as Record<string, unknown>)[k]));
 const box = (b: unknown) => has(b, ["x", "y", "width", "height", "rotate"]);
+
+const item = (it: unknown) => {
+  if (it === "steps") return true;
+  if (!it || typeof it !== "object") return false;
+  const i = it as Record<string, unknown>;
+  return (
+    typeof i.id === "string" &&
+    /^[\w-]+$/.test(i.id) &&
+    KINDS.includes(i.kind as string) &&
+    (i.at === "steps" || i.at === "foot") &&
+    (i.box === undefined || box(i.box)) &&
+    (i.box !== undefined || i.kind === "onion") &&
+    maybe(i.photo) &&
+    (i.crop === undefined || has(i.crop, ["zoom", "x", "y"])) &&
+    (i.mirror === undefined || typeof i.mirror === "boolean") &&
+    maybe(i.seed)
+  );
+};
 
 const valid = (cards: unknown): cards is Record<string, RecipeCard> =>
   !!cards &&
@@ -30,27 +47,13 @@ const valid = (cards: unknown): cards is Record<string, RecipeCard> =>
       num(c.nameDrop) &&
       has(c.steps, ["x", "y", "rotate"]) &&
       maybe(c.steps.width) &&
-      !!c.sheet &&
-      one(c.sheet.paper, ["onion", "none"]) &&
-      one(c.sheet.fastener, ["gem", "drop", "stud", "none"]) &&
-      (c.sheet.box === undefined || box(c.sheet.box)) &&
-      (c.sheet.pin === undefined || has(c.sheet.pin, ["x", "y", "scale", "rotate"])) &&
-      Array.isArray(c.photos) &&
-      c.photos.every(
-        (p) =>
-          !!p &&
-          box(p.print) &&
-          typeof p.white === "boolean" &&
-          maybe(p.whiteMargin) &&
-          (p.crop === undefined || has(p.crop, ["zoom", "x", "y"])) &&
-          (p.kraft === null || box(p.kraft)),
-      ) &&
-      (c.sprig === null || (box(c.sprig) && typeof c.sprig?.mirror === "boolean")),
+      Array.isArray(c.items) &&
+      c.items.every(item),
   );
 
 /** Short, the way the file is easiest read: three places at most. */
 const tidy = (cards: Record<string, RecipeCard>) =>
-  JSON.stringify(cards, (_, v) => (typeof v === "number" ? Math.round(v * 1000) / 1000 : v), 2);
+  JSON.stringify(cards, (_, v) => (typeof v === "number" ? Math.round(v * 1000) / 1000 : v), 2) + "\n";
 
 export async function POST(request: Request) {
   if (process.env.NODE_ENV !== "development") {
@@ -60,15 +63,6 @@ export async function POST(request: Request) {
   if (!valid(cards)) {
     return Response.json({ error: "Those are not recipe cards." }, { status: 400 });
   }
-  const src = await fs.readFile(FILE, "utf8");
-  const from = src.indexOf(START);
-  const to = from < 0 ? -1 : src.indexOf(END, from);
-  if (from < 0 || to < 0) {
-    return Response.json(
-      { error: `Could not find "${START}" … "// end of recipeCards" in content/recipeCards.ts to replace.` },
-      { status: 500 },
-    );
-  }
-  await fs.writeFile(FILE, `${src.slice(0, from)}${START}${tidy(cards)}${src.slice(to)}`);
+  await fs.writeFile(FILE, tidy(cards));
   return Response.json({ saved: Object.keys(cards).length });
 }
