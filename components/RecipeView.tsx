@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import { createPortal } from "react-dom";
 import Drawn from "@/components/Drawn";
 import RecipePaper, { type CardPart } from "@/components/RecipePaper";
-import type { Laid, Vec } from "@/components/bakeryLayout";
+import { laidOut, type Laid, type Vec } from "@/components/bakeryLayout";
 import { garamond } from "@/components/recipeFonts";
 import { TABLE_WIDTH, cardFor, decorations, loadRecipeCards, usualCard, type Recipe, type RecipeCard } from "@/content";
 import styles from "./RecipeView.module.css";
@@ -157,6 +157,10 @@ export default function RecipeView({
    *  starts the same size, and grows from there. */
   const R = (Math.max(plate.width, plate.height) / 2) * scale;
   const side = plate.x < TABLE_WIDTH / 2 ? -1 : 1;
+  /** Which way what is on the card is laid: as it is where the table is
+   *  laid for it — not wherever it has been moved to since, by a search —
+   *  so the card is always the card as it was made up. */
+  const madeUp = (laidOut.laid.find((s) => s.id === setting.id)?.plate ?? plate).x < TABLE_WIDTH / 2 ? "left" : "right";
   const narrow = W < NARROW;
 
   const g = useMemo(() => {
@@ -508,7 +512,7 @@ export default function RecipeView({
             minHeight={paper.min}
             lead={narrow ? undefined : RUN_OFF + H * 0.15}
             crest={narrow || backMid === undefined ? undefined : backMid - paper.y}
-            toward={narrow ? "right" : side < 0 ? "left" : "right"}
+            toward={narrow ? "right" : madeUp}
             onHeight={setPaperH}
             textured={dressed}
             card={made}
