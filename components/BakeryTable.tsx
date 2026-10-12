@@ -399,7 +399,10 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
 
   /* -------------------------------------------------------------- size */
 
-  const length = win ? Math.ceil(Math.max(win.height, layout.length * scale)) : 0;
+  // As long as what is on it: rearranged by a search, only as long as what
+  // was asked for.
+  const tableLength = "length" in arranged && arranged.length !== undefined ? arranged.length : layout.length;
+  const length = win ? Math.ceil(Math.max(win.height, tableLength * scale)) : 0;
   // The cloth is redrawn whole when the table's length changes, which is too
   // slow to do on every frame of a drag: it catches up when the piece is let
   // go.

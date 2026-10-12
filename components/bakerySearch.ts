@@ -1,4 +1,4 @@
-import { TABLE_WIDTH, recipes } from "@/content";
+import { MARGIN, TABLE_WIDTH, recipes } from "@/content";
 import type { Laid, Piece, Vec } from "@/components/bakeryLayout";
 
 /**
@@ -229,17 +229,23 @@ export const arrange = (laid: Laid[], cutlery: Piece[], wanted: Set<string>, roo
 const moved = (p: Piece, by: Vec): Piece => ({ ...p, x: p.x + by.x, y: p.y + by.y });
 
 /** The table as it is laid, with every setting moved as `moves` has it, and
- *  each piece of cutlery with the plate it is laid by. */
+ *  each piece of cutlery with the plate it is laid by — and, rearranged, how
+ *  long the table has to be for what is on it, in its own pixels. */
 export const moveTable = (laid: Laid[], cutlery: Piece[], moves: Moves | null) => {
-  if (!moves) return { laid, cutlery, nearest: cutlery.map(() => -1) };
+  if (!moves) return { laid, cutlery, nearest: cutlery.map(() => -1), length: undefined };
   const nearest = owners(laid, cutlery);
   const by = (s: Laid | undefined) => (s && moves.get(s.id)?.by) || { x: 0, y: 0 };
-  return {
-    laid: laid.map((s) => {
-      const v = by(s);
-      return { ...s, plate: moved(s.plate, v), dessert: moved(s.dessert, v), hand: s.hand && moved(s.hand, v) };
-    }),
-    cutlery: cutlery.map((c, k) => moved(c, by(laid[nearest[k]]))),
-    nearest,
-  };
+  const placed = laid.map((s) => {
+    const v = by(s);
+    return { ...s, plate: moved(s.plate, v), dessert: moved(s.dessert, v), hand: s.hand && moved(s.hand, v) };
+  });
+  const wares = cutlery.map((c, k) => moved(c, by(laid[nearest[k]])));
+  // Only what is on the table: the rest is off its sides.
+  const kept = (s: Laid | undefined) => !!s && !!moves.get(s.id)?.wanted;
+  const on = [
+    ...placed.filter(kept).flatMap((s) => [s.plate, s.dessert]),
+    ...wares.filter((_, k) => kept(laid[nearest[k]])),
+  ];
+  const length = on.length ? Math.max(...on.map((p) => p.y + p.height / 2)) + MARGIN : 0;
+  return { laid: placed, cutlery: wares, nearest, length };
 };
