@@ -69,6 +69,23 @@ const WAYS: Vec[] = Array.from({ length: 16 }, (_, k) => ({
 }));
 
 const sub = (a: Vec, b: Vec): Vec => ({ x: a.x - b.x, y: a.y - b.y });
+
+/** A dessert on the table, by its middle and how far it reaches. */
+type Spot = { x: number; y: number; r: number };
+const spotOf = (s: Laid): Spot => ({
+  x: s.plate.x,
+  y: s.plate.y,
+  r: Math.max(s.plate.width, s.plate.height, s.dessert.width, s.dessert.height) / 2,
+});
+/** How much further a hand had better come than lie over a dessert. */
+const OVER = 260;
+/** Half as wide as an arm. */
+const ARM = 45;
+/** Whether an arm from `tip`, `length` long the way `d`, lies over `o`. */
+const across = (tip: Vec, d: Vec, length: number, o: Spot) => {
+  const t = Math.max(0, Math.min(length, (o.x - tip.x) * d.x + (o.y - tip.y) * d.y));
+  return Math.hypot(tip.x + d.x * t - o.x, tip.y + d.y * t - o.y) < o.r * 0.8 + ARM;
+};
 const along = (a: Vec, d: Vec, by: number): Vec => ({ x: a.x + d.x * by, y: a.y + d.y * by });
 
 /**
@@ -91,14 +108,20 @@ export const shuffle = (was: Laid[], now: Laid[], seen: { top: number; bottom: n
   const rim = (plate: Piece, at: Vec, d: Vec) =>
     along(at, d, Math.hypot((d.x * plate.width) / 2, (d.y * plate.height) / 2) - 25);
 
-  /** The quickest way off the window for a plate at `at`: the way the hand
-   *  that takes it comes from, and goes. */
-  const wayOff = (plate: Piece, at: Vec) => {
+  /** The way off the window for a plate at `at`, and so the way the hand
+   *  that takes it comes from, and goes: the quickest — as far as a hand
+   *  can reach — and, if it can be, not over the other desserts, `others`,
+   *  where they are as it does. */
+  const wayOff = (plate: Piece, at: Vec, others: Spot[]) => {
     let best = WAYS[0];
-    let far = Infinity;
+    let cost = Infinity;
     for (const d of WAYS) {
-      const e = edge(rim(plate, at, d), d);
-      if (e < far - 1) [best, far] = [d, e];
+      const tip = rim(plate, at, d);
+      const e = edge(tip, d);
+      const reach = Math.max(HAND, e + 60);
+      let c = e + (reach > LONGEST ? 600 : 0);
+      for (const o of others) if (across(tip, d, reach, o)) c += OVER;
+      if (c < cost - 1) [best, cost] = [d, c];
     }
     return best;
   };
@@ -137,6 +160,12 @@ export const shuffle = (was: Laid[], now: Laid[], seen: { top: number; bottom: n
     if (going || coming) plans.push({ s, from: a.plate, going, coming });
   }
 
+  // Where the desserts are as the ones going are taken, and once the ones
+  // coming are down: what the hands keep off.
+  const standing = was.filter((s) => onTable(s.plate)).map((s) => [s.id, spotOf(s)] as const);
+  const staying = now.filter((s) => onTable(s.plate)).map((s) => [s.id, spotOf(s)] as const);
+  const besides = (list: (readonly [string, Spot])[], id: string) => list.filter(([k]) => k !== id).map(([, o]) => o);
+
   const settings = new Map<string, Track>();
   const hands: Hand[] = [];
   const goers = plans.filter((p) => p.going).sort((a, b) => a.from.y - b.from.y);
@@ -160,7 +189,7 @@ export const shuffle = (was: Laid[], now: Laid[], seen: { top: number; bottom: n
 
     if (p.going) {
       const start = goers.indexOf(p) * GOING;
-      const d = wayOff(to, A);
+      const d = wayOff(to, A, besides(standing, s.id));
       const out = along(A, d, edge(A, d) + r);
       const held = start + REACH + GRIP;
       gone = held + DRAW;
@@ -188,7 +217,7 @@ export const shuffle = (was: Laid[], now: Laid[], seen: { top: number; bottom: n
     if (p.coming) {
       // Not before it has gone, if it is coming back somewhere else.
       const start = Math.max(firstComing + comers.indexOf(p) * COMING, gone);
-      const d = wayOff(to, B);
+      const d = wayOff(to, B, besides(staying, s.id));
       const from = along(B, d, edge(B, d) + r);
       // Off the window until then — from where it went off to where it
       // comes on in no time, not across it.

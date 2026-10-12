@@ -4,10 +4,11 @@ import type { Laid, Piece, Vec } from "@/components/bakeryLayout";
 /**
  * Looking for desserts on the bakery's table by what is written on the
  * custom order pad: each line written there names something — a dessert, a
- * part of one, something in it — and a dessert is wanted if every word of a
- * line is a word of its name, of the parts its recipe is made of, or of its
- * ingredients. A line that names nothing on the table yet — a word still
- * being written — is passed over, and changes nothing.
+ * part of one, something in it — and a dessert is wanted if every word of
+ * every line is a word of its name, of the parts its recipe is made of, or
+ * of its ingredients. A line that names nothing on the table yet — a word
+ * still being written — is passed over, and changes nothing; and so do
+ * lines that name nothing together.
  */
 
 /** The words in something written: lower case, without accents, and only
@@ -45,21 +46,26 @@ const wordsFor = (s: Laid) => {
 };
 
 /**
- * Which desserts the lines written ask for, by their ids: those any line
+ * Which desserts the lines written ask for, by their ids: those every line
  * names, of the lines that name something. `null` if nothing is written —
  * the table as it was laid — and `undefined` if what is written names
  * nothing yet, which leaves the table as it is.
  */
 export const lookFor = (laid: Laid[], lines: string[]): Set<string> | null | undefined => {
-  const asked = lines.map(wordsIn).filter((w) => w.length);
   if (!lines.some((l) => l.trim())) return null;
-  const found = new Set<string>();
-  for (const words of asked) {
-    for (const s of laid) {
-      const has = wordsFor(s);
-      if (words.every((w) => [...has].some((h) => same(w, h)))) found.add(s.id);
-    }
-  }
+  const has = (s: Laid, words: string[]) => {
+    const own = wordsFor(s);
+    return words.every((w) => [...own].some((h) => same(w, h)));
+  };
+  // The lines that name something on the table: one still being written,
+  // naming nothing yet, is passed over.
+  const asked = lines
+    .map(wordsIn)
+    .filter((w) => w.length)
+    .filter((words) => laid.some((s) => has(s, words)));
+  if (!asked.length) return undefined;
+  // What every one of them names.
+  const found = new Set(laid.filter((s) => asked.every((words) => has(s, words))).map((s) => s.id));
   return found.size ? found : undefined;
 };
 
@@ -75,92 +81,99 @@ export type Room = { top: number; bottom: number; pad: { left: number; top: numb
 const EDGE = 40;
 const NAV = 90;
 
-/** The same small turn of the place, for the same dessert, every time, so
- *  that they are not ruled into rows. */
-const nudge = (id: string) => {
-  let h = 0;
-  for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return { x: ((h % 1000) / 1000 - 0.5) * 0.08, y: (((h >> 10) % 1000) / 1000 - 0.5) * 0.08 };
+/** The room kept between desserts, widest first: the widest that lets them
+ *  all into the window is the one they are laid with. */
+const GAPS = [300, 240, 190, 150, 115, 85, 60, 40, 25];
+
+type Spot = { x: number; y: number; r: number };
+
+/**
+ * Lays dishes `r` across from their middles to their edges, in order, with
+ * at least `gap` between them, from the top of the room down: in rows across
+ * the room — short of the pad, beside it — each spread out to fill its row,
+ * every other row starting half a dish in, as bricks are laid; each dish
+ * then as high as it will go against those above it, so the rows sit into
+ * each other. Where each goes, and whether they are all in the window.
+ */
+const pack = (rs: number[], gap: number, room: Room) => {
+  const left = EDGE;
+  const right = TABLE_WIDTH - EDGE;
+  const top = room.top + NAV;
+  const bottom = room.bottom - EDGE;
+  const pad = room.pad;
+  const mean = rs.reduce((a, r) => a + 2 * r, 0) / Math.max(1, rs.length);
+  const spots: Spot[] = [];
+  let y = top;
+  let row = 0;
+  let n = 0;
+  while (n < rs.length) {
+    // Beside the pad, only as far as it.
+    const beside = !!pad && y < pad.bottom + gap && y + 2 * rs[n] > pad.top - gap;
+    const end = beside && pad ? Math.max(left + 2 * rs[n], pad.left - gap) : right;
+    const indent = row % 2 ? Math.min(mean / 2, (end - left) / 4) : 0;
+    const from = left + indent;
+    // As many as fit with the gap round each.
+    const take: number[] = [];
+    let used = 0;
+    while (n + take.length < rs.length) {
+      const more = used + 2 * rs[n + take.length] + gap;
+      if (take.length && more > end - from) break;
+      take.push(n + take.length);
+      used = more;
+    }
+    // Spread out across the row — or, the last, together in the middle.
+    const last = n + take.length >= rs.length;
+    const sum = take.reduce((a, i) => a + 2 * rs[i], 0);
+    const space = last ? gap : (end - from - sum) / take.length;
+    let x = last ? (from + end) / 2 - (sum + gap * (take.length - 1)) / 2 : from + space / 2;
+    for (const i of take) {
+      const r = rs[i];
+      const cx = x + r;
+      x += 2 * r + space;
+      // As high as it will go: below the top, clear of the pad, and of
+      // every dish above it.
+      let cy = top + r;
+      if (pad && cx + r > pad.left - gap) cy = Math.max(cy, pad.bottom + gap + r);
+      for (const o of spots) {
+        const need = r + o.r + gap;
+        const dx = cx - o.x;
+        if (Math.abs(dx) < need) cy = Math.max(cy, o.y + Math.sqrt(need * need - dx * dx));
+      }
+      spots.push({ x: cx, y: cy, r });
+    }
+    n += take.length;
+    row++;
+    // The next row, roughly where these end.
+    const ends = take.map((i) => spots[i].y);
+    y = Math.max(y + mean * 0.5, Math.min(...ends) + mean * 0.4);
+  }
+  return { spots, fits: spots.every((o) => o.y + o.r <= bottom) };
 };
 
 /**
- * Where the desserts asked for go: spread out evenly over the part of the
- * table in the window — not under the nav, or the pad — laid like bricks,
- * every other row a half over, as far apart as the room allows and no
- * closer than the biggest of them needs; and if they do not all fit, in
- * more rows like them down the table. In
- * the order they were laid, top first. The rest go off the table, on
- * whichever side is nearer.
+ * Where the desserts asked for go: laid over the part of the table in the
+ * window — not under the nav, or the pad — like bricks, each by its own
+ * size, as far apart as lets them all in; if they will not all go in, as
+ * close as they go, and on down the table. In the order they were laid, top
+ * first. The rest go off the table, on whichever side is nearer.
  */
 export const arrange = (laid: Laid[], wanted: Set<string>, room: Room): Moves => {
   const moves: Moves = new Map();
   const asked = laid
     .filter((s) => wanted.has(s.id))
     .sort((a, b) => a.plate.y - b.plate.y || a.plate.x - b.plate.x);
-
-  const big = Math.max(0, ...asked.map((s) => Math.max(s.plate.width, s.plate.height, s.dessert.width, s.dessert.height)));
-  const least = big + 20;
-  const left = EDGE;
-  const wide = TABLE_WIDTH - 2 * EDGE;
-  const top = room.top + NAV;
-  const high = Math.max(least, room.bottom - EDGE - top);
-  const covered = (x: number, y: number, w: number, h: number) =>
-    !!room.pad && x + w * 0.25 > room.pad.left && y > room.pad.top - h * 0.3 && y < room.pad.bottom + h * 0.3;
-
-  /** The places in courses of brick `cols` across, every other course a
-   *  half over, with courses `tall` apart, `rows` of them — or as many as
-   *  `need` takes — course by course, less those under the pad. */
-  const bricks = (cols: number, tall: number, rows: number, need: number) => {
-    const w = wide / (cols + 0.5);
-    const out: { x: number; y: number; row: number }[] = [];
-    for (let j = 0; j < rows && out.length < need; j++) {
-      for (let i = 0; i < cols && out.length < need; i++) {
-        const x = left + (i + (j % 2 ? 1 : 0.5)) * w;
-        const y = top + (j + 0.5) * tall;
-        if (!covered(x, y, w, tall)) out.push({ x, y, row: j });
-      }
-    }
-    return { out, w };
-  };
-  /** How close courses can be: those in the next are a half over, so it is
-   *  across to them that has to be far enough. */
-  const closest = (w: number) => Math.max(least * 0.6, Math.sqrt(Math.max(0, least * least - (w / 2) ** 2)));
-
-  // As few across as will all fit in the window, so they are as far apart
-  // as they can be; if none will, as many across as there is room for, and
-  // the rest further down.
-  let places: { x: number; y: number; row: number }[] = [];
-  let w = wide;
-  let tall = least;
-  for (let cols = 1; wide / (cols + 0.5) >= least; cols++) {
-    const cw = wide / (cols + 0.5);
-    const rows = Math.max(1, Math.floor(high / Math.max(closest(cw), cw * 0.6)));
-    const g = bricks(cols, high / rows, rows, asked.length);
-    if (g.out.length >= asked.length) {
-      [places, w, tall] = [g.out, g.w, high / rows];
+  const rs = asked.map((s) => Math.max(s.plate.width, s.plate.height, s.dessert.width, s.dessert.height) / 2);
+  let laidOut = pack(rs, GAPS[GAPS.length - 1], room);
+  for (const gap of GAPS) {
+    const tried = pack(rs, gap, room);
+    if (tried.fits) {
+      laidOut = tried;
       break;
     }
   }
-  if (places.length < asked.length) {
-    const cols = Math.max(1, Math.floor(wide / least - 0.5));
-    const cw = wide / (cols + 0.5);
-    const g = bricks(cols, closest(cw), Infinity, asked.length);
-    [places, w, tall] = [g.out, g.w, closest(cw)];
-  }
-  // A last course only partly laid, and clear of the pad, in the middle.
-  const lastRow = places.length ? places[places.length - 1].row : 0;
-  const last = places.filter((p) => p.row === lastRow);
-  if (last.length && lastRow > 0 && !last.some((p) => covered(p.x, p.y, w, tall))) {
-    const shift = left + wide / 2 - (last[0].x + last[last.length - 1].x) / 2;
-    last.forEach((p) => (p.x += shift));
-  }
-
   asked.forEach((s, n) => {
-    const at = places[n];
-    const k = nudge(s.id);
-    const x = at.x + k.x * w;
-    const y = at.y + k.y * tall;
-    moves.set(s.id, { by: { x: x - s.plate.x, y: y - s.plate.y }, order: n, wanted: true });
+    const at = laidOut.spots[n];
+    moves.set(s.id, { by: { x: at.x - s.plate.x, y: at.y - s.plate.y }, order: n, wanted: true });
   });
   laid.forEach((s) => {
     if (wanted.has(s.id)) return;

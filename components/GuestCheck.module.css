@@ -61,6 +61,15 @@
     -2px 6px 10px rgba(60, 40, 20, 0.18),
     -8px 22px 40px rgba(60, 40, 20, 0.22);
   pointer-events: none;
+  /* Put away, it lies flat at the edge, and casts none; it comes, as it is
+     taken out, lifted off the table. */
+  opacity: 0;
+  transition: opacity 0.6s ease-out;
+}
+
+.pad[data-open]::before {
+  opacity: 1;
+  transition: opacity 0.6s ease-in;
 }
 
 /* The sheets, in a box of their own that sets nothing in front of
