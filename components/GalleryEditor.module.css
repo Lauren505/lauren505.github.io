@@ -8,7 +8,6 @@
 
 .frame {
   position: absolute;
-  border-radius: 4px;
   outline: 1px dashed rgb(0 0 0 / 0.35);
   outline-offset: -1px;
   cursor: grab;
@@ -113,4 +112,53 @@
   border: 1px solid rgb(0 0 0 / 0.2);
   border-radius: 4px;
   background: none;
+}
+
+/* Snap guides: a hairline across the whole wall and a little past it. */
+.guideX,
+.guideY {
+  position: absolute;
+  pointer-events: none;
+  background: #2f6fdf;
+}
+
+.guideX {
+  top: -6%;
+  bottom: -6%;
+  width: 1px;
+  margin-left: -0.5px;
+}
+
+.guideY {
+  left: -4%;
+  right: -4%;
+  height: 1px;
+  margin-top: -0.5px;
+}
+
+/* A label's place beside its frame: there to see, and to press to pick the
+   frame it belongs to. */
+.label {
+  position: absolute;
+  border: 1px dashed rgb(0 0 0 / 0.35);
+  border-radius: 2px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.label[data-selected] {
+  border-color: #2f6fed;
+  border-style: solid;
+}
+
+/* The label's paragraph, set like the panel's number fields. */
+.about {
+  font: inherit;
+  font-size: 0.8rem;
+  width: 100%;
+  padding: 0.2rem 0.3rem;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  color: #222;
+  resize: vertical;
 }

@@ -21,12 +21,12 @@ const GRAB = decorations.find((d) => d.id === "hand4")?.image ?? decorations.fin
  *  one movement, on one curve — away at once, and slowing all the way in, so
  *  the hand is soon there. */
 const BRING = 1500;
-const CURVE = [0.25, 0.6, 0.45, 1] as const;
+const CURVE = [0.2, 0.6, 0.45, 1] as const;
 /** Where along it — as a fraction of the way, after the curve — the hand
  *  has hold and the plate starts to come up, the table falling away; and how
  *  long before that the hand starts reaching in. */
 const HOLD = 0.45;
-const REACH = 0.22;
+const REACH = 0.35;
 /** How much further the table seems to come as it falls away. */
 const FALL = 1.25;
 /** How long the hand takes to let go, or come back for the plate. The card
@@ -36,7 +36,7 @@ const LET_GO = 600;
 /** Coming in: quick, then slowing to a stop. Going: off at once, and on
  *  out of sight. */
 const COME = [0.2, 0.7, 0.3, 1] as const;
-const GO = [0.3, 0.25, 0.6, 1] as const;
+const GO = [0.1, 0.25, 0.6, 1] as const;
 /** Putting it back is quicker than bringing it: every part of it, the hand,
  *  the card and the table, takes this much of the time it took to come. */
 const PUT_BACK = 0.6;

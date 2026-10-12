@@ -448,8 +448,7 @@ its mask dissolves while the camera flies in; double-click again — anywhere �
 Escape and the ← back link. It is the pmndrs
 [Enter portals](https://codesandbox.io/p/sandbox/9m4tpc) demo laid flat: no tilt
 on the frames, the swing stopped at fifteen degrees in each direction so the
-backs of them can never be reached, and the corners cut to the four pixels the
-old site's gallery cards had.
+backs of them can never be reached, and the corners square.
 
 That stop is on the wall, not on the room: once you are through a frame there is
 no back of it to get to, so the camera goes all the way round whatever is in
@@ -467,10 +466,49 @@ the scene left to press.
 
 Where the frames hang is `content/gallery.ts`, in wall units — an arbitrary
 measure, since the whole wall is fitted to the window, so the numbers are only
-ever read against each other. They are deliberately ragged — gaps of 0.3 to
-0.55, and no two edges lined up for long — and every frame is cut to the shape
-of what is in it, so nothing is cropped, and sized by what it is: the rooms
-largest, the films by how much there is to watch.
+ever read against each other. They are deliberately ragged — no two frames the
+same size and few edges in line — but evenly spaced: every frame is `GUTTER`
+(0.3) from each of its neighbours.
+
+**Turning and zooming** needs no clicking. With a mouse, the view follows the
+pointer — its place across the canvas is the angle the wall is seen from, out to
+the stops at the edges (forty degrees round and twenty-five up in a room) — and
+the wheel zooms. With a trackpad, a two-finger slide turns the view and a pinch
+zooms; both arrive as wheel events (a pinch with `ctrlKey`), so `fromTrackpad`
+in `PortalScene` tells a slide from a mouse wheel by the shape of the events,
+and once it has seen a trackpad the pointer stops turning the view until a mouse
+wheel is seen again. To slide the view across the wall, hold Shift and slide
+two fingers, or hold the mouse wheel down and drag; the wall follows, and stops
+once the point at the middle of the view reaches the wall's edge, so some of it
+is always in sight (`slide` in `PortalScene`). On a touch screen a finger drags
+to turn and two pinch to zoom, as before.
+
+**The room.** A floor meets the wall at the bottom, laid just below the bottom
+of the window as it is at rest (`FLOOR_DROP`), so it is out of sight head on and
+comes into view as soon as the wall is turned from above or stepped back from.
+The corner is drawn as the inside of one of the sideways page turn's cube edges,
+in the cube's own colours (`PageTurn.module.css`): the floor, seen at a slant,
+takes the cube's warm brown by how edge-on it is, deepest at the crease; the
+wall darkens a little into the crease, only as far as it is turned; the crease
+is a hairline; and what swings furthest away goes back into the page rather
+than dark. The wall is still the page behind the canvas — all that is drawn
+over it is that tint, which head on is none (`Space` in `PortalScene`).
+
+**Frames.** An artwork can hang in a frame from `public/models/gallery/frames/`
+(`frame` in `content/gallery.ts`, or the editor's panel). The frame is fitted to
+the artwork's footprint and the artwork hangs in its opening, so the wall's gaps
+never change; `npm run frames` measures new frames into `content/frames.ts` —
+see the README in that folder. Each frame loads on its own, after the artwork:
+the wall does not wait for its frames.
+
+**Light and labels.** The wall's light is one spot from above, like a gallery's
+track lights, throwing crisp shadows down the wall from anything standing off
+it; the artworks themselves are not lit, so their colours are what they are.
+Every artwork has a wall label (`components/WallLabel.tsx`): a slip of card on
+whichever side `label` says, with the title, `medium` and `about` on it. At the
+wall's size it is a little piece of paper; double-clicking the artwork zooms in
+on it and its label together, which is where it is read. Labels count as part of
+a frame's footprint, for the wall's fit and for the editor's even gaps.
 
 **The wall is drawn twice.** `components/PortalWall.tsx` draws it flat, in HTML,
 and `components/PortalScene.tsx` fades the canvas up over it once the pictures
@@ -551,13 +589,17 @@ wall like everything else on it.
 **Editing the wall.** Under `next dev` there is an **Edit gallery** button in
 the bottom right of the gallery, the bakery's table editor for a wall
 (`components/GalleryEditor.tsx`). Drag a frame to move it and its corner to size
-it — shift keeps its shape. In framing mode (the panel's button, F, or ⌥ held)
+it — shift keeps its shape — and it snaps to an even gap (`GUTTER`, 0.3) from
+the neighbour beside, above or below it, with a guide where it does; ⌘ places
+it freely. Nothing snaps edges into line: the wall is ragged on purpose, and
+only its spacing is even. In framing mode (the panel's button, F, or ⌥ held)
 a drag moves what is inside instead: a picture or a film is panned across its
 crop (`focus`) and scrolled to zoom (`zoom`); a model is walked round
 (`modelView`), shift-dragged to move the point it is centred on
 (`modelFocus`), and scrolled to zoom (`modelSpan`). The panel swaps which
 artwork hangs in which frame, hangs new ones from the two gallery folders,
-takes frames down, and has the numbers. Save writes `content/gallery.ts`
+takes frames down, and has the numbers — and the label of each, with its
+text. Save writes `content/gallery.ts`
 through `app/api/gallery` — the picture imports and the `entries` list,
 keeping the comment above each field — and neither the button nor the route
 exists in any other build. While it is open the camera is held at rest and the

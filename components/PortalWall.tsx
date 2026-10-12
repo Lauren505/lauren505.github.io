@@ -1,5 +1,15 @@
 import Image from "next/image";
-import { CUE, CUE_NARROW, portals as hung, wall as hungWall, WALL_PAD, type Portal, type Wall } from "@/content";
+import {
+  CUE,
+  CUE_NARROW,
+  framing,
+  labelOf,
+  portals as hung,
+  wall as hungWall,
+  WALL_PAD,
+  type Portal,
+  type Wall,
+} from "@/content";
 import styles from "./PortalWall.module.css";
 
 /**
@@ -28,6 +38,7 @@ export default function PortalWall({
   return (
     <div
       className={styles.wall}
+      data-wall
       data-dim={dim || undefined}
       style={
         {
@@ -40,11 +51,22 @@ export default function PortalWall({
       }
     >
       <div className={styles.frames}>
-        {portals.map((p) => (
+        {portals.map((p) => {
+          // Framed, the picture is in the frame's opening; the frame itself
+          // is drawn by the scene. Padding is a share of the wall's width
+          // either way round, which is the unit everything here is in.
+          const fit = framing(p);
+          return (
           <figure
             key={p.id}
             className={styles.frame}
             style={{
+              ...(fit
+                ? {
+                    padding: `${(((p.h - fit.h) / 2) / wall.w) * 100}% ${(((p.w - fit.w) / 2) / wall.w) * 100}%`,
+                    backgroundClip: "content-box",
+                  }
+                : null),
               left: `${((p.x - p.w / 2 - wall.l) / wall.w) * 100}%`,
               top: `${((wall.t - (p.y + p.h / 2)) / wall.h) * 100}%`,
               width: `${(p.w / wall.w) * 100}%`,
@@ -71,7 +93,29 @@ export default function PortalWall({
               />
             ) : null}
           </figure>
-        ))}
+          );
+        })}
+
+        {/* The wall labels — see WallLabel, which these are the flat copies
+            of: the title only, which is all that reads at this size. */}
+        {portals.map((p) => {
+          const k = labelOf(p);
+          return k ? (
+            <span
+              key={`label-${p.id}`}
+              className={styles.slip}
+              aria-hidden
+              style={{
+                left: `${((k.l - wall.l) / wall.w) * 100}%`,
+                top: `${((wall.t - k.t) / wall.h) * 100}%`,
+                width: `${((k.r - k.l) / wall.w) * 100}%`,
+                height: `${((k.t - k.b) / wall.h) * 100}%`,
+              }}
+            >
+              {p.title}
+            </span>
+          ) : null;
+        })}
 
         {/* The rooms' captions, at the bottom left corner of each — the same
             corner the scene pins its own to, so the one is under the other. */}

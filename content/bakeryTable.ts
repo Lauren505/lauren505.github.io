@@ -140,7 +140,7 @@ export const settings: Placement[] = [
     plateRotate: 200,
   },
   {
-    dessert: "macaron_heart",
+    dessert: "macaron",
     plate: "plate5",
     x: 1164,
     y: 707,
@@ -220,7 +220,7 @@ export const settings: Placement[] = [
     dessertY: -29,
   },
   {
-    dessert: "caramel_cake",
+    dessert: "hojicha_cake",
     plate: "plate7",
     x: 958,
     y: 2433,
@@ -344,8 +344,8 @@ export const settings: Placement[] = [
   {
     dessert: "matcha_basque",
     plate: "plate11",
-    x: 869,
-    y: 3379,
+    x: 876,
+    y: 3408,
     plateWidth: 260,
     dessertWidth: 204,
     dessertY: -22,
@@ -360,7 +360,7 @@ export const settings: Placement[] = [
     dessertX: -3,
     dessertY: -25,
     plateRotate: 204,
-    hand: { ware: "hand2", x: -318, y: 0, length: 320, rotate: 90 },
+    hand: { ware: "hand2", x: -335, y: 131, length: 342, rotate: 90 },
   },
   {
     dessert: "peach_jasmine_tart",
@@ -392,12 +392,23 @@ export const settings: Placement[] = [
     dessertX: 2,
     dessertY: -16,
   },
+  {
+    dessert: "opera_cake",
+    plate: "plate12",
+    x: 586,
+    y: 3628,
+    plateWidth: 291,
+    dessertWidth: 259,
+    dessertX: -11,
+    dessertY: -12,
+    plateRotate: 173,
+  },
 ];
 
 export const cutlery: CutleryPlacement[] = [
   { ware: "fork1", x: 605, y: 228, length: 135, rotate: 10 },
   { ware: "knife1", x: 907, y: 321, length: 122, rotate: 11 },
-  { ware: "fork2", x: 280, y: 645, length: 173, rotate: -36 },
+  { ware: "fork2", x: 224, y: 803, length: 173, rotate: 46 },
   { ware: "spoon1", x: 1234, y: 558, length: 150, rotate: -45 },
   { ware: "knife2", x: 1253, y: 515, length: 170, rotate: -43 },
   { ware: "fork3", x: 999, y: 831, length: 130, rotate: -16 },
@@ -407,10 +418,14 @@ export const cutlery: CutleryPlacement[] = [
   { ware: "fork2", x: 370, y: 2177, length: 128, rotate: -431 },
   { ware: "spoon1", x: 381, y: 2594, length: 125, rotate: -20 },
   { ware: "fork3", x: 266, y: 3407, length: 173, rotate: 113 },
-  { ware: "spoon2", x: 708, y: 3347, length: 145, rotate: 5 },
+  { ware: "spoon2", x: 714, y: 3355, length: 145, rotate: 5 },
   { ware: "knife1", x: 904, y: 2858, length: 160, rotate: 8 },
   { ware: "fork4", x: 127, y: 1562, length: 145, rotate: 164 },
-  { ware: "spoon2", x: 219, y: 340, length: 125, rotate: -44 },
+  { ware: "spoon2", x: 231, y: 356, length: 125, rotate: -44 },
+  { ware: "flower3", x: 263, y: 509, length: 93, rotate: -31 },
+  { ware: "flower4", x: 255, y: 543, length: 36, rotate: 27 },
+  { ware: "flower3", x: 1265, y: 1531, length: 81, rotate: 43 },
+  { ware: "flower1", x: 764, y: 3714, length: 87, rotate: 9 },
 ];
 
 /**

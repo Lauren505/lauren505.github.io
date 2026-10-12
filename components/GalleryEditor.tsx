@@ -2,8 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { WALL_PAD, entries as saved, type Entry, type Portal, type Wall } from "@/content";
+import {
+  GUTTER,
+  WALL_PAD,
+  entries as saved,
+  footprintOf,
+  labelOf,
+  type Entry,
+  type LabelSide,
+  type Portal,
+  type Wall,
+} from "@/content";
 import { modelBoxes } from "@/components/galleryProbe";
+import { FRAME_SPECS } from "@/content/frames";
 import panel from "./TableEditor.module.css";
 import wallStyles from "./PortalWall.module.css";
 import styles from "./GalleryEditor.module.css";
@@ -13,7 +24,11 @@ import styles from "./GalleryEditor.module.css";
  * leaves it out of every other build. The bakery's table editor, for a wall.
  *
  * On the wall itself: drag a frame to move it, and its corner to size it
- * (shift keeps its shape). In framing mode — the button, F, or ⌥ held down —
+ * (shift keeps its shape). Both snap to an even gap — an edge comes to rest a
+ * GUTTER from the facing edge of a neighbour beside, above or below it — with
+ * a guide drawn where it does; hold ⌘ (Ctrl) to place it freely. Nothing
+ * snaps edges into line: the wall is ragged on purpose, and only its spacing
+ * is even. In framing mode — the button, F, or ⌥ held down —
  * dragging inside a frame moves what is in it instead: a picture or a film is
  * panned across its crop, a model is walked round (shift: the point it is
  * centred on is moved), and the wheel zooms either. In the panel: what hangs
@@ -54,7 +69,22 @@ const CONTENT = [
   "focus",
   "zoom",
   "bg",
+  "medium",
+  "about",
 ] as const;
+
+/** Which side of its frame a label can hang on, as the panel names them. */
+const SIDES: [LabelSide, string][] = [
+  ["right", "right, level with the bottom"],
+  ["right-top", "right, level with the top"],
+  ["left", "left, level with the bottom"],
+  ["left-top", "left, level with the top"],
+  ["below", "below, from the left"],
+  ["below-right", "below, from the right"],
+  ["above", "above, from the left"],
+  ["above-right", "above, from the right"],
+  ["none", "no label"],
+];
 
 type Kind = "model" | "video" | "picture";
 const kindOf = (e: Pick<Entry, "model" | "video">): Kind => (e.model ? "model" : e.video ? "video" : "picture");
@@ -88,6 +118,9 @@ const norm = (list: Entry[]) =>
           (k === "zoom" && v === 1) ||
           (k === "modelScale" && v === 1) ||
           (k === "sound" && v === false) ||
+          (k === "flush" && v === false) ||
+          (k === "label" && v === "right") ||
+          ((k === "medium" || k === "about") && v === "") ||
           (k === "focus" && Array.isArray(v) && v[0] === 0.5 && v[1] === 0.5);
         if (!idle) out[k] = v;
       }
@@ -131,6 +164,34 @@ function Num({
   );
 }
 
+/** How near, in pixels on screen, an edge has to come to be snapped. */
+const SNAP_PX = 8;
+
+type Guides = { x: number[]; y: number[] };
+const noGuides: Guides = { x: [], y: [] };
+
+/** One axis of a snap: each pair is an edge of the frame being dragged, where
+ *  it would be, and a line it may land on. The nearest within reach wins. */
+function nearest(pairs: [moving: number, target: number][], reach: number) {
+  let best: { d: number; at: number } | null = null;
+  for (const [m, t] of pairs) {
+    const d = t - m;
+    if (Math.abs(d) <= reach && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, at: t };
+  }
+  return best;
+}
+
+/** Another frame's edges, with its label: the label is part of what a
+ *  neighbour keeps its distance from. */
+const linesOf = (q: Entry) => footprintOf(q);
+
+/** How far a frame's label takes its footprint past the frame on each side —
+ *  0, or how far out the label reaches. */
+const reachOf = (q: Entry) => {
+  const f = footprintOf(q);
+  return { l: q.x - q.w / 2 - f.l, r: f.r - (q.x + q.w / 2), b: q.y - q.h / 2 - f.b, t: f.t - (q.y + q.h / 2) };
+};
+
 /** A drag in progress: what it is doing, where it started, and the frame as
  *  it was when it did. */
 type Drag = {
@@ -164,6 +225,7 @@ export default function GalleryEditor({
   const [side, setSide] = useState<"left" | "right">("right");
   const [status, setStatus] = useState<string | null>(null);
   const [media, setMedia] = useState<Media | null>(null);
+  const [guides, setGuides] = useState<Guides>(noGuides);
   const past = useRef<Entry[][]>([]);
   const future = useRef<Entry[][]>([]);
   const drag = useRef<Drag | null>(null);
@@ -352,22 +414,96 @@ export default function GalleryEditor({
     const dy = e.clientY - d.y;
     const s = d.start;
 
+    const others = draft.filter((_, j) => j !== d.i).map(linesOf);
+    /** Whether two spans share any of their length, which is what makes two
+     *  frames neighbours across the other axis. */
+    const share = (a0: number, a1: number, b0: number, b1: number) => Math.min(a1, b1) - Math.max(a0, b0) > 0;
+    const reach = SNAP_PX * d.u;
+    const free = e.metaKey || e.ctrlKey;
+
     if (d.how === "move") {
-      change(d.i, { x: round(s.x + dx * d.u), y: round(s.y - dy * d.u) }, true);
+      let x = s.x + dx * d.u;
+      let y = s.y - dy * d.u;
+      const hw = s.w / 2;
+      const hh = s.h / 2;
+      // Its edges as its neighbours see them: with its label.
+      const k = reachOf(s);
+      const [L, R, B, T] = [x - hw - k.l, x + hw + k.r, y - hh - k.b, y + hh + k.t];
+      // Beside: frames that share some of its height; above or below:
+      // frames that share some of its width.
+      const sx = free
+        ? null
+        : nearest(
+            others
+              .filter((q) => share(B, T, q.b, q.t))
+              .flatMap((q) => [
+                [L, q.r + GUTTER],
+                [R, q.l - GUTTER],
+              ]) as [number, number][],
+            reach,
+          );
+      const sy = free
+        ? null
+        : nearest(
+            others
+              .filter((q) => share(L, R, q.l, q.r))
+              .flatMap((q) => [
+                [T, q.b - GUTTER],
+                [B, q.t + GUTTER],
+              ]) as [number, number][],
+            reach,
+          );
+      // Snapped, it lands exactly; free, it lands on a tidy number.
+      x = sx ? x + sx.d : round(x);
+      y = sy ? y + sy.d : round(y);
+      setGuides({ x: sx ? [sx.at] : [], y: sy ? [sy.at] : [] });
+      change(d.i, { x: round(x, 0.0005), y: round(y, 0.0005) }, true);
     } else if (d.how === "size") {
-      // From the top left corner, which stays put.
+      // From the top left corner, which stays put; the edges being dragged
+      // are the right and the bottom, and those are what snap.
       const left = s.x - s.w / 2;
       const top = s.y + s.h / 2;
       let w = Math.max(0.3, s.w + dx * d.u);
       let h = Math.max(0.3, s.h + dy * d.u);
+      const a = d.aspect ?? s.w / s.h;
+      const byWidth = Math.abs(dx) > Math.abs(dy);
       if (e.shiftKey) {
-        const a = d.aspect ?? s.w / s.h;
-        if (Math.abs(dx) > Math.abs(dy)) h = w / a;
+        if (byWidth) h = w / a;
         else w = h * a;
       }
-      w = round(w);
-      h = round(h);
-      change(d.i, { w, h, x: round(left + w / 2), y: round(top - h / 2) }, true);
+      const k = reachOf(s);
+      const sx =
+        free || (e.shiftKey && !byWidth)
+          ? null
+          : nearest(
+              others
+                .filter((q) => share(top - h - k.b, top + k.t, q.b, q.t) && q.l > left)
+                .map((q) => [left + w + k.r, q.l - GUTTER]) as [number, number][],
+              reach,
+            );
+      const sy =
+        free || (e.shiftKey && byWidth)
+          ? null
+          : nearest(
+              others
+                .filter((q) => share(left - k.l, left + w + k.r, q.l, q.r) && q.t < top)
+                .map((q) => [top - h - k.b, q.t + GUTTER]) as [number, number][],
+              reach,
+            );
+      if (sx) w += sx.d;
+      else w = round(w);
+      if (sy) h -= sy.d;
+      else h = round(h);
+      if (e.shiftKey) {
+        if (sx) h = w / a;
+        if (sy) w = h * a;
+      }
+      setGuides({ x: sx ? [sx.at] : [], y: sy ? [sy.at] : [] });
+      change(
+        d.i,
+        { w: round(w, 0.0005), h: round(h, 0.0005), x: round(left + w / 2, 0.0005), y: round(top - h / 2, 0.0005) },
+        true,
+      );
     } else if (d.how === "pan") {
       // The picture follows the pointer: the crop's window moves against it.
       // How much of the picture the frame shows across, and so how far a
@@ -410,6 +546,7 @@ export default function GalleryEditor({
   const end = () => {
     if (!drag.current) return;
     drag.current = null;
+    setGuides(noGuides);
     setDragging(false);
   };
 
@@ -592,6 +729,36 @@ export default function GalleryEditor({
               />
             </div>
           ))}
+
+          {/* Where each frame's label hangs. Pressing one picks its frame. */}
+          {draft.map((q, i) => {
+            const k = labelOf(q);
+            return k ? (
+              <div
+                key={`label-${q.id}`}
+                className={styles.label}
+                data-selected={selected === i || undefined}
+                style={{
+                  left: `${((k.l - fit.l) / fit.w) * 100}%`,
+                  top: `${((fit.t - k.t) / fit.h) * 100}%`,
+                  width: `${((k.r - k.l) / fit.w) * 100}%`,
+                  height: `${((k.t - k.b) / fit.h) * 100}%`,
+                }}
+                onPointerDown={(ev) => {
+                  ev.stopPropagation();
+                  setSelected(i);
+                }}
+              />
+            ) : null;
+          })}
+
+          {/* Where the frame being dragged has snapped to. */}
+          {guides.x.map((g) => (
+            <span key={`x${g}`} className={styles.guideX} style={{ left: `${((g - fit.l) / fit.w) * 100}%` }} />
+          ))}
+          {guides.y.map((g) => (
+            <span key={`y${g}`} className={styles.guideY} style={{ top: `${((fit.t - g) / fit.h) * 100}%` }} />
+          ))}
         </div>
       </div>
 
@@ -679,6 +846,70 @@ export default function GalleryEditor({
                   <input type="color" value={e.bg} onChange={(ev) => change(selected, { bg: ev.target.value })} />
                   {kind === "model" ? "the room's wall" : "behind it"} · {e.bg}
                 </label>
+              </section>
+
+              <section>
+                <h4>Presentation</h4>
+                <label className={panel.num}>
+                  <span>frame (public/models/gallery/frames)</span>
+                  <select
+                    value={e.frame ?? ""}
+                    onChange={(ev) => change(selected, { frame: ev.target.value || undefined })}
+                  >
+                    <option value="">none — a bare card</option>
+                    {Object.keys(FRAME_SPECS).map((k) => (
+                      <option key={k} value={k}>
+                        {k}
+                        {draft.some((q, j) => j !== selected && q.frame === k) ? " ·" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {e.frame && FRAME_SPECS[e.frame]?.lip !== undefined ? (
+                  <label className={styles.check}>
+                    <input
+                      type="checkbox"
+                      checked={!!e.flush}
+                      onChange={(ev) => change(selected, { flush: ev.target.checked || undefined })}
+                    />
+                    level with the frame&apos;s mount
+                  </label>
+                ) : null}
+                <label className={panel.num}>
+                  <span>label</span>
+                  <select
+                    value={e.label ?? "right"}
+                    onChange={(ev) => change(selected, { label: ev.target.value as LabelSide })}
+                  >
+                    {SIDES.map(([v, name]) => (
+                      <option key={v} value={v}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {(e.label ?? "right") !== "none" ? (
+                  <>
+                    <label className={panel.num}>
+                      <span>medium, year</span>
+                      <input
+                        value={e.medium ?? ""}
+                        placeholder="Blender, 2025"
+                        onChange={(ev) => change(selected, { medium: ev.target.value || undefined })}
+                      />
+                    </label>
+                    <label className={panel.num}>
+                      <span>about</span>
+                      <textarea
+                        className={styles.about}
+                        rows={4}
+                        value={e.about ?? ""}
+                        placeholder="A few lines about the piece."
+                        onChange={(ev) => change(selected, { about: ev.target.value || undefined })}
+                      />
+                    </label>
+                  </>
+                ) : null}
               </section>
 
               <section>
@@ -819,7 +1050,8 @@ export default function GalleryEditor({
           ) : (
             <p className={panel.hint}>
               Click a frame to choose it. Drag to move it, drag its corner to size it (shift keeps its
-              shape). Switch to framing — or hold ⌥ — and dragging moves what is inside instead; scroll
+              shape); both snap to an even gap from the neighbouring frames — hold ⌘ to place
+              freely. Switch to framing — or hold ⌥ — and dragging moves what is inside instead; scroll
               zooms it.
               <br />
               <br />

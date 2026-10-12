@@ -18,9 +18,10 @@
 
 /** For any dessert without a sentence of its own. */
 export const anyLost: string[] = [
-  "Unfortunately, the recipe for the {name} has been lost to time.",
-  "The recipe for this one was never written down — only remembered.",
-  "Alas, the {name} lives only in the baker's hands for now.",
+  "Unfortunately, this recipe has been lost to time...",
+  "The recipe was lost in the journey to Mordor, but the dessert survived.",
+  "Alas, the recipe lives only in the baker's head.",
+  "Sorry, a cat ate the recipe."
 ];
 
 /** A sentence for one dessert, by the name of its picture. */

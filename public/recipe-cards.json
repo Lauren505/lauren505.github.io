@@ -1,1 +1,1544 @@
-{}
+{
+  "matcha_roll": {
+    "nameDrop": -0.09,
+    "steps": {
+      "x": 0.422,
+      "y": -0.025,
+      "rotate": -0.322,
+      "width": 0.483
+    },
+    "items": [
+      {
+        "id": "onion",
+        "kind": "onion",
+        "at": "steps",
+        "box": {
+          "x": 0.037,
+          "y": -0.036,
+          "width": 0.986,
+          "height": 0.575,
+          "rotate": -1.1
+        }
+      },
+      "steps",
+      {
+        "id": "kraft-1",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.016,
+          "y": -0.346,
+          "width": 0.443,
+          "height": 0.367,
+          "rotate": 3
+        }
+      },
+      {
+        "id": "white-1",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.017,
+          "y": -0.349,
+          "width": 0.444,
+          "height": 0.367,
+          "rotate": 2.207
+        },
+        "seed": 20
+      },
+      {
+        "id": "photo-1",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.04,
+          "y": -0.325,
+          "width": 0.394,
+          "height": 0.312,
+          "rotate": 2.207
+        },
+        "photo": 1
+      },
+      {
+        "id": "white-0",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.674,
+          "y": -0.058,
+          "width": 0.359,
+          "height": 0.312,
+          "rotate": -0.069
+        },
+        "seed": 7
+      },
+      {
+        "id": "photo-0",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.701,
+          "y": -0.038,
+          "width": 0.295,
+          "height": 0.272,
+          "rotate": -0.069
+        },
+        "photo": 0
+      },
+      {
+        "id": "drop",
+        "kind": "drop",
+        "at": "steps",
+        "box": {
+          "x": 0.009,
+          "y": -0.012,
+          "width": 0.088,
+          "height": 0.131,
+          "rotate": -72.969
+        }
+      },
+      {
+        "id": "stud-mv375gc9",
+        "kind": "stud",
+        "at": "steps",
+        "box": {
+          "x": 1.001,
+          "y": 0.322,
+          "width": 0.018,
+          "height": 0.018,
+          "rotate": 0
+        }
+      }
+    ]
+  },
+  "hojicha_roll": {
+    "nameDrop": 0,
+    "steps": {
+      "x": 0,
+      "y": -0.036,
+      "rotate": 0
+    },
+    "items": [
+      "steps"
+    ]
+  },
+  "chocolate_roll": {
+    "nameDrop": 0,
+    "steps": {
+      "x": 0,
+      "y": 0.002,
+      "rotate": -1.1
+    },
+    "items": [
+      {
+        "id": "onion",
+        "kind": "onion",
+        "at": "steps"
+      },
+      "steps",
+      {
+        "id": "gem-mv3bmzut",
+        "kind": "gem",
+        "at": "steps",
+        "box": {
+          "x": 0.049,
+          "y": -0.039,
+          "width": 0.041,
+          "height": 0.153,
+          "rotate": -80.854
+        }
+      }
+    ]
+  },
+  "matcha_cake": {
+    "nameDrop": 0,
+    "steps": {
+      "x": 0.471,
+      "y": -0.093,
+      "rotate": 0,
+      "width": 0.397
+    },
+    "items": [
+      {
+        "id": "kraft-0",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.492,
+          "y": -0.135,
+          "width": 0.489,
+          "height": 0.442,
+          "rotate": 1.711
+        }
+      },
+      {
+        "id": "white-0",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.538,
+          "y": -0.123,
+          "width": 0.431,
+          "height": 0.427,
+          "rotate": 2.232
+        },
+        "seed": 7
+      },
+      {
+        "id": "photo-0",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.562,
+          "y": -0.098,
+          "width": 0.384,
+          "height": 0.378,
+          "rotate": 2.082
+        },
+        "photo": 0
+      },
+      {
+        "id": "drop-mv3bsqkc",
+        "kind": "drop",
+        "at": "steps",
+        "box": {
+          "x": 0.007,
+          "y": 0.008,
+          "width": 0.08,
+          "height": 0.118,
+          "rotate": -84.205
+        }
+      },
+      {
+        "id": "onion",
+        "kind": "onion",
+        "at": "steps",
+        "box": {
+          "x": 0.472,
+          "y": -0.115,
+          "width": 0.518,
+          "height": 0.203,
+          "rotate": 0
+        }
+      },
+      "steps",
+      {
+        "id": "stud",
+        "kind": "stud",
+        "at": "steps",
+        "box": {
+          "x": 0.948,
+          "y": -0.097,
+          "width": 0.018,
+          "height": 0.018,
+          "rotate": 0
+        }
+      }
+    ]
+  },
+  "double_fromage": {
+    "nameDrop": 0,
+    "steps": {
+      "x": 0.015,
+      "y": -0.027,
+      "rotate": 0
+    },
+    "items": [
+      {
+        "id": "onion",
+        "kind": "onion",
+        "at": "steps",
+        "box": {
+          "x": 0.035,
+          "y": -0.023,
+          "width": 0.99,
+          "height": 0.367,
+          "rotate": -1.1
+        }
+      },
+      "steps",
+      {
+        "id": "stud",
+        "kind": "stud",
+        "at": "steps",
+        "box": {
+          "x": 0.932,
+          "y": -0.006,
+          "width": 0.018,
+          "height": 0.018,
+          "rotate": 0
+        }
+      }
+    ]
+  },
+  "macaron": {
+    "nameDrop": -0.08,
+    "steps": {
+      "x": 0.001,
+      "y": -0.022,
+      "rotate": -1.1
+    },
+    "items": [
+      {
+        "id": "onion",
+        "kind": "onion",
+        "at": "steps",
+        "box": {
+          "x": 0.035,
+          "y": -0.029,
+          "width": 0.99,
+          "height": 0.652,
+          "rotate": -1.1
+        }
+      },
+      "steps",
+      {
+        "id": "gem",
+        "kind": "gem",
+        "at": "steps",
+        "box": {
+          "x": 0.948,
+          "y": -0.068,
+          "width": 0.041,
+          "height": 0.153,
+          "rotate": 269.878
+        }
+      }
+    ]
+  },
+  "berry_tart": {
+    "nameDrop": -0.05,
+    "steps": {
+      "x": -0.011,
+      "y": -0.059,
+      "rotate": 0,
+      "width": 0.87
+    },
+    "items": [
+      {
+        "id": "kraft-1",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.587,
+          "y": -0.052,
+          "width": 0.359,
+          "height": 0.354,
+          "rotate": 3
+        }
+      },
+      {
+        "id": "white-1",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.598,
+          "y": -0.04,
+          "width": 0.339,
+          "height": 0.34,
+          "rotate": 3
+        },
+        "seed": 20
+      },
+      {
+        "id": "photo-1",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.615,
+          "y": -0.026,
+          "width": 0.306,
+          "height": 0.31,
+          "rotate": 3
+        },
+        "photo": 1
+      },
+      {
+        "id": "kraft-0",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.017,
+          "y": -0.178,
+          "width": 0.391,
+          "height": 0.528,
+          "rotate": -1.933
+        }
+      },
+      {
+        "id": "white-0",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.028,
+          "y": -0.152,
+          "width": 0.37,
+          "height": 0.498,
+          "rotate": -2.5
+        },
+        "seed": 7
+      },
+      {
+        "id": "photo-0",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.052,
+          "y": -0.107,
+          "width": 0.324,
+          "height": 0.433,
+          "rotate": -2.5
+        },
+        "photo": 0,
+        "crop": {
+          "zoom": 1,
+          "x": 79,
+          "y": 49
+        }
+      },
+      {
+        "id": "onion",
+        "kind": "onion",
+        "at": "steps",
+        "box": {
+          "x": 0.035,
+          "y": -0.054,
+          "width": 0.99,
+          "height": 0.221,
+          "rotate": -1.1
+        }
+      },
+      {
+        "id": "stud-mv3c16r4",
+        "kind": "stud",
+        "at": "steps",
+        "box": {
+          "x": 0.08,
+          "y": 0.208,
+          "width": 0.018,
+          "height": 0.018,
+          "rotate": 0
+        }
+      },
+      "steps",
+      {
+        "id": "gem-mv3c5htb",
+        "kind": "gem",
+        "at": "steps",
+        "box": {
+          "x": 0.948,
+          "y": 0.015,
+          "width": 0.041,
+          "height": 0.153,
+          "rotate": 81.026
+        }
+      }
+    ]
+  },
+  "blueberry_crumble": {
+    "nameDrop": 0,
+    "steps": {
+      "x": 0,
+      "y": 0,
+      "rotate": 0
+    },
+    "items": [
+      "steps"
+    ]
+  },
+  "blueberry_cake": {
+    "nameDrop": 0,
+    "steps": {
+      "x": -0.029,
+      "y": 0.011,
+      "rotate": -1.1,
+      "width": 0.482
+    },
+    "items": [
+      {
+        "id": "kraft-0",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.032,
+          "y": -0.341,
+          "width": 0.443,
+          "height": 0.579,
+          "rotate": -1.694
+        }
+      },
+      {
+        "id": "white-0",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.045,
+          "y": -0.326,
+          "width": 0.414,
+          "height": 0.551,
+          "rotate": -2.5
+        },
+        "seed": 7
+      },
+      {
+        "id": "photo-0",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.065,
+          "y": -0.308,
+          "width": 0.373,
+          "height": 0.513,
+          "rotate": -2.5
+        },
+        "photo": 0
+      },
+      {
+        "id": "onion",
+        "kind": "onion",
+        "at": "steps",
+        "box": {
+          "x": 0.005,
+          "y": 0,
+          "width": 0.582,
+          "height": 0.185,
+          "rotate": -1.1
+        }
+      },
+      "steps",
+      {
+        "id": "stud",
+        "kind": "stud",
+        "at": "steps",
+        "box": {
+          "x": 0.034,
+          "y": 0.025,
+          "width": 0.018,
+          "height": 0.018,
+          "rotate": 0
+        }
+      },
+      {
+        "id": "gem-mv3cgbbm",
+        "kind": "gem",
+        "at": "steps",
+        "box": {
+          "x": 0.898,
+          "y": -0.187,
+          "width": 0.041,
+          "height": 0.153,
+          "rotate": 84.292
+        }
+      }
+    ]
+  },
+  "blueberry_cheese": {
+    "nameDrop": -0.04,
+    "steps": {
+      "x": 0,
+      "y": 0,
+      "rotate": -1.1
+    },
+    "items": [
+      {
+        "id": "kraft-1",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.016,
+          "y": -0.006,
+          "width": 0.396,
+          "height": 0.301,
+          "rotate": 3
+        }
+      },
+      {
+        "id": "white-1",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.025,
+          "y": 0.006,
+          "width": 0.377,
+          "height": 0.283,
+          "rotate": 3
+        },
+        "seed": 20
+      },
+      {
+        "id": "photo-1",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.044,
+          "y": 0.022,
+          "width": 0.337,
+          "height": 0.253,
+          "rotate": 3
+        },
+        "photo": 1,
+        "crop": {
+          "zoom": 1,
+          "x": 49,
+          "y": 81
+        }
+      },
+      {
+        "id": "stud",
+        "kind": "stud",
+        "at": "steps",
+        "box": {
+          "x": 0.056,
+          "y": 0.562,
+          "width": 0.018,
+          "height": 0.018,
+          "rotate": 0
+        }
+      },
+      {
+        "id": "onion",
+        "kind": "onion",
+        "at": "steps"
+      },
+      "steps",
+      {
+        "id": "kraft-0",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.582,
+          "y": -0.171,
+          "width": 0.427,
+          "height": 0.338,
+          "rotate": -1.203
+        }
+      },
+      {
+        "id": "white-0",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.594,
+          "y": -0.162,
+          "width": 0.408,
+          "height": 0.324,
+          "rotate": -2.5
+        },
+        "seed": 7
+      },
+      {
+        "id": "photo-0",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.611,
+          "y": -0.144,
+          "width": 0.378,
+          "height": 0.288,
+          "rotate": -2.5
+        },
+        "photo": 0
+      },
+      {
+        "id": "drop-mv3cjkr6",
+        "kind": "drop",
+        "at": "steps",
+        "box": {
+          "x": 0.958,
+          "y": 0.331,
+          "width": 0.075,
+          "height": 0.111,
+          "rotate": 79.308
+        }
+      }
+    ]
+  },
+  "apple_tart": {
+    "nameDrop": -0.05,
+    "steps": {
+      "x": 0,
+      "y": 0,
+      "rotate": -1.1
+    },
+    "items": [
+      {
+        "id": "onion",
+        "kind": "onion",
+        "at": "steps"
+      },
+      "steps",
+      {
+        "id": "kraft-1",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.006,
+          "y": -0.026,
+          "width": 0.307,
+          "height": 0.493,
+          "rotate": 3
+        }
+      },
+      {
+        "id": "white-1",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.012,
+          "y": -0.021,
+          "width": 0.322,
+          "height": 0.473,
+          "rotate": 3
+        },
+        "seed": 20
+      },
+      {
+        "id": "photo-1",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.03,
+          "y": 0.001,
+          "width": 0.286,
+          "height": 0.428,
+          "rotate": 3
+        },
+        "photo": 1,
+        "crop": {
+          "zoom": 1.05,
+          "x": 100,
+          "y": 50
+        }
+      },
+      {
+        "id": "kraft-0",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.468,
+          "y": -0.019,
+          "width": 0.518,
+          "height": 0.449,
+          "rotate": -0.289
+        }
+      },
+      {
+        "id": "white-0",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.493,
+          "y": -0.005,
+          "width": 0.488,
+          "height": 0.416,
+          "rotate": -2.5
+        },
+        "seed": 7
+      },
+      {
+        "id": "photo-0",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.513,
+          "y": 0.011,
+          "width": 0.452,
+          "height": 0.382,
+          "rotate": -2.5
+        },
+        "photo": 0,
+        "crop": {
+          "zoom": 1.2,
+          "x": 79,
+          "y": 61
+        }
+      },
+      {
+        "id": "stud-mv3d2ns9",
+        "kind": "stud",
+        "at": "steps",
+        "box": {
+          "x": 0.93,
+          "y": 0.008,
+          "width": 0.018,
+          "height": 0.018,
+          "rotate": 0
+        }
+      },
+      {
+        "id": "stud-mv3d2tmv",
+        "kind": "stud",
+        "at": "steps",
+        "box": {
+          "x": 0.05,
+          "y": 0.01,
+          "width": 0.018,
+          "height": 0.018,
+          "rotate": 0
+        }
+      }
+    ]
+  },
+  "gift_mousse": {
+    "nameDrop": -0.04,
+    "steps": {
+      "x": 0.306,
+      "y": 0.017,
+      "rotate": 0,
+      "width": 0.597
+    },
+    "items": [
+      {
+        "id": "kraft-0",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.648,
+          "y": -0.313,
+          "width": 0.337,
+          "height": 0.349,
+          "rotate": -0.357
+        }
+      },
+      {
+        "id": "white-0",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.655,
+          "y": -0.311,
+          "width": 0.329,
+          "height": 0.329,
+          "rotate": -0.001
+        },
+        "seed": 7
+      },
+      {
+        "id": "photo-0",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.68,
+          "y": -0.295,
+          "width": 0.287,
+          "height": 0.294,
+          "rotate": -0.532
+        },
+        "photo": 0
+      },
+      {
+        "id": "onion",
+        "kind": "onion",
+        "at": "steps",
+        "box": {
+          "x": 0.304,
+          "y": 0.006,
+          "width": 0.69,
+          "height": 0.196,
+          "rotate": -1.1
+        }
+      },
+      "steps",
+      {
+        "id": "stud",
+        "kind": "stud",
+        "at": "steps",
+        "box": {
+          "x": 0.951,
+          "y": 0.018,
+          "width": 0.018,
+          "height": 0.018,
+          "rotate": 0
+        }
+      },
+      {
+        "id": "stud-mv3d9ob8",
+        "kind": "stud",
+        "at": "steps",
+        "box": {
+          "x": 0.041,
+          "y": -0.125,
+          "width": 0.018,
+          "height": 0.018,
+          "rotate": 0
+        }
+      }
+    ]
+  },
+  "chocolate_brownie_cheesecake": {
+    "nameDrop": 0,
+    "steps": {
+      "x": 0.421,
+      "y": -0.041,
+      "rotate": 0,
+      "width": 0.446
+    },
+    "items": [
+      {
+        "id": "onion",
+        "kind": "onion",
+        "at": "steps",
+        "box": {
+          "x": 0.008,
+          "y": -0.041,
+          "width": 0.999,
+          "height": 0.172,
+          "rotate": -1.1
+        }
+      },
+      "steps",
+      {
+        "id": "kraft-0",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.01,
+          "y": -0.251,
+          "width": 0.42,
+          "height": 0.336,
+          "rotate": -2.5
+        }
+      },
+      {
+        "id": "white-0",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": -0.002,
+          "y": -0.245,
+          "width": 0.408,
+          "height": 0.325,
+          "rotate": -2.5
+        },
+        "seed": 7
+      },
+      {
+        "id": "photo-0",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.024,
+          "y": -0.228,
+          "width": 0.349,
+          "height": 0.292,
+          "rotate": -2.5
+        },
+        "photo": 0,
+        "crop": {
+          "zoom": 1.1,
+          "x": 88,
+          "y": 77
+        }
+      },
+      {
+        "id": "drop-mv3ddku6",
+        "kind": "drop",
+        "at": "steps",
+        "box": {
+          "x": -0.001,
+          "y": 0.016,
+          "width": 0.065,
+          "height": 0.096,
+          "rotate": 265.249
+        }
+      }
+    ]
+  },
+  "elderflower_layer_mousse": {
+    "nameDrop": 0,
+    "steps": {
+      "x": 0,
+      "y": 0,
+      "rotate": -1.1
+    },
+    "items": [
+      {
+        "id": "onion",
+        "kind": "onion",
+        "at": "steps"
+      },
+      "steps",
+      {
+        "id": "kraft-0",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.016,
+          "y": -0.087,
+          "width": 0.466,
+          "height": 0.432,
+          "rotate": -0.385
+        }
+      },
+      {
+        "id": "white-0",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.047,
+          "y": -0.071,
+          "width": 0.513,
+          "height": 0.406,
+          "rotate": -0.234
+        },
+        "seed": 7
+      },
+      {
+        "id": "photo-0",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.064,
+          "y": -0.058,
+          "width": 0.468,
+          "height": 0.385,
+          "rotate": 0.552
+        },
+        "photo": 0,
+        "crop": {
+          "zoom": 1,
+          "x": 50,
+          "y": 96
+        }
+      },
+      {
+        "id": "gem",
+        "kind": "gem",
+        "at": "steps",
+        "box": {
+          "x": 0.919,
+          "y": -0.118,
+          "width": 0.041,
+          "height": 0.153,
+          "rotate": 79.738
+        }
+      }
+    ]
+  },
+  "choux_puff": {
+    "nameDrop": -0.07,
+    "steps": {
+      "x": -0.043,
+      "y": -0.029,
+      "rotate": 0,
+      "width": 0.599
+    },
+    "items": [
+      {
+        "id": "kraft-0",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.566,
+          "y": -0.59,
+          "width": 0.456,
+          "height": 0.434,
+          "rotate": -2.5
+        }
+      },
+      {
+        "id": "white-0",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.571,
+          "y": -0.577,
+          "width": 0.462,
+          "height": 0.474,
+          "rotate": -2.5
+        },
+        "seed": 7
+      },
+      {
+        "id": "photo-0",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.588,
+          "y": -0.562,
+          "width": 0.421,
+          "height": 0.441,
+          "rotate": -2.5
+        },
+        "photo": 0,
+        "crop": {
+          "zoom": 1,
+          "x": 50,
+          "y": 16
+        }
+      },
+      {
+        "id": "onion-mv3dk42c",
+        "kind": "onion",
+        "at": "steps",
+        "box": {
+          "x": 0.009,
+          "y": -0.032,
+          "width": 0.63,
+          "height": 0.375,
+          "rotate": -1.1
+        }
+      },
+      "steps",
+      {
+        "id": "drop-mv3dlbfo",
+        "kind": "drop",
+        "at": "steps",
+        "box": {
+          "x": 0.957,
+          "y": -0.264,
+          "width": 0.065,
+          "height": 0.096,
+          "rotate": 43.081
+        }
+      },
+      {
+        "id": "stud-mv3dlkgq",
+        "kind": "stud",
+        "at": "steps",
+        "box": {
+          "x": 0.038,
+          "y": -0.01,
+          "width": 0.018,
+          "height": 0.018,
+          "rotate": 0
+        }
+      }
+    ]
+  },
+  "hojicha_cake": {
+    "nameDrop": -0.03,
+    "steps": {
+      "x": 0.39,
+      "y": -0.047,
+      "rotate": -1.1,
+      "width": 0.429
+    },
+    "items": [
+      {
+        "id": "kraft-0",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.003,
+          "y": -0.193,
+          "width": 0.42,
+          "height": 0.336,
+          "rotate": -2.5
+        }
+      },
+      {
+        "id": "white-0",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": -0.007,
+          "y": -0.175,
+          "width": 0.41,
+          "height": 0.292,
+          "rotate": -2.5
+        },
+        "seed": 7
+      },
+      {
+        "id": "photo-0",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.016,
+          "y": -0.157,
+          "width": 0.366,
+          "height": 0.254,
+          "rotate": -2.5
+        },
+        "photo": 0
+      },
+      {
+        "id": "onion",
+        "kind": "onion",
+        "at": "steps",
+        "box": {
+          "x": 0.329,
+          "y": -0.047,
+          "width": 0.662,
+          "height": 0.167,
+          "rotate": -1.1
+        }
+      },
+      "steps",
+      {
+        "id": "gem",
+        "kind": "gem",
+        "at": "steps",
+        "box": {
+          "x": 0.025,
+          "y": -0.046,
+          "width": 0.034,
+          "height": 0.128,
+          "rotate": -78.673
+        }
+      },
+      {
+        "id": "stud-mv3do5e9",
+        "kind": "stud",
+        "at": "steps",
+        "box": {
+          "x": 0.946,
+          "y": -0.034,
+          "width": 0.018,
+          "height": 0.018,
+          "rotate": 0
+        }
+      }
+    ]
+  },
+  "chocolate_mochi_tart": {
+    "nameDrop": 0,
+    "steps": {
+      "x": 0,
+      "y": 0,
+      "rotate": -1.1
+    },
+    "items": [
+      "steps",
+      {
+        "id": "kraft-1",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.515,
+          "y": -0.128,
+          "width": 0.455,
+          "height": 0.374,
+          "rotate": 0.561
+        }
+      },
+      {
+        "id": "white-1",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.49,
+          "y": -0.127,
+          "width": 0.471,
+          "height": 0.354,
+          "rotate": 3
+        },
+        "seed": 20
+      },
+      {
+        "id": "photo-1",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.509,
+          "y": -0.106,
+          "width": 0.436,
+          "height": 0.312,
+          "rotate": 3
+        },
+        "photo": 1,
+        "crop": {
+          "zoom": 1,
+          "x": 50,
+          "y": 70
+        }
+      },
+      {
+        "id": "kraft-0",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.02,
+          "y": -0.186,
+          "width": 0.337,
+          "height": 0.323,
+          "rotate": -2.5
+        }
+      },
+      {
+        "id": "white-0",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.022,
+          "y": -0.179,
+          "width": 0.321,
+          "height": 0.299,
+          "rotate": -2.5
+        },
+        "seed": 7
+      },
+      {
+        "id": "photo-0",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.041,
+          "y": -0.159,
+          "width": 0.274,
+          "height": 0.261,
+          "rotate": -2.5
+        },
+        "photo": 0,
+        "crop": {
+          "zoom": 1.2,
+          "x": 50,
+          "y": 50
+        }
+      },
+      {
+        "id": "drop",
+        "kind": "drop",
+        "at": "steps",
+        "box": {
+          "x": 0.021,
+          "y": 0.105,
+          "width": 0.065,
+          "height": 0.096,
+          "rotate": 259.615
+        }
+      }
+    ]
+  },
+  "dense_chocolate_cake": {
+    "nameDrop": -0.06,
+    "steps": {
+      "x": 0,
+      "y": -0.064,
+      "rotate": 0
+    },
+    "items": [
+      "steps"
+    ]
+  },
+  "raisin_scone": {
+    "nameDrop": 0,
+    "steps": {
+      "x": -0.044,
+      "y": -0.032,
+      "rotate": 0,
+      "width": 0.529
+    },
+    "items": [
+      {
+        "id": "onion",
+        "kind": "onion",
+        "at": "steps",
+        "box": {
+          "x": 0,
+          "y": -0.029,
+          "width": 0.99,
+          "height": 0.274,
+          "rotate": -1.1
+        }
+      },
+      "steps",
+      {
+        "id": "kraft-0",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": -0.004,
+          "y": -0.494,
+          "width": 0.438,
+          "height": 0.397,
+          "rotate": -0.475
+        }
+      },
+      {
+        "id": "white-0",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.005,
+          "y": -0.48,
+          "width": 0.414,
+          "height": 0.372,
+          "rotate": -2.5
+        },
+        "seed": 7
+      },
+      {
+        "id": "photo-0",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.023,
+          "y": -0.466,
+          "width": 0.374,
+          "height": 0.338,
+          "rotate": -2.5
+        },
+        "photo": 0
+      },
+      {
+        "id": "gem",
+        "kind": "gem",
+        "at": "steps",
+        "box": {
+          "x": 0.931,
+          "y": -0.109,
+          "width": 0.041,
+          "height": 0.153,
+          "rotate": 97.896
+        }
+      }
+    ]
+  },
+  "peach_jasmine_tart": {
+    "nameDrop": -0.06,
+    "steps": {
+      "x": -0.011,
+      "y": -0.043,
+      "rotate": 0
+    },
+    "items": [
+      {
+        "id": "kraft-1",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.633,
+          "y": -0.084,
+          "width": 0.367,
+          "height": 0.251,
+          "rotate": 3
+        }
+      },
+      {
+        "id": "white-1",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.628,
+          "y": -0.085,
+          "width": 0.363,
+          "height": 0.247,
+          "rotate": 3
+        },
+        "seed": 20
+      },
+      {
+        "id": "photo-1",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.65,
+          "y": -0.067,
+          "width": 0.303,
+          "height": 0.204,
+          "rotate": 3
+        },
+        "photo": 1,
+        "crop": {
+          "zoom": 1,
+          "x": 50,
+          "y": 31
+        }
+      },
+      {
+        "id": "kraft-0",
+        "kind": "kraft",
+        "at": "foot",
+        "box": {
+          "x": 0.03,
+          "y": -0.041,
+          "width": 0.417,
+          "height": 0.304,
+          "rotate": -2.5
+        }
+      },
+      {
+        "id": "white-0",
+        "kind": "white",
+        "at": "foot",
+        "box": {
+          "x": 0.037,
+          "y": -0.034,
+          "width": 0.374,
+          "height": 0.29,
+          "rotate": -2.5
+        },
+        "seed": 7
+      },
+      {
+        "id": "photo-0",
+        "kind": "photo",
+        "at": "foot",
+        "box": {
+          "x": 0.053,
+          "y": -0.02,
+          "width": 0.336,
+          "height": 0.256,
+          "rotate": -2.5
+        },
+        "photo": 0
+      },
+      {
+        "id": "onion",
+        "kind": "onion",
+        "at": "steps",
+        "box": {
+          "x": 0.013,
+          "y": -0.032,
+          "width": 0.99,
+          "height": 0.274,
+          "rotate": -1.1
+        }
+      },
+      "steps",
+      {
+        "id": "stud",
+        "kind": "stud",
+        "at": "steps",
+        "box": {
+          "x": 0.963,
+          "y": 0.218,
+          "width": 0.018,
+          "height": 0.018,
+          "rotate": 0
+        }
+      },
+      {
+        "id": "drop-mv3dyfu7",
+        "kind": "drop",
+        "at": "steps",
+        "box": {
+          "x": 0.002,
+          "y": 0.215,
+          "width": 0.065,
+          "height": 0.096,
+          "rotate": -79.41
+        }
+      }
+    ]
+  },
+  "matcha_basque": {
+    "nameDrop": -0.03,
+    "steps": {
+      "x": 0,
+      "y": 0,
+      "rotate": 0
+    },
+    "items": [
+      "steps"
+    ]
+  },
+  "opera_cake": {
+    "nameDrop": 0,
+    "steps": {
+      "x": 0,
+      "y": 0,
+      "rotate": -1.1
+    },
+    "items": [
+      {
+        "id": "onion",
+        "kind": "onion",
+        "at": "steps"
+      },
+      "steps"
+    ]
+  }
+}

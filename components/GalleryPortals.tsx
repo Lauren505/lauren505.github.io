@@ -85,7 +85,9 @@ export default function GalleryPortals() {
    *  upright window. */
   const [frame, setFrame] = useState<Rect | null>(null);
   useEffect(() => {
-    const el = stage.current;
+    // The flat wall's own box, which reaches past the stage into the margins
+    // — see .wall — and is what the scene has to fit the wall to as well.
+    const el = stage.current?.querySelector<HTMLElement>("[data-wall]") ?? stage.current;
     if (!el) return;
     const measure = () => {
       const r = el.getBoundingClientRect();

@@ -1,6 +1,9 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { Entry } from "@/content";
+import type { Entry } from "@/content/gallery";
+import { FRAME_SPECS } from "@/content/frames";
+
+const LABEL_SIDES = ["right", "right-top", "left", "left-top", "below", "below-right", "above", "above-right", "none"];
 
 /**
  * Where the gallery editor reads its choices from and saves to, while
@@ -70,7 +73,8 @@ export async function GET(request: Request) {
       shared.map(async (f) => [f, (await fs.stat(path.join(PUBLIC, f))).size] as const),
     ),
   );
-  const models = shared.filter((f) => MODEL.test(f));
+  // Frames are hung round artworks, not as them — see the editor's frame list.
+  const models = shared.filter((f) => MODEL.test(f) && !f.startsWith("frames/"));
   const videos = shared.filter(
     (f) =>
       VIDEO.test(f) &&
@@ -106,6 +110,10 @@ const valid = (list: unknown): list is Entry[] =>
     if (e.modelView !== undefined && !tuple(e.modelView, 2)) return false;
     if (e.focus !== undefined && !tuple(e.focus, 2)) return false;
     if (e.sound !== undefined && typeof e.sound !== "boolean") return false;
+    if (e.flush !== undefined && typeof e.flush !== "boolean") return false;
+    if (e.frame !== undefined && e.frame !== null && !(text(e.frame) && e.frame in FRAME_SPECS)) return false;
+    if (e.label !== undefined && !(text(e.label) && LABEL_SIDES.includes(e.label))) return false;
+    for (const k of ["medium", "about"]) if (e[k] !== undefined && !(typeof e[k] === "string" && e[k].length < 4000)) return false;
     return true;
   });
 
@@ -130,7 +138,12 @@ const ORDER = [
   "sound",
   "focus",
   "zoom",
+  "frame",
+  "flush",
   "bg",
+  "label",
+  "medium",
+  "about",
   "x",
   "y",
   "w",
@@ -144,7 +157,10 @@ const idle = (k: string, v: unknown) =>
   (k === "focus" && Array.isArray(v) && v[0] === 0.5 && v[1] === 0.5) ||
   (k === "zoom" && v === 1) ||
   (k === "modelScale" && v === 1) ||
-  (k === "sound" && v === false);
+  (k === "sound" && v === false) ||
+  (k === "flush" && v === false) ||
+  (k === "label" && v === "right") ||
+  ((k === "medium" || k === "about") && v === "");
 
 /** The comments above each field of each entry, by id and field. */
 function notes(body: string) {

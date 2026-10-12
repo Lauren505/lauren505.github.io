@@ -1,4 +1,5 @@
 import type { StaticImageData } from "next/image";
+import { FRAME_SPECS } from "./frames";
 // @gallery-pictures-start — written by the gallery editor from the `image`
 // names below; add an import by hand and it will be kept as long as a frame
 // uses it.
@@ -99,25 +100,153 @@ export type Portal = {
    */
   focus?: [x: number, y: number];
   zoom?: number;
+  /**
+   * A frame round it: a file in public/models/gallery/frames/ — "frame1.glb".
+   * The frame is fitted to the footprint below, so the wall's gaps are the
+   * same framed or not, and the artwork hangs in its opening, a little smaller
+   * than the footprint; a frame with no opening (a canvas block) carries the
+   * artwork on its face instead — the panel in it, raised or sunk, with the
+   * rim or board round it as a margin. See `framing`.
+   */
+  frame?: string;
+  /**
+   * Lifts the artwork from the back of its frame to the face round the
+   * opening — level with a mount, so it reads as mounted rather than behind
+   * one. Not for a moulding with no mount, whose inside edge is its front.
+   */
+  flush?: boolean;
+  /**
+   * The wall label: a slip of paper beside the frame, the way a museum puts
+   * one. `label` is which side of the frame it hangs on, and which end of that
+   * side — "right" is beside it, level with its bottom; "right-top" level with
+   * its top; "below" under it, from its left; "below-right" from its right.
+   * "none" hangs no label. The title is the first line; `medium` the second
+   * (what it is made with, and when); `about` a paragraph under those.
+   */
+  label?: LabelSide;
+  medium?: string;
+  about?: string;
   /** The wall of the room behind it. */
   bg: string;
   /**
    * Where the frame hangs, in wall units: the centre of it, then its size.
    * The unit is arbitrary — the whole wall is fitted to the window — so these
-   * are only ever read against each other. Deliberately ragged: the gaps run
-   * from 0.3 to 0.55 and no two edges line up for long, which is what makes it
-   * read as a wall someone hung rather than a grid. A model's frame wants a
-   * gap of 0.4 or more under it, which is where its caption goes.
-   *
-   * Every frame is cut to the shape of what is in it — the films and the two
-   * pictures to their own proportions, so nothing is cropped — and sized by
-   * what it is: the rooms largest, since they are the ones to go into, the
-   * films by how much there is to watch, the kiwi smallest.
+   * are only ever read against each other. Hung by hand, ragged on purpose —
+   * no two frames the same size and few edges in line — but evenly spaced:
+   * every frame is GUTTER from each of its neighbours, which is what the
+   * editor snaps to.
    */
   x: number;
   y: number;
   w: number;
   h: number;
+};
+
+/** Where the frames are served from. */
+export const FRAME_DIR = "/models/gallery/frames/";
+
+/** How far off the wall an artwork hangs inside a frame's opening: just
+ *  enough to sit in front of whatever backs the frame. */
+const SEAT = 0.01;
+
+/**
+ * How a frame is fitted to a footprint, and where that leaves the artwork:
+ * the frame scaled to the footprint (across and up separately, which for a
+ * frame cut to its artwork's shape is a few percent at most, and in depth by
+ * their average), the artwork's rectangle in its opening — or on its face, for
+ * a canvas block, on the panel inside its rim — and how far off the wall it
+ * is. Null for no frame, or one that has not been measured — see
+ * content/frames.ts.
+ */
+export const framing = (p: Pick<Portal, "frame" | "flush" | "w" | "h">) => {
+  const spec = p.frame ? FRAME_SPECS[p.frame] : undefined;
+  if (!spec) return null;
+  const sx = p.w / spec.size[0];
+  const sy = p.h / spec.size[1];
+  const sz = (sx + sy) / 2;
+  const depth = spec.depth * sz;
+  // In the opening; or, for a solid block, on its face.
+  const [w, h] = spec.opening ?? spec.face?.size ?? spec.size;
+  return {
+    url: FRAME_DIR + p.frame,
+    scale: [sx, sy, sz] as [number, number, number],
+    depth,
+    w: w * sx,
+    h: h * sy,
+    z: spec.opening
+      ? p.flush && spec.lip !== undefined
+        ? spec.lip * sz + 0.002
+        : SEAT
+      : (spec.face?.height ?? spec.depth) * sz + 0.002,
+  };
+};
+
+export type LabelSide =
+  | "right"
+  | "right-top"
+  | "left"
+  | "left-top"
+  | "below"
+  | "below-right"
+  | "above"
+  | "above-right"
+  | "none";
+
+/** A wall label's size, and how far from its frame it hangs, in wall units —
+ *  a slip about fifty pixels by forty on a laptop, which is a museum label's
+ *  shape and, at that size, a label you walk up to rather than read across
+ *  the room: double-click the artwork to zoom in on it and its label. */
+export const LABEL_W = 0.5;
+export const LABEL_H = 0.34;
+export const LABEL_GAP = 0.08;
+
+/** Where a frame's label hangs, as a rectangle in wall units, or null for
+ *  none. */
+export const labelOf = (p: Pick<Portal, "x" | "y" | "w" | "h" | "label">) => {
+  const side = p.label ?? "right";
+  if (side === "none") return null;
+  const l = p.x - p.w / 2;
+  const r = p.x + p.w / 2;
+  const b = p.y - p.h / 2;
+  const t = p.y + p.h / 2;
+  const box = (x0: number, y0: number) => ({
+    l: x0,
+    r: x0 + LABEL_W,
+    b: y0,
+    t: y0 + LABEL_H,
+    x: x0 + LABEL_W / 2,
+    y: y0 + LABEL_H / 2,
+  });
+  switch (side) {
+    case "right":
+      return box(r + LABEL_GAP, b);
+    case "right-top":
+      return box(r + LABEL_GAP, t - LABEL_H);
+    case "left":
+      return box(l - LABEL_GAP - LABEL_W, b);
+    case "left-top":
+      return box(l - LABEL_GAP - LABEL_W, t - LABEL_H);
+    case "below":
+      return box(l, b - LABEL_GAP - LABEL_H);
+    case "below-right":
+      return box(r - LABEL_W, b - LABEL_GAP - LABEL_H);
+    case "above":
+      return box(l, t + LABEL_GAP);
+    case "above-right":
+      return box(r - LABEL_W, t + LABEL_GAP);
+  }
+};
+
+/** A frame and its label together: the rectangle it takes up on the wall. */
+export const footprintOf = (p: Pick<Portal, "x" | "y" | "w" | "h" | "label">) => {
+  const k = labelOf(p);
+  const l = p.x - p.w / 2;
+  const r = p.x + p.w / 2;
+  const b = p.y - p.h / 2;
+  const t = p.y + p.h / 2;
+  return k
+    ? { l: Math.min(l, k.l), r: Math.max(r, k.r), b: Math.min(b, k.b), t: Math.max(t, k.t) }
+    : { l, r, b, t };
 };
 
 /**
@@ -149,9 +278,11 @@ export const entries: Entry[] = [
     // stove, the rack behind it and the run of the counter are all in the frame
     // at once.
     modelView: [55, 23],
+    frame: "frame1.glb",
     bg: "#ded6ca",
-    x: -4.15,
-    y: 1.6,
+    label: "right-top",
+    x: -4.144,
+    y: 1.616,
     w: 5,
     h: 3.35,
   },
@@ -167,9 +298,11 @@ export const entries: Entry[] = [
     // From above and off to one side, so the arch is seen at an angle and the
     // outer stones of it — the ones that face away from a head-on view — show.
     modelView: [2, -5],
+    frame: "frame7.glb",
     bg: "#d9d4cb",
-    x: -8.125,
-    y: -1.63,
+    label: "below-right",
+    x: -8.109,
+    y: -1.635,
     w: 3.54,
     h: 2.525,
   },
@@ -185,9 +318,10 @@ export const entries: Entry[] = [
     modelSpan: 5,
     modelFocus: [0, 0.1, 0],
     modelView: [90, 0],
+    frame: "frame2.glb",
     bg: "#e4dacd",
-    x: 0.265,
-    y: -3.625,
+    x: 0.256,
+    y: -3.643,
     w: 3.2,
     h: 1.75,
   },
@@ -201,9 +335,10 @@ export const entries: Entry[] = [
     // This one's original is 165 MB.
     video: "/models/gallery/apple_anim-web.mp4",
     sound: true,
+    frame: "frame9.glb",
     bg: "#f4f2ee",
-    x: 1.33,
-    y: -0.965,
+    x: 1.346,
+    y: -0.956,
     w: 5.38,
     h: 3.025,
   },
@@ -213,9 +348,11 @@ export const entries: Entry[] = [
     image: "stills/chicago-jazz.jpg",
     video: "/models/gallery/chicago_jazz-web.mp4",
     sound: true,
+    frame: "frame6.glb",
     bg: "#f4f2ee",
-    x: 3.4,
-    y: 1.875,
+    label: "below-right",
+    x: 3.353,
+    y: 1.859,
     w: 3.565,
     h: 2.005,
   },
@@ -224,9 +361,11 @@ export const entries: Entry[] = [
     title: "Espresso, drawn",
     image: "stills/espresso-film.jpg",
     video: "/models/gallery/espresso_greasepencil-web.mp4",
+    frame: "frame5.glb",
     bg: "#dad5cc",
-    x: -0.005,
-    y: 1.705,
+    label: "above-right",
+    x: -0.037,
+    y: 1.722,
     w: 2.615,
     h: 1.73,
   },
@@ -235,9 +374,10 @@ export const entries: Entry[] = [
     title: "Kiwi",
     image: "stills/kiwi.jpg",
     video: "/models/gallery/kiwi-web.mp4",
+    frame: "frame3.glb",
     bg: "#f4f2ee",
-    x: 3.325,
-    y: -3.44,
+    x: 3.338,
+    y: -3.433,
     w: 2.365,
     h: 1.33,
   },
@@ -247,9 +387,12 @@ export const entries: Entry[] = [
     id: "echo-world",
     title: "Echo world",
     image: "echo_world.jpg",
+    frame: "frame4.glb",
+    flush: true,
     bg: "#e6ddd2",
-    x: -3.88,
-    y: -2.08,
+    label: "left",
+    x: -3.842,
+    y: -2.096,
     w: 4.395,
     h: 3.475,
   },
@@ -258,9 +401,11 @@ export const entries: Entry[] = [
     title: "Altar",
     image: "altar.jpg",
     focus: [0.48, 0.5],
+    frame: "frame8.glb",
     bg: "#1a1716",
-    x: -7.83,
-    y: 0.935,
+    label: "left",
+    x: -7.832,
+    y: 0.94,
     w: 1.775,
     h: 2.025,
   },
@@ -289,15 +434,16 @@ export type Wall = {
   cy: number;
 };
 
-/** The smallest rectangle the frames all fit in, in wall units. Both the flat
+/** The smallest rectangle the frames and their labels all fit in, in wall units. Both the flat
  *  copy and the scene fit this same rectangle into the window, which is why
  *  one can be laid over the other. */
-export const wallOf = (frames: Pick<Portal, "x" | "y" | "w" | "h">[]): Wall => {
+export const wallOf = (frames: Pick<Portal, "x" | "y" | "w" | "h" | "label">[]): Wall => {
   if (!frames.length) return { l: -1, r: 1, b: -1, t: 1, w: 2, h: 2, cx: 0, cy: 0 };
-  const l = Math.min(...frames.map((p) => p.x - p.w / 2));
-  const r = Math.max(...frames.map((p) => p.x + p.w / 2));
-  const b = Math.min(...frames.map((p) => p.y - p.h / 2));
-  const t = Math.max(...frames.map((p) => p.y + p.h / 2));
+  const feet = frames.map(footprintOf);
+  const l = Math.min(...feet.map((f) => f.l));
+  const r = Math.max(...feet.map((f) => f.r));
+  const b = Math.min(...feet.map((f) => f.b));
+  const t = Math.max(...feet.map((f) => f.t));
   return { l, r, b, t, w: r - l, h: t - b, cx: (l + r) / 2, cy: (b + t) / 2 };
 };
 
@@ -310,10 +456,9 @@ export const wall = wallOf(portals);
 export const CUE = 0.16;
 export const CUE_NARROW = 0.32;
 
-/** Air left around the wall when it is fitted to the window. */
-export const WALL_PAD = 1.1;
+/** The gap between frames, in wall units, and what the editor snaps a frame
+ *  that far from another to. */
+export const GUTTER = 0.5;
 
-/** The corner the frames are cut with, in wall units. The wall is drawn about
- *  110 pixels to the unit on a laptop, so this is the four-pixel corner the old
- *  site's gallery cards had — a corner you notice only if you look for it. */
-export const CORNER = 0.04;
+/** Air left around the wall when it is fitted to the window. */
+export const WALL_PAD = 1.3;

@@ -25,16 +25,16 @@ import {
 } from "@react-three/drei";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { easing } from "maath";
-import { RoundedPlaneGeometry } from "maath/geometry";
-import { CORNER, CUE, CUE_NARROW, WALL_PAD, type Portal, type Wall } from "@/content";
+import { CUE, CUE_NARROW, WALL_PAD, footprintOf, framing, type Portal, type Wall } from "@/content";
 import { modelBoxes } from "./galleryProbe";
+import { WallLabel } from "./WallLabel";
 import wallStyles from "./PortalWall.module.css";
 
 const DEG = Math.PI / 180;
 
 /** Narrow, because the frames are flat against one wall: a wide lens would
  *  splay the ones at the ends outwards before anything had been turned. */
-const FOV = 35;
+const FOV = 60;
 const TAN = Math.tan((FOV / 2) * DEG);
 
 /** How far behind its frame each room stands. Everything in the room is drawn
@@ -84,6 +84,32 @@ const ZOOM_PAD = 1.2;
 /** How long a press on a film waits to find out whether it is the first of a
  *  double-click — which zooms, and should not also have paused it. */
 const CLICK_WAIT = 260;
+
+/** How far the view turns with a mouse in a room, where there are no stops,
+ *  in degrees each way; on the wall it is SWING and TILT. */
+const ROOM_SWING = 40;
+const ROOM_TILT = 25;
+/** Radians turned per pixel of two-finger slide, and the share of the distance
+ *  zoomed per pixel of wheel and of pinch. */
+const SLIDE_TURN = 0.0025;
+/** The share of the distance slid across per pixel of shifted slide. */
+const SLIDE_PAN = 0.0012;
+const WHEEL_ZOOM = 0.0015;
+const PINCH_ZOOM = 0.01;
+
+/**
+ * Whether a wheel event is a trackpad's two-finger slide rather than a mouse
+ * wheel turning. A wheel scrolls by whole lines (Firefox) or, in Chrome and
+ * Safari, by notches whose legacy `wheelDeltaY` is a multiple of 120; a
+ * trackpad scrolls by pixels, sideways as well as up and down, with a
+ * `wheelDeltaY` of exactly −3 times its delta.
+ */
+const fromTrackpad = (e: WheelEvent) => {
+  if (e.deltaMode !== 0) return false;
+  if (e.deltaX !== 0) return true;
+  const legacy = (e as WheelEvent & { wheelDeltaY?: number }).wheelDeltaY;
+  return !!legacy && legacy === -3 * e.deltaY;
+};
 
 /** The distance a box of this size has to be at to sit inside a window of this
  *  shape — the camera's version of `object-fit: contain`. */
@@ -308,10 +334,9 @@ function Model({ p, room, inside }: { p: Portal; room: { w: number; h: number };
 
 /* ------------------------------------------------------------- flat cards */
 
-/** The corner is in wall units, so a frame cannot be a scaled unit plane —
- *  scaling it would scale the corner with it. One geometry each, made once. */
+/** A frame's card: square-cornered, one geometry each, made once. */
 function useCard(p: Portal) {
-  const geometry = useMemo(() => new RoundedPlaneGeometry(p.w, p.h, CORNER), [p.w, p.h]);
+  const geometry = useMemo(() => new THREE.PlaneGeometry(p.w, p.h), [p.w, p.h]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return geometry;
 }
@@ -518,8 +543,15 @@ function Film({
   voiced,
   onVoice,
   onOpen,
+  later,
+  onRolling,
 }: {
   p: Portal;
+  /** The frames are in, and the film may start coming down — until then it is
+   *  its still. See the loading order in Stage. */
+  later: boolean;
+  /** Told once the film is playing, which is when the rooms may load. */
+  onRolling: (id: string) => void;
   /** A room is open: the film is behind you, and stops. */
   frozen: boolean;
   /** Something else is open or zoomed in on: the film is not pressable. */
@@ -560,6 +592,7 @@ function Film({
     null,
   );
   useEffect(() => {
+    if (!later) return;
     const video = document.createElement("video");
     video.loop = true;
     video.muted = true;
@@ -571,7 +604,10 @@ function Film({
     // Told what it is before it is ever drawn — see useLaid, which crops it.
     reel.colorSpace = THREE.SRGBColorSpace;
 
-    const first = () => setRolling(true);
+    const first = () => {
+      setRolling(true);
+      onRolling(p.id);
+    };
     const on = () => setPlaying(true);
     const off = () => setPlaying(false);
     video.addEventListener("playing", first, { once: true });
@@ -590,9 +626,11 @@ function Film({
       setFilm(null);
       setRolling(false);
     };
-    // Only the film itself: a frame resized or a crop moved re-crops the
-    // texture below, and does not start the film again from nothing.
-  }, [p.video]);
+    // Only the film itself, and its turn to load: a frame resized or a crop
+    // moved re-crops the texture below, and does not start the film again
+    // from nothing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p.video, later]);
 
   useLaid(film?.reel, aspect, p);
 
@@ -807,7 +845,11 @@ function Window({
   open,
   onOpen,
   editing = false,
-}: { p: Portal; dist: number; eye: Eye; editing?: boolean } & OpenProps) {
+  outer,
+  later,
+}: { p: Portal; dist: number; eye: Eye; editing?: boolean; outer?: Portal; later: boolean } & OpenProps) {
+  /** The model is in, and its snapshot can go. */
+  const [arrived, setArrived] = useState(false);
   // drei types the handle as the element's own props, so this is the shape of
   // the one uniform on it that moves.
   const material = useRef<ComponentRef<typeof MeshPortalMaterial>>(null);
@@ -872,16 +914,75 @@ function Window({
           <group
             position={[at(p.x, eye.x, s.k) - p.x, at(p.y, eye.y, s.k) - p.y, s.z]}
           >
-            <Suspense fallback={null}>
-              <Model p={p} room={s} inside={inside} />
-            </Suspense>
+            {/* Last of everything on the wall — see the loading order in
+                Stage — and its snapshot hung over the window until then. */}
+            {later ? (
+              <Suspense fallback={null}>
+                <Model p={p} room={s} inside={inside} />
+                <Arrived onArrive={() => setArrived(true)} />
+              </Suspense>
+            ) : null}
           </group>
         </MeshPortalMaterial>
       </mesh>
 
-      <Cue p={p} hidden={open !== null} />
+      {p.image && !SNAPSHOTS ? <Snapshot p={p} image={p.image} shown={!arrived && !inside} /> : null}
+
+      {/* Under the frame round it, if it has one, rather than under the
+          window inside the frame. */}
+      <Cue p={outer ?? p} hidden={open !== null} />
     </>
   );
+}
+
+/**
+ * `?snapshots`, in development: the rooms alone, for photographing — no
+ * frames, labels, room shading or snapshots over them, and nothing held back
+ * in the loading order. The stills in content/media/gallery/stills/ are shot
+ * this way; see the README in public/models/gallery/.
+ */
+const SNAPSHOTS =
+  process.env.NODE_ENV === "development" &&
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).has("snapshots");
+
+/**
+ * A room's snapshot, laid over its window until the model is in: the still in
+ * content/media/gallery/stills/, which is the room as it is seen from the wall,
+ * so the one gives way to the other with nothing moving. Faded out rather than
+ * cut, in case the model's first frame is not quite the snapshot's.
+ */
+function Snapshot({
+  p,
+  image,
+  shown,
+}: {
+  p: Portal;
+  image: NonNullable<Portal["image"]>;
+  shown: boolean;
+}) {
+  const geometry = useCard(p);
+  const map = useTexture(image.src);
+  useLaid(map, image.width / image.height, p);
+  const mesh = useRef<THREE.Mesh>(null);
+  const material = useRef<THREE.MeshBasicMaterial>(null);
+  useFrame((_, dt) => {
+    const m = material.current;
+    if (!m || !mesh.current) return;
+    easing.damp(m, "opacity", shown ? 1 : 0, 0.18, dt);
+    mesh.current.visible = m.opacity > 0.005;
+  });
+  return (
+    <mesh ref={mesh} position={[p.x, p.y, 0.001]} geometry={geometry} raycast={untouchable}>
+      <meshBasicMaterial ref={material} map={map} transparent toneMapped={false} />
+    </mesh>
+  );
+}
+
+/** Says so once whatever is beside it in a Suspense boundary has loaded. */
+function Arrived({ onArrive }: { onArrive: () => void }) {
+  useEffect(() => onArrive(), [onArrive]);
+  return null;
 }
 
 type Voice = { voiced: string | null; onVoice: (id: string | null) => void };
@@ -892,10 +993,51 @@ function Frame({
   onVoice,
   room,
   editing,
+  outer,
+  later,
+  last,
+  onRolling,
   ...props
-}: { p: Portal; dist: number; eye: Eye; room: boolean; editing: boolean } & OpenProps & Voice) {
+}: {
+  p: Portal;
+  dist: number;
+  eye: Eye;
+  room: boolean;
+  editing: boolean;
+  outer?: Portal;
+  /** Films may load. */
+  later: boolean;
+  /** Rooms may load: last of all. */
+  last: boolean;
+  onRolling: (id: string) => void;
+} & OpenProps &
+  Voice) {
+  const fit = framing(props.p);
+  if (fit) {
+    // The artwork in its frame's opening, at the height the frame seats it.
+    // The frame itself is hung by Stage, in its own turn.
+    const p = props.p;
+    return (
+      <>
+        <group position={[0, 0, fit.z]}>
+          <Frame
+            {...props}
+            p={{ ...p, w: fit.w, h: fit.h, frame: undefined }}
+            outer={p}
+            later={later}
+            last={last}
+            onRolling={onRolling}
+            voiced={voiced}
+            onVoice={onVoice}
+            room={room}
+            editing={editing}
+          />
+        </group>
+      </>
+    );
+  }
   const { p, open, onOpen } = props;
-  if (p.model) return <Window {...props} editing={editing} />;
+  if (p.model) return <Window {...props} editing={editing} outer={outer} later={last} />;
   // While anything is open, everything else on the wall is out of reach; a
   // film stops only for a room, since only a room puts it behind you. While
   // the wall is being edited, nothing on it is pressed: the editor is over it.
@@ -909,9 +1051,414 @@ function Frame({
         voiced={voiced === p.id}
         onVoice={onVoice}
         onOpen={onOpen}
+        later={later}
+        onRolling={onRolling}
       />
     );
   return p.image ? <Still p={p} image={p.image} aside={aside} zoomed={open === p.id} onOpen={onOpen} /> : null;
+}
+
+/* ----------------------------------------------------------------- frames */
+
+/**
+ * A frame from public/models/gallery/frames/, fitted to its footprint: turned
+ * to face the room, its middle on the footprint's, its back on the wall, and scaled to the
+ * footprint's size — see `framing` in content/gallery.ts, which says where the
+ * artwork goes in it. Each file is its own copy, so one frame file can be
+ * hung on two artworks.
+ *
+ * It casts the light's shadow onto the wall, and onto the artwork through a
+ * sheet laid over it that is nothing but that shadow: the artwork itself is
+ * drawn unlit, as it is.
+ */
+function FrameModel({ p }: { p: Portal }) {
+  const fit = framing(p)!;
+  const { scene } = useGLTF(fit.url);
+  const made = useMemo(() => {
+    // Turned half way round: Blender's exporter leaves a frame's face looking
+    // down −z, which is into the wall. A turn, not a mirror, so nothing on it
+    // is reversed — it is only the other way round on its hook.
+    const copy = new THREE.Group();
+    copy.add(scene.clone(true));
+    copy.rotation.y = Math.PI;
+    copy.updateMatrixWorld(true);
+    copy.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      m.castShadow = true;
+      m.receiveShadow = true;
+      m.raycast = untouchable;
+    });
+    const box = new THREE.Box3().setFromObject(copy);
+    const c = box.getCenter(new THREE.Vector3());
+    return { copy, offset: [-c.x, -c.y, -box.min.z] as [number, number, number] };
+  }, [scene]);
+
+  return (
+    <>
+      <group position={[p.x, p.y, 0]} scale={fit.scale}>
+        <primitive object={made.copy} position={made.offset} />
+      </group>
+      <mesh position={[p.x, p.y, fit.z + 0.0015]} receiveShadow raycast={untouchable}>
+        <planeGeometry args={[fit.w, fit.h]} />
+        <shadowMaterial opacity={0.4} color="#1e140c" depthWrite={false} />
+      </mesh>
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ light */
+
+/** Where the gallery's light comes from: high above the wall and a little in
+ *  front of it, the way track lights are hung — so anything standing off the
+ *  wall throws its shadow straight down it. */
+const LIGHT_UP = 9;
+const LIGHT_OUT = 6.5;
+
+/**
+ * The light on the wall itself, as opposed to in the rooms behind it.
+ *
+ * Only what is solid is lit — today, the labels; the frames, once there are
+ * frames. The artworks are drawn as they are, so the light never changes their
+ * colour.
+ *
+ * The wall is the page behind the canvas, so there is no wall here to fall on:
+ * a sheet as big as the wall stands in for it, invisible except where it is in
+ * shadow. The shadow is sharp-edged, the way a single spot makes one, and is on
+ * the wall's plane while what casts it stands off it — so turning the wall
+ * slides each shadow against what casts it, as a real one would.
+ */
+/** How much of the studio the frames see, against the rooms' whole of it:
+ *  the frames' materials were painted for a softer room than a model's. */
+const WALL_ENVIRONMENT = 0.4;
+/** Each track light's strength, and the room's light without them: dim, as
+ *  a gallery is, so that what is lit is the art. */
+const TRACK = 2.4;
+
+function GalleryLight({ wall }: { wall: Wall }) {
+  const light = useRef<THREE.DirectionalLight>(null);
+  const scene = useThree((s) => s.scene);
+  useEffect(() => {
+    scene.environmentIntensity = WALL_ENVIRONMENT;
+    return () => {
+      scene.environmentIntensity = 1;
+    };
+  }, [scene]);
+  const reach = Math.max(wall.w, wall.h) / 2 + 1.5;
+
+  useLayoutEffect(() => {
+    const l = light.current;
+    if (!l) return;
+    l.target.position.set(wall.cx, wall.cy, 0);
+    l.target.updateMatrixWorld();
+    const cam = l.shadow.camera;
+    cam.left = -reach;
+    cam.right = reach;
+    cam.top = reach;
+    cam.bottom = -reach;
+    cam.near = 1;
+    cam.far = 30;
+    cam.updateProjectionMatrix();
+    l.shadow.needsUpdate = true;
+  }, [wall.cx, wall.cy, reach]);
+
+  return (
+    <>
+      {/* A room for the frames' gilt and paint to reflect, the same little
+          studio the rooms have. */}
+      <Studio />
+      <hemisphereLight args={["#fff8ee", "#6b6058", 0.25]} />
+      <directionalLight
+        ref={light}
+        position={[wall.cx, wall.cy + LIGHT_UP, LIGHT_OUT]}
+        color="#fff8f0"
+        intensity={0.85}
+        castShadow
+        shadow-mapSize={[4096, 4096]}
+        shadow-radius={2}
+        shadow-blurSamples={12}
+        shadow-bias={-0.0004}
+        shadow-normalBias={0.003}
+      />
+      <mesh position={[wall.cx, wall.cy, -0.001]} receiveShadow raycast={untouchable}>
+        <planeGeometry args={[wall.w + 4, wall.h + 4]} />
+        <shadowMaterial opacity={0.3} color="#2a1d12" depthWrite={false} />
+      </mesh>
+    </>
+  );
+}
+
+/**
+ * A track light over every artwork, aimed down at it from the ceiling in
+ * front of the wall: what lights the frames from above, so their top edges
+ * catch it and their bottoms fall into shade. The artworks themselves are
+ * drawn as they are; the pool each light makes on the wall is drawn by Space.
+ * No shadows of their own — the gallery's one shadow-casting light does that.
+ */
+function TrackLights({ portals }: { portals: Portal[] }) {
+  return (
+    <>
+      {portals.map((p) => (
+        <TrackLight key={p.id} p={p} />
+      ))}
+    </>
+  );
+}
+
+function TrackLight({ p }: { p: Portal }) {
+  const light = useRef<THREE.SpotLight>(null);
+  const reach = Math.max(p.w, p.h) / 2 + 0.6;
+  const [x, y, z] = [p.x, p.y + p.h / 2 + 2.4, 3.2];
+  const far = Math.hypot(y - p.y, z);
+  useLayoutEffect(() => {
+    const l = light.current;
+    if (!l) return;
+    l.target.position.set(p.x, p.y, 0);
+    l.target.updateMatrixWorld();
+  }, [p.x, p.y]);
+  return (
+    <spotLight
+      ref={light}
+      position={[x, y, z]}
+      color="#fff1dc"
+      intensity={TRACK}
+      angle={Math.atan(reach / far)}
+      penumbra={0.65}
+      decay={0}
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ floor */
+
+/** How far below the bottom of the window, at rest, the floor is laid — as a
+ *  share of the view's half-height there. Just out of sight, so that looking
+ *  straight at the wall shows no floor, and the least turn from above does. */
+const FLOOR_DROP = 1.08;
+
+/* The cube's own colours — see PageTurn.module.css — so that the corner of the
+   gallery and the corner the page turns on are one material. */
+const CUBE_SHADE = "vec3(74.0, 56.0, 34.0) / 255.0";
+const CUBE_EDGE = new THREE.Color("rgb(60, 44, 26)");
+
+/**
+ * The gallery's light on its wall, in shares of the cube's warm brown laid
+ * over the page: the whole wall a little down from the page's own colour —
+ * a lit room, not a lit screen — and back up to it in a pool round each
+ * artwork, where a track light above is aimed; and falling away into the
+ * brown at the far ends, left and right, past where anything hangs.
+ */
+const DIM = 0.11;
+const FAR_ENDS = 0.32;
+/** How many pools the wall's shader has room for. */
+const POOLS = 24;
+
+/** A pool of light round an artwork: its middle, a little above the
+ *  artwork's, where a light angled down from the ceiling lands brightest,
+ *  and how far it reaches across and up and down. */
+const poolOf = (p: Portal) =>
+  new THREE.Vector4(p.x, p.y + p.h * 0.1, p.w / 2 + 0.55, p.h / 2 + 0.8);
+
+/** The far ends: nothing over the wall, rising into the brown past its left
+ *  and right ends over a third of its width again — and a little above its
+ *  top, where a gallery's ceiling is out of the lights' reach. `uWall` is the
+ *  wall's left, right, bottom and top. */
+const ROOM_GLSL = /* glsl */ `
+  float farEnds(float x, float y) {
+    float w = uWall.y - uWall.x;
+    float side = max(uWall.x - x, x - uWall.y) / (w * 0.4);
+    float above = (y - uWall.w) / (w * 0.35);
+    // Begun well inside the ends and squared in, so there is no edge to it:
+    // a falloff that starts at the wall's end reads as a line drawn there.
+    float s = clamp((side + 0.5) / 1.5, 0.0, 1.0);
+    return ${FAR_ENDS.toFixed(3)} * s * s + 0.5 * ${FAR_ENDS.toFixed(3)} * smoothstep(0.0, 1.0, above);
+  }
+`;
+
+const SPACE_VERTEX = /* glsl */ `
+  varying vec3 vWorld;
+  varying float vDepth;
+  void main() {
+    vec4 w = modelMatrix * vec4(position, 1.0);
+    vWorld = w.xyz;
+    vec4 v = viewMatrix * w;
+    vDepth = -v.z;
+    gl_Position = projectionMatrix * v;
+  }
+`;
+
+/**
+ * The room the wall is in: a floor meeting it at the bottom, drawn the way
+ * the sideways page turn draws its cube — the corner here is the inside of one
+ * of that cube's edges.
+ *
+ * Same three things as there (PageTurn.module.css):
+ *
+ * - The face turned away from you — the floor, seen at a slant — is tinted the
+ *   cube's warm brown, by how edge-on it is: deepest where it creases into the
+ *   edge, lifting to about two thirds of that away from it.
+ * - The face turned towards you — the wall — only darkens where it creases
+ *   into the edge, and by little, and only as far as it is turned.
+ * - The edge itself is a hairline of the cube's edge colour.
+ *
+ * And distance is not shadow, there as here: what swings away from you loses
+ * itself in the page rather than going dark.
+ *
+ * The wall is the page behind the canvas, so all that is drawn over it is the
+ * tint — none at all head on. The floor is the page's own colour under its
+ * tint, laid just below the bottom of the window at rest (FLOOR_DROP), so it is
+ * out of sight until the wall is turned from above or stepped back from.
+ */
+function Space({ eye, dist, portals, wall }: { eye: Eye; dist: number; portals: Portal[]; wall: Wall }) {
+  const controls = useThree((s) => s.controls) as CameraControlsImpl | null;
+  const floorY = eye.y - dist * TAN * FLOOR_DROP;
+  /** How deep a face is, for the gradients across it: the height of the view
+   *  at rest, which is what the page turn's faces are the width of. */
+  const span = 2 * dist * TAN;
+
+  const [wallMat, floorMat] = useMemo(() => {
+    const shared = () => ({
+      uRef: { value: 1 },
+      uFloor: { value: 0 },
+      uSpan: { value: 1 },
+      uTurn: { value: 0 },
+      uWall: { value: new THREE.Vector4() },
+    });
+    const wallMat = new THREE.ShaderMaterial({
+      uniforms: {
+        ...shared(),
+        uPools: { value: Array.from({ length: POOLS }, () => new THREE.Vector4()) },
+        uCount: { value: 0 },
+      },
+      vertexShader: SPACE_VERTEX,
+      fragmentShader: /* glsl */ `
+        varying vec3 vWorld;
+        uniform float uFloor;
+        uniform float uSpan;
+        uniform float uTurn;
+        uniform vec4 uWall;
+        uniform vec4 uPools[${POOLS}];
+        uniform int uCount;
+        ${ROOM_GLSL}
+        void main() {
+          // .shadeNear: nothing for the first 60% of the face, 0.7 at the
+          // crease, by 0.13 of how far it is turned.
+          float up = (vWorld.y - uFloor) / uSpan;
+          float crease = 0.7 * clamp(1.0 - up / 0.4, 0.0, 1.0) * 0.13 * uTurn;
+          // The track lights: the brightest pool wins where two overlap.
+          float lit = 0.0;
+          for (int i = 0; i < ${POOLS}; i++) {
+            if (i >= uCount) break;
+            vec2 d = (vWorld.xy - uPools[i].xy) / uPools[i].zw;
+            lit = max(lit, 1.0 - smoothstep(0.45, 1.0, length(d)));
+          }
+          float a = crease + ${DIM.toFixed(3)} * (1.0 - lit) + farEnds(vWorld.x, vWorld.y);
+          // Dithered by a little under one step of eight-bit colour: a wash
+          // this gentle otherwise comes out in bands, and a band's edge reads
+          // as a line drawn on the wall.
+          float grain = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+          a += (grain - 0.5) * 1.5 / 255.0;
+          gl_FragColor = vec4(${CUBE_SHADE}, clamp(a, 0.0, 0.6));
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+    });
+    const floorMat = new THREE.ShaderMaterial({
+      uniforms: { ...shared(), uColor: { value: new THREE.Vector3(0.94, 0.92, 0.9) } },
+      vertexShader: SPACE_VERTEX,
+      // The page's colour in the page's own numbers, written out as it is, so
+      // the floor's far reaches are the same colour CSS draws the wall.
+      fragmentShader: /* glsl */ `
+        varying vec3 vWorld;
+        varying float vDepth;
+        uniform vec3 uColor;
+        uniform float uRef;
+        uniform float uSpan;
+        uniform vec4 uWall;
+        ${ROOM_GLSL}
+        void main() {
+          // .shadeFar: by how edge-on the floor is seen, 1 at the crease to
+          // 0.62 across the face, at 0.36.
+          float facing = abs(normalize(cameraPosition - vWorld).y);
+          float across = mix(1.0, 0.62, clamp(vWorld.z / uSpan, 0.0, 1.0));
+          vec3 c = mix(uColor, ${CUBE_SHADE}, 0.36 * (1.0 - facing) * across);
+          // .veilFar: what has swung furthest away goes back into the page.
+          float veil = clamp((vDepth / uRef - 1.0) * 1.6, 0.0, 0.7);
+          c = mix(c, uColor, veil);
+          // And the room's light: as dim as the wall away from the pools,
+          // and as dark towards the far ends.
+          c = mix(c, ${CUBE_SHADE}, ${DIM.toFixed(3)} + farEnds(vWorld.x, uWall.w));
+          gl_FragColor = vec4(c, 1.0);
+        }
+      `,
+    });
+    return [wallMat, floorMat];
+  }, []);
+
+  const edge = useMemo(() => {
+    const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-300, 0, 0), new THREE.Vector3(300, 0, 0)]);
+    const m = new THREE.LineBasicMaterial({ color: CUBE_EDGE, transparent: true, opacity: 0.3, depthWrite: false });
+    return new THREE.Line(g, m);
+  }, []);
+
+  useEffect(
+    () => () => {
+      wallMat.dispose();
+      floorMat.dispose();
+      edge.geometry.dispose();
+      (edge.material as THREE.Material).dispose();
+    },
+    [wallMat, floorMat, edge],
+  );
+
+  // The page's background, for the floor to be.
+  useEffect(() => {
+    const m = /rgba?\(([^)]+)\)/.exec(getComputedStyle(document.body).backgroundColor);
+    const [r, g, b, a] = (m?.[1] ?? "").split(",").map((v) => parseFloat(v));
+    if (m && a !== 0) floorMat.uniforms.uColor.value.set(r / 255, g / 255, b / 255);
+  }, [floorMat]);
+
+  const forward = useMemo(() => new THREE.Vector3(), []);
+  useFrame(({ camera }) => {
+    const ref = Math.max(0.01, controls?.distance ?? dist);
+    // How far the wall is turned from straight on: the sine of the angle
+    // between where the camera looks and straight at the wall.
+    camera.getWorldDirection(forward);
+    const turn = Math.sqrt(Math.max(0, 1 - forward.z * forward.z));
+    for (const m of [wallMat, floorMat]) {
+      m.uniforms.uRef.value = ref;
+      m.uniforms.uFloor.value = floorY;
+      m.uniforms.uSpan.value = span;
+      m.uniforms.uTurn.value = turn;
+      m.uniforms.uWall.value.set(wall.l, wall.r, wall.b, wall.t);
+    }
+  });
+
+  // A pool for every artwork, as they are hung right now.
+  useEffect(() => {
+    const pools = wallMat.uniforms.uPools.value as THREE.Vector4[];
+    const hung = portals.slice(0, POOLS);
+    hung.forEach((p, i) => pools[i].copy(poolOf(p)));
+    wallMat.uniforms.uCount.value = hung.length;
+  }, [wallMat, portals]);
+
+  return (
+    <>
+      <mesh position={[eye.x, eye.y, -0.004]} material={wallMat} raycast={untouchable} renderOrder={-1}>
+        <planeGeometry args={[600, 600]} />
+      </mesh>
+      <mesh
+        position={[eye.x, floorY, 150]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        material={floorMat}
+        raycast={untouchable}
+      >
+        <planeGeometry args={[600, 300]} />
+      </mesh>
+      <primitive object={edge} position={[eye.x, floorY + 0.002, 0.002]} raycast={untouchable} />
+    </>
+  );
 }
 
 /* ------------------------------------------------------------------ stage */
@@ -983,16 +1530,138 @@ function Stage({
   }, []);
 
   // Rotate and zoom, and nothing else: dragging the wall sideways out of the
-  // window is not one of the two things this is for.
+  // window is not one of the two things this is for. Nothing is pressed for
+  // either with a mouse or a trackpad — see the listeners below — so the
+  // buttons and the wheel are all taken off camera-controls; a finger on a
+  // touch screen still drags to turn and pinches to zoom.
   useEffect(() => {
     if (!controls) return;
     const { ACTION } = CameraControlsImpl;
+    controls.mouseButtons.left = ACTION.NONE;
     controls.mouseButtons.right = ACTION.NONE;
+    // The wheel held down and dragged slides the view — see `slide`.
     controls.mouseButtons.middle = ACTION.NONE;
-    controls.mouseButtons.wheel = ACTION.DOLLY;
+    controls.mouseButtons.wheel = ACTION.NONE;
     controls.touches.two = ACTION.TOUCH_DOLLY;
     controls.touches.three = ACTION.NONE;
   }, [controls]);
+
+  /**
+   * Slides the view across the wall by `x` and `y` of the camera's own right
+   * and down, in wall units — how camera-controls' truck reads them — but no
+   * further than keeps the point it looks at over the wall, so some of the
+   * wall is always in view (anywhere at all in a room, which is all round
+   * you). The step is cut short before it is taken: camera-controls' own
+   * boundary stops the point and lets the camera run on, which turns the view
+   * as you slide rather than sliding it.
+   */
+  const roomOpen = portals.some((q) => q.id === open && q.model);
+  const slide = useRef((x: number, y: number) => {});
+  slide.current = (x, y) => {
+    if (!controls) return;
+    if (roomOpen) return void controls.truck(x, y, true);
+    const cam = controls.camera;
+    cam.updateMatrixWorld();
+    const right = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 0);
+    const up = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 1);
+    const from = controls.getTarget(new THREE.Vector3(), true);
+    const to = from.clone().addScaledVector(right, x).addScaledVector(up, -y);
+    to.x = Math.min(wall.r, Math.max(wall.l, to.x));
+    to.y = Math.min(wall.t, Math.max(wall.b, to.y));
+    const step = to.sub(from);
+    controls.truck(step.dot(right), -step.dot(up), true);
+  };
+
+  const gl = useThree((s) => s.gl);
+  const inRoom = useRef(false);
+  inRoom.current = portals.some((q) => q.id === open && q.model);
+
+  /**
+   * Turning and zooming without pressing anything.
+   *
+   * With a mouse, the view follows the pointer: the pointer's place across the
+   * canvas is the angle the wall is seen from, to its stops at the edges and
+   * straight on in the middle, and back to straight on when the pointer
+   * leaves. The wheel zooms.
+   *
+   * With a trackpad, the pointer is only a pointer: a two-finger slide turns
+   * the view and a pinch zooms. The browser hands both over as wheel events —
+   * a pinch with ctrlKey set — so a trackpad is told from a mouse wheel by the
+   * shape of its events (`fromTrackpad`), and once one has been seen the
+   * pointer stops turning the view, until a mouse wheel is seen again. A
+   * trackpad that has not scrolled yet is taken for a mouse.
+   */
+  useEffect(() => {
+    if (!controls || editing) return;
+    const el = gl.domElement;
+    let pad = false;
+
+    const look = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse" || pad) return;
+      const r = el.getBoundingClientRect();
+      const nx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
+      const ny = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height) * 2 - 1));
+      const [swing, tilt] = inRoom.current ? [ROOM_SWING, ROOM_TILT] : [SWING, TILT];
+      controls.rotateTo(nx * swing * DEG, Math.PI / 2 + ny * tilt * DEG, true);
+    };
+    const home = (e: PointerEvent) => {
+      if (e.pointerType === "mouse" && !pad) controls.rotateTo(0, Math.PI / 2, true);
+    };
+    const wheel = (e: WheelEvent) => {
+      e.preventDefault();
+      if (e.shiftKey) {
+        // Shift and a two-finger slide: the view slides across the wall, the
+        // wall following the fingers. (A browser may hand a shifted scroll
+        // over as sideways, so both deltas are taken, whichever came.)
+        const k = SLIDE_PAN * controls.distance;
+        slide.current(e.deltaX * k, e.deltaY * k);
+        return;
+      }
+      if (e.ctrlKey) {
+        controls.dolly(-e.deltaY * PINCH_ZOOM * controls.distance, true);
+      } else if (fromTrackpad(e)) {
+        pad = true;
+        controls.rotate(e.deltaX * SLIDE_TURN, e.deltaY * SLIDE_TURN, true);
+      } else {
+        pad = false;
+        controls.dolly(-e.deltaY * WHEEL_ZOOM * controls.distance, true);
+      }
+    };
+
+    // The wheel held down and dragged: the wall follows the pointer, a pixel
+    // of drag a pixel of wall where the camera is looking.
+    let grab: { x: number; y: number } | null = null;
+    const press = (e: PointerEvent) => {
+      if (e.button !== 1) return;
+      e.preventDefault();
+      grab = { x: e.clientX, y: e.clientY };
+      el.setPointerCapture(e.pointerId);
+    };
+    const drag = (e: PointerEvent) => {
+      if (!grab || !(e.buttons & 4)) return void (grab = null);
+      const perPixel = (2 * controls.distance * TAN) / Math.max(1, el.clientHeight);
+      slide.current(-(e.clientX - grab.x) * perPixel, -(e.clientY - grab.y) * perPixel);
+      grab = { x: e.clientX, y: e.clientY };
+    };
+    const lift = (e: PointerEvent) => {
+      if (e.button === 1) grab = null;
+    };
+
+    el.addEventListener("pointermove", look);
+    el.addEventListener("pointerleave", home);
+    el.addEventListener("wheel", wheel, { passive: false });
+    el.addEventListener("pointerdown", press);
+    el.addEventListener("pointermove", drag);
+    el.addEventListener("pointerup", lift);
+    return () => {
+      el.removeEventListener("pointermove", look);
+      el.removeEventListener("pointerleave", home);
+      el.removeEventListener("wheel", wheel);
+      el.removeEventListener("pointerdown", press);
+      el.removeEventListener("pointermove", drag);
+      el.removeEventListener("pointerup", lift);
+    };
+  }, [controls, gl, editing]);
 
   /**
    * The stops, on or off. They are set on the instance rather than passed as
@@ -1019,6 +1688,40 @@ function Stage({
    *  once is neither of them. */
   const [voiced, setVoiced] = useState<string | null>(null);
 
+  /**
+   * The order the wall comes down the wire in, so that what is seen first
+   * arrives first rather than sharing the line with what is not:
+   *
+   * 0. The pictures — the artworks' own and the stills of the films and the
+   *    rooms. The wall is shown once these are in (`Ready`).
+   * 1. The frames, all together, so they go up on the wall at once.
+   * 2. The films, each its still until it plays.
+   * 3. Once every film is playing — or three seconds on, for a browser that
+   *    will not autoplay — the rooms' models, the heaviest things here; each
+   *    room is its snapshot until its model is in.
+   */
+  const [phase, setPhase] = useState(SNAPSHOTS ? 3 : 0);
+  const pictured = useCallback(() => {
+    setPhase((v) => Math.max(v, 1));
+    onReady();
+  }, [onReady]);
+  const framed = useCallback(() => setPhase((v) => Math.max(v, 2)), []);
+  const films = useMemo(() => portals.filter((q) => q.video).map((q) => q.id), [portals]);
+  const rolled = useRef(new Set<string>());
+  const onRolling = useCallback(
+    (id: string) => {
+      rolled.current.add(id);
+      if (films.every((f) => rolled.current.has(f))) setPhase((v) => Math.max(v, 3));
+    },
+    [films],
+  );
+  useEffect(() => {
+    if (phase !== 2) return;
+    if (films.every((f) => rolled.current.has(f))) return setPhase(3);
+    const late = window.setTimeout(() => setPhase((v) => Math.max(v, 3)), 3000);
+    return () => window.clearTimeout(late);
+  }, [phase, films]);
+
   // Where the camera stands: in front of the whole wall, or in the room behind
   // one frame. Both are the same fit, one of the wall and one of what is in
   // the room, so entering reads as the frame growing to the size of the window.
@@ -1034,15 +1737,20 @@ function Stage({
     if (p && !p.model) {
       // A picture or a film, zoomed in on: the same fit the wall gets, of the
       // one card, straight on. It is still the wall, so its stops stay on.
-      const near = fitBox(p.w * ZOOM_PAD, p.h * ZOOM_PAD, aspect);
+      // With its label beside it, which is what there is to read up close.
+      const f = footprintOf(p);
+      const [fx, fy] = [(f.l + f.r) / 2, (f.b + f.t) / 2];
+      const near = fitBox((f.r - f.l) * ZOOM_PAD, (f.t - f.b) * ZOOM_PAD, aspect);
       locking.current = false;
       stops(false);
       controls.minDistance = near * 0.5;
       controls.maxDistance = dist * FAR;
       controls.normalizeRotations();
-      controls.setLookAt(p.x, p.y, near, p.x, p.y, 0, move);
+      controls.setLookAt(fx, fy, near, fx, fy, 0, move);
     } else if (p) {
-      const s = standing(p, dist);
+      // A framed room is the size of the frame's opening.
+      const fit = framing(p);
+      const s = standing(fit ? { ...p, w: fit.w, h: fit.h } : p, dist);
       const room = fitBox(s.w * ROOM_PAD, s.h * ROOM_PAD, aspect);
       const [cx, cy, cz] = [at(p.x, eye.x, s.k), at(p.y, eye.y, s.k), s.z];
       locking.current = false;
@@ -1085,6 +1793,11 @@ function Stage({
         }}
       />
 
+      <GalleryLight wall={wall} />
+      {SNAPSHOTS ? null : <Space eye={eye} dist={dist} portals={portals} wall={wall} />}
+      {SNAPSHOTS ? null : <TrackLights portals={portals} />}
+      {SNAPSHOTS ? null : portals.map((p) => <WallLabel key={p.id} p={p} />)}
+
       <Suspense fallback={null}>
         {portals.map((p) => (
           <Frame
@@ -1098,10 +1811,20 @@ function Stage({
             onVoice={setVoiced}
             room={room}
             editing={editing}
+            later={phase >= 2}
+            last={phase >= 3}
+            onRolling={onRolling}
           />
         ))}
-        <Ready onReady={onReady} />
+        <Ready onReady={pictured} />
       </Suspense>
+
+      {phase >= 1 && !SNAPSHOTS ? (
+        <Suspense fallback={null}>
+          {portals.map((p) => (framing(p) ? <FrameModel key={p.id} p={p} /> : null))}
+          <Arrived onArrive={framed} />
+        </Suspense>
+      ) : null}
 
       <Preload all />
     </>
@@ -1118,7 +1841,7 @@ function Stage({
  * looked at. It is the
  * pmndrs "Enter portals" demo laid flat: no tilt on the frames, the swing
  * stopped at fifteen degrees so the backs of them can never be reached, and the
- * corners cut to the four pixels the old site's gallery cards had.
+ * corners square.
  *
  * The stop is on the wall and not on the room. Once you are through a frame
  * there is no back of it to get to, so the camera goes all the way round
@@ -1133,6 +1856,7 @@ export default function PortalScene(props: Staged & { onReady: () => void }) {
   return (
     <Canvas
       flat
+      shadows="percentage"
       dpr={[1, 1.75]}
       gl={{ alpha: true, antialias: true, localClippingEnabled: true }}
       camera={{ fov: FOV, position: [wall.cx, wall.cy, 12], near: 0.05, far: 200 }}

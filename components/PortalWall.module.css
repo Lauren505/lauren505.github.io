@@ -3,8 +3,13 @@
    around — which is the same fit the scene's camera makes, so the two land on
    the same pixels. */
 .wall {
+  /* Out past the page's column on both sides, to the window's edges less a
+     gutter — the column is a reading measure, and a wall wants the room. The
+     column is centred in the window, so half the difference is how far that
+     is. Never in from the column, only out. */
+  --wall-bleed: min(0px, calc((100% - 100vw) / 2 + max(20px, 4vw)));
   position: absolute;
-  inset: 0;
+  inset: 0 var(--wall-bleed);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -39,11 +44,9 @@
    arrangement is one drawing that can be drawn at any size — the same
    arithmetic the scene does in world units. */
 .frame {
+  box-sizing: border-box;
   position: absolute;
   overflow: hidden;
-  /* The old gallery's cards, which were Bootstrap's .rounded — four pixels,
-     and no more. See CORNER, which is this in wall units. */
-  border-radius: 4px;
 }
 
 .art {
@@ -121,4 +124,23 @@
   .coarse {
     display: inline;
   }
+}
+
+/* A wall label's flat copy: a slip of card with the title on it, set in the
+   wall's own measure like the captions. */
+.slip {
+  --u: calc(
+    min(100cqw / var(--wall-pad), 100cqh * var(--wall-aspect) / var(--wall-pad)) /
+      var(--wall-w)
+  );
+  position: absolute;
+  box-sizing: border-box;
+  padding: calc(var(--u) * 0.037);
+  background: #f7f4ee;
+  color: #1b1814;
+  font-size: calc(var(--u) * 0.031);
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  pointer-events: none;
 }

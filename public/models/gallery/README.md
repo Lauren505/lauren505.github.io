@@ -42,9 +42,25 @@ a track of pure silence — `kiwi.mp4` does, which is why it has no toggle.
 A plain **picture** is a frame with neither `model` nor `video`: just `image`,
 imported from `content/media/gallery/`. It hangs flat and is not pressable.
 
-A model's frame wants a still too, for the flat copy of the wall the canvas
-fades up over: the ones in `stills/` were rendered from the scene itself, at
-each model's `modelView`, so the cross-fade is invisible.
+A model's frame wants a still too — its **snapshot**. It is the flat copy of
+the wall the canvas fades up over, and it is hung over the room's window in the
+scene until the model has loaded, which is last of everything on the wall
+(pictures, then frames, then films, then models — see `phase` in `Stage`). To
+shoot them, open the gallery under `next dev` with `?snapshots`
+(`/side-quests?snapshots#gallery`): the rooms alone, without frames, labels or
+shading over them, at the size their frames leave. Screenshot each window at 2×
+or more and save it over its still in `content/media/gallery/stills/`. Re-shoot
+after changing a model's framing, its frame, or the gallery's FOV.
+
+**Compress every model before hanging it** — textures to WebP, geometry and
+animation with meshopt. Both are decoded in the page, with nothing fetched from
+anywhere else, and Blender's PNG textures are most of a file's weight:
+Espresso went from 30.6 MB to 1.7 MB this way with no visible difference.
+
+```
+npx @gltf-transform/cli webp Model.glb Model.glb --quality 88
+npx @gltf-transform/cli meshopt Model.glb Model.glb
+```
 
 They have to live here rather than in `content/media/`: everything in there is
 `import`ed and hashed at build time, and a `.glb` is fetched by URL at run time
@@ -132,3 +148,27 @@ takes files like it down to a couple of megabytes.
 
 Draco- and meshopt-compressed files both work, as do WebP textures
 (`EXT_texture_webp`); the decoders are fetched from a CDN on demand.
+
+## Frames
+
+Frames go in `frames/` here, one .glb each, exported from Blender as they
+are — the gallery turns each one round to face the room — with the opening cut
+through (or none, for a canvas block the artwork is printed on).
+Then run `npm run frames`: it measures each one — outside size, opening, depth
+— into `content/frames.ts`, which is how the wall knows where an artwork sits
+in its frame before the frame has loaded. Pick a frame for an artwork with
+`frame: "frame1.glb"` in `content/gallery.ts`, or from the editor's panel.
+
+A frame is fitted to its artwork's footprint (scaled across and up separately,
+so it should be cut to roughly the artwork's shape) with its back on the wall,
+and the artwork hangs in its opening — so framing an artwork makes the
+artwork a little smaller, never the gaps between frames. Its size, position and
+z in the file do not matter. Compress a frame as a model is, with its textures
+no bigger than 1024px — `npm run frames` reads compressed files:
+
+```
+npx @gltf-transform/cli resize frameN.glb frameN.glb --width 1024 --height 1024
+npx @gltf-transform/cli webp frameN.glb frameN.glb --quality 85
+npx @gltf-transform/cli meshopt frameN.glb frameN.glb
+npm run frames
+```

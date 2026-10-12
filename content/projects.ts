@@ -90,7 +90,7 @@ export const projects: Project[] = [
     slug: "light-dance-2022",
     title: "Light Dance 2022",
     description: "Bringing Light Dance to life from a brand new perspective",
-    date: "2022-03", // the show, by the photos: late March 2022
+    date: "2022-03",
     cover: ld22a,
     blocks: [
       "In 2022, I led the NTUEE Light Dance team, where we designed, fabricated, and programmed all the hardware and software components to bring to life this glow-in-the-dark performance.",
@@ -108,7 +108,7 @@ export const projects: Project[] = [
     slug: "ultrabat",
     title: "UltraBat",
     description: "An interactive 3D side-scrolling game using ultrasound levitation",
-    date: "2022-10", // UIST 2022, on Halloween
+    date: "2022-10",
     cover: bat1,
     blocks: [
       "We presented our project, UltraBat, at the 2022 UIST SIC on Halloween. UltraBat is an interactive 3D arcade game that challenges players to guide a bat through a series of wooden blocks, avoiding obstacles to reach the destination. Using a joystick, players can adjust the heading direction to control the bat's jumping movement. The distance and height of each jump are determined by the duration of joystick input—how long it is held and when it is released. The game requires players to exhibit precise control to navigate through obstacles and prevent the bat from falling.",
@@ -122,7 +122,7 @@ export const projects: Project[] = [
     slug: "echo",
     title: "Echo",
     description: "Explore a world of darkness through soundwaves",
-    date: "2023-05", // estimate — check: the Game Design course
+    date: "2023-05",
     cover: echoThumb,
     blocks: [
       [yt("9-lRQwHyP_0")],
@@ -136,7 +136,7 @@ export const projects: Project[] = [
     slug: "4dof-gantry",
     title: "4DoF Gantry Machine",
     description: "A gantry machine with 4DoF motion",
-    date: "2023-06", // estimate — check
+    date: "2022-07",
     cover: dof1,
     blocks: [
       "One of my research projects delves into human perception, particularly focusing on the palm's capacity to perceive airflow directionality. To conduct a thorough user study and ensure robust results, I developed specialized equipment capable of 4DoF motion. This includes translational movement along both the x and y axes, as well as yaw and pitch rotation. To build this apparatus, I repurposed a 3D printer kit, adding two servo motors and two laser modules to pinpoint the focal point location on the palm.",
@@ -147,7 +147,7 @@ export const projects: Project[] = [
     slug: "3d-display",
     title: "3D Display",
     description: "An interactive 3D display",
-    date: "2022-06", // estimate — check
+    date: "2022-06",
     cover: hologram3,
     blocks: [
       "In this project, our team aimed to create a floating 3D display using minimal equipment. Inspired by [Pepper's Cone](https://doi.org/10.1145/3126594.3126602), which leverages the Pepper's Ghost illusion, we extended its capabilities to develop an interactive device. Viewers can interact with the technology through a joystick to adjust the image angle and a button to switch between pictures. Additionally, we deployed the software as a web page for cross-platform accessibility.",
@@ -161,7 +161,7 @@ export const projects: Project[] = [
     slug: "gesture-car",
     title: "Gesture-control Car",
     description: "A smart wheelchair simulated by a gesture-control car",
-    date: "2020-06", // estimate — check: the EECS Cornerstone course
+    date: "2020-06",
     cover: car,
     blocks: [
       "In the final project of the EECS Cornerstone course, we transformed a remote control car into a smart wheelchair with the aim of aiding individuals with mobility impairments, offering them enhanced control and independence. To achieve this, we implemented gesture control by designing a glove equipped with a three-axis accelerometer and a Lilypad, allowing users to control the wheelchair's direction through hand gestures. An ultrasonic module at the front of the vehicle automatically detects obstacles for hazard avoidance. The integration of a WiFi module facilitates the transmission of sensed information to a cloud platform, connected to communication software that enables caregivers to monitor the user's location. Our project earned us first place in the final competition.",
@@ -172,7 +172,7 @@ export const projects: Project[] = [
     slug: "light-dance-2021",
     title: "Light Dance 2021",
     description: "Creating the light sword",
-    date: "2021-03", // estimate — check: Night of EE is in March
+    date: "2021-03",
     cover: ld21a,
     blocks: [
       "The “Light Dance” show is an event put together by students at NTUEE, showcasing a combination of technology and dance. The performance is well-known for its mesmerizing lighting effects as well as the custom-made hardware and software. Held annually at Yi-Ren Hall during the Night of Electrical Engineering, the performance extends its appeal beyond the campus borders. Noteworthy appearances include the NTU Arts Festival and the 2020 VLSI Design/CAD Symposium.",
@@ -186,10 +186,10 @@ export const projects: Project[] = [
     slug: "makerspace",
     title: "Makerspace",
     description: "Reconstruct a workspace for makers and creative minds",
-    date: "2021-07", // July 2021, as the write-up says
+    date: "2021-07",
     cover: maker1,
     blocks: [
-      "In July 2021, I co-directed the Academic Branch of the NTUEE Student Association. One of our main responsibilities is to run the Makerspace that provide students access to tools and equipment for creative projects and hands-on making experiences. This year, we relocated the old Makerspace to the new department building, reconstructed the space, and upgraded our equipment to support a broader range of projects.",
+      "In July 2021, I started co-directing the Academic Branch of the NTUEE Student Association. One of our main responsibilities is to run the Makerspace that provide students access to tools and equipment for creative projects and hands-on making experiences. This year, we relocated the old Makerspace to the new department building, reconstructed the space, and upgraded our equipment to support a broader range of projects.",
       [img(maker1), img(maker2)],
       "The Makerspace serves as an innovative hub for students to explore and experiment with technology, design, and creativity. We organized workshops covering topics such as 3D printing, laser cutting, and SBCs, and arranged talks featuring alumni and industry professionals.",
       [img(maker3), img(maker4)],

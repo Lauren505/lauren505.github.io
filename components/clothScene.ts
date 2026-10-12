@@ -6,11 +6,11 @@ const DEG = Math.PI / 180;
  *  height of it in the air reads as nearness rather than as distortion. */
 const FOV = 30;
 /** The whole throw, from the hands to the last ripple. */
-const DROP_MS = 3000;
+const DROP_MS = 2500;
 /** How far through the throw the table starts being laid — see `onSet`: 1 is
  *  once the cloth is lying still, less is while it is still settling, the
  *  plates coming in over it. */
-const SET_AT = 0.8;
+const SET_AT = 0.7;
 /** How high the cloth is carried, as a fraction of the camera's distance from
  *  the table: at the top of the throw it is drawn about a third larger. */
 const LIFT = 0.15;
