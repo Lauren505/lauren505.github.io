@@ -432,7 +432,7 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
 
       {/* The custom order pad, over the table — for now; where it goes is
           still to be decided. */}
-      {!still && showing && shown === null ? <GuestCheck /> : null}
+      {!still && showing && shown === null ? <GuestCheck arrived={down} /> : null}
 
       {/* Not while a recipe is out: that has its own editor. */}
       {TableEditor && !still && showing && shown === null ? (

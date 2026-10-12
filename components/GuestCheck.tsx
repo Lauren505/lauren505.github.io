@@ -45,6 +45,10 @@ const TEAR = 260;
  *  sheets torn before it. */
 const TEAR_X = 26;
 
+/** How long after the table starts to be laid the pad comes in: among the
+ *  first plates, as they are pushed in. */
+const COMING = 340;
+
 const RULES = [rule0, rule1, rule2, rule3];
 const COLS = [
   { src: col0, x: 618.88 },
@@ -248,9 +252,11 @@ function Sheet({
  * sheet tears off along its left edge and goes, leaving the next one, blank.
  *
  * It is kept at the right-hand edge of the window, put away but for its
- * binding; pressing the binding takes it out, and again puts it away.
+ * binding; pressing the binding takes it out, and again puts it away. Until
+ * the table is being laid — `arrived` — it is off the window altogether,
+ * and it comes in with the plates, pushed in as they are: see TableSetting.
  */
-export default function GuestCheck({ className }: { className?: string }) {
+export default function GuestCheck({ className, arrived = true }: { className?: string; arrived?: boolean }) {
   const [items, setItems] = useState<string[]>([]);
   const [check, setCheck] = useState("");
   const [date, setDate] = useState("");
@@ -258,6 +264,19 @@ export default function GuestCheck({ className }: { className?: string }) {
   const [torn, setTorn] = useState(0);
   const [going, setGoing] = useState(false);
   const [open, setOpen] = useState(false);
+  // Off the window until the table is laid; already in place, if it was
+  // laid before the pad was put out.
+  const [away, setAway] = useState(!arrived);
+  const [coming, setComing] = useState(false);
+  useEffect(() => {
+    if (!arrived || !away) return;
+    setAway(false);
+    setComing(true);
+    const t = window.setTimeout(() => setComing(false), COMING + 950);
+    return () => window.clearTimeout(t);
+    // Only as the table comes to be laid.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [arrived]);
   const sheet = useRef<HTMLDivElement>(null);
   const held = useRef<HTMLDivElement>(null);
   const pull = useRef<Pull | null>(null);
@@ -405,6 +424,8 @@ export default function GuestCheck({ className }: { className?: string }) {
       className={`${styles.pad} ${className ?? ""}`}
       style={{ "--extra": (rows - ROWS) * ROW } as React.CSSProperties}
       data-open={open ? "" : undefined}
+      data-away={away ? "" : undefined}
+      data-coming={coming ? "" : undefined}
       role="group"
       aria-label="Custom order"
     >

@@ -29,6 +29,24 @@
   transform: translateX(calc(29 * var(--u)));
 }
 
+/* Before the table is laid: off the window altogether, shadow and all. */
+.pad[data-away] {
+  transform: translateX(calc(100% + 80px));
+}
+
+/* Coming in with the plates, the way they come — see TableSetting. */
+.pad[data-coming] {
+  transition:
+    transform 950ms cubic-bezier(0.55, 0, 0.25, 1) 340ms,
+    height 0.25s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pad {
+    transition: none;
+  }
+}
+
 /* The shadow it casts on the table: it is held a little above it, over
    whatever is laid there. Under the pad's binding, sheets and foot — not
    under the sheet being torn off, which has its own. */
