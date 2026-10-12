@@ -290,9 +290,9 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
   /** How the table is rearranged for what is asked for on the order pad —
    *  see bakerySearch — or, with nothing asked for, nothing. */
   const [moves, setMoves] = useState<Moves | null>(null);
-  const [sorting, setSorting] = useState(false);
+  /** How many times it has been rearranged: each time, by hand. */
+  const [shuffles, setShuffles] = useState(0);
   const asked = useRef("");
-  const sorted = useRef(0);
   const pad = useRef<HTMLDivElement>(null);
 
   /** The places at the front of the table, best first: those in the window
@@ -332,25 +332,16 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
       if (key === asked.current) return;
       asked.current = key;
       setMoves(want ? arrange(laidOut.laid, want, front(laidOut.laid)) : null);
-      setSorting(true);
-      window.clearTimeout(sorted.current);
-      sorted.current = window.setTimeout(() => setSorting(false), 900 + 250 + (want?.size ?? 0) * 90 + 100);
+      setShuffles((n) => n + 1);
     },
     [front],
   );
-  useEffect(() => () => window.clearTimeout(sorted.current), []);
 
   /** The table as it is now: rearranged, unless it is being edited. */
   const arranged = useMemo(
     () => (editing ? { laid: layout.laid, cutlery: layout.cutlery } : moveTable(layout.laid, layout.cutlery, moves)),
     [editing, layout, moves],
   );
-  const delays = useMemo(() => {
-    if (!moves) return undefined;
-    const d = new Map<string, number>();
-    moves.forEach((m, id) => d.set(id, m.wanted ? 250 + m.order * 90 : 0));
-    return d;
-  }, [moves]);
 
   /* ----------------------------------------------------------- recipes */
 
@@ -462,8 +453,7 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
               key={plays}
               laid={arranged.laid}
               cutlery={arranged.cutlery}
-              sorting={sorting}
-              delays={delays}
+              shuffled={shuffles}
               scale={scale}
               arrive={!still}
               edit={playing ? undefined : edit}

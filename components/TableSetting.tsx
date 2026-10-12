@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Drawn from "@/components/Drawn";
 import { outOf, type Laid, type Piece, type Vec } from "@/components/bakeryLayout";
+import { keyframes, shuffle, type Hand, type Shuffle } from "@/components/tableShuffle";
 import { TABLE_WIDTH } from "@/content";
 import styles from "./TableSetting.module.css";
 
@@ -64,7 +65,6 @@ function Hold({
   scale,
   edit,
   hidden = false,
-  delay,
   children,
 }: {
   part: Part;
@@ -72,21 +72,13 @@ function Hold({
   scale: number;
   edit?: Edit;
   hidden?: boolean;
-  /** How long it waits, as the table is rearranged, before it moves. */
-  delay?: number;
   children: React.ReactNode;
 }) {
   const on = samePart(edit?.selected ?? null, part);
   return (
     <div
       className={styles.piece}
-      style={
-        {
-          ...place(piece, scale),
-          visibility: hidden ? "hidden" : undefined,
-          "--delay": delay ? `${delay}ms` : undefined,
-        } as React.CSSProperties
-      }
+      style={{ ...place(piece, scale), visibility: hidden ? "hidden" : undefined }}
       data-editing={edit ? "" : undefined}
       data-selected={on || undefined}
       onPointerDown={edit ? (e) => edit.grab(part, "move", e) : undefined}
@@ -123,9 +115,8 @@ function Hold({
  * which — and `hide` takes one setting off the table while its recipe is
  * out: see RecipeView, which has it up close instead.
  *
- * While `sorting`, the table is being rearranged — see bakerySearch — and
- * every piece moves to where it is laid now, after the wait `delays` gives
- * its setting, by its id.
+ * Each time `shuffled` counts up, the table has been rearranged — see
+ * bakerySearch — and is seen to be, by hand: see tableShuffle.
  */
 export default function TableSetting({
   laid,
@@ -137,8 +128,7 @@ export default function TableSetting({
   onArrived,
   pick,
   hide,
-  sorting = false,
-  delays,
+  shuffled = 0,
 }: {
   laid: Laid[];
   cutlery: Piece[];
@@ -149,8 +139,7 @@ export default function TableSetting({
   onArrived?: () => void;
   pick?: (i: number) => void;
   hide?: number;
-  sorting?: boolean;
-  delays?: Map<string, number>;
+  shuffled?: number;
 }) {
   /** Where each setting comes, top of the page first: in the order they are
    *  set down, and in which their pictures are fetched. */
@@ -178,6 +167,60 @@ export default function TableSetting({
   }, []);
   const moving = arrive && !done;
   const picking = !!pick && !edit;
+
+  /* The table rearranged: everything moved is drawn where it was and moved
+     by hand to where it is laid now — see tableShuffle. */
+  const root = useRef<HTMLDivElement>(null);
+  const was = useRef(laid);
+  const [helpers, setHelpers] = useState<Hand[]>([]);
+  const timeline = useRef<Shuffle | null>(null);
+  useLayoutEffect(() => {
+    const el = root.current;
+    if (!shuffled || !el) return;
+    for (const a of el.getAnimations({ subtree: true })) if (a.id === "shuffle") a.cancel();
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setHelpers([]);
+      return;
+    }
+    const box = el.getBoundingClientRect();
+    const plan = shuffle(was.current, laid, {
+      top: -box.top / scale,
+      bottom: (window.innerHeight - box.top) / scale,
+    });
+    timeline.current = plan;
+    el.querySelectorAll<HTMLElement>("[data-of]").forEach((part) => {
+      const track = plan.settings.get(part.dataset.of ?? "");
+      if (!track) return;
+      part.animate(keyframes(track, Number(part.dataset.turn) || 0, scale, plan.total), {
+        duration: plan.total,
+        id: "shuffle",
+      });
+    });
+    setHelpers(plan.hands);
+    const t = window.setTimeout(() => setHelpers([]), plan.total + 50);
+    return () => window.clearTimeout(t);
+    // Only as the table is rearranged.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shuffled]);
+  // Where everything was, for the next time.
+  useLayoutEffect(() => {
+    was.current = laid;
+  });
+  // The hands, once they are there to move.
+  useLayoutEffect(() => {
+    const el = root.current;
+    const plan = timeline.current;
+    if (!el || !plan) return;
+    for (const h of helpers) {
+      const part = el.querySelector<HTMLElement>(`[data-helper="${h.key}"]`);
+      part?.animate(keyframes(h.track, h.piece.rotate, scale, plan.total), {
+        duration: plan.total,
+        fill: "forwards",
+        id: "shuffle",
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [helpers]);
 
   /** Whether setting `i` is down yet, and so can be clicked: as soon as its
    *  own plate is, not once the whole table is — which, the length of it,
@@ -254,9 +297,9 @@ export default function TableSetting({
 
   return (
     <div
+      ref={root}
       className={styles.table}
       data-editing={edit ? "" : undefined}
-      data-sorting={sorting && !edit ? "" : undefined}
       style={{ "--slide": `${SLIDE}ms`, "--retreat": `${RETREAT}ms` } as React.CSSProperties}
     >
       {cutlery.map((c, k) => (
@@ -266,9 +309,8 @@ export default function TableSetting({
           piece={c}
           scale={scale}
           edit={edit}
-          delay={delays?.get(laid[nearest(c)]?.id)}
         >
-          <div {...set(nearest(c))}>
+          <div {...set(nearest(c))} data-of={laid[nearest(c)]?.id} data-turn={c.rotate}>
             <Drawn image={c.image} width={c.width * scale} />
           </div>
         </Hold>
@@ -282,9 +324,8 @@ export default function TableSetting({
             scale={scale}
             edit={edit}
             hidden={hide === i}
-            delay={delays?.get(s.id)}
           >
-            <div {...slide(i, s.plate)}>
+            <div {...slide(i, s.plate)} data-of={s.id} data-turn={s.plate.rotate}>
               <Drawn image={s.plate.image} width={s.plate.width * scale} />
             </div>
           </Hold>
@@ -295,9 +336,8 @@ export default function TableSetting({
             scale={scale}
             edit={edit}
             hidden={hide === i}
-            delay={delays?.get(s.id)}
           >
-            <div {...slide(i, s.dessert)}>
+            <div {...slide(i, s.dessert)} data-of={s.id} data-turn={s.dessert.rotate}>
               <div className={styles.bake}>
                 {picking ? (
                   <button
@@ -346,6 +386,15 @@ export default function TableSetting({
           </Hold>
         );
       })}
+
+      {/* The hands rearranging the table. */}
+      {helpers.map((h) => (
+        <div key={h.key} className={styles.piece} style={place(h.piece, scale)}>
+          <div data-helper={h.key}>
+            <Drawn image={h.piece.image} width={h.piece.width * scale} openFoot />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
