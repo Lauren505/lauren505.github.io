@@ -3,17 +3,12 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Nav from "@/components/Nav";
-import SideQuestsBody from "@/components/SideQuestsBody";
+import { DEG, TURN_MS, cameraFor, easeInOut } from "@/components/cube";
 import { freezePage, type Frozen } from "@/components/freezePage";
 import { setTurn, setTurning } from "@/components/turnSignal";
 import styles from "./PageTurn.module.css";
 
 const SIDE = "/side-quests";
-const DEG = Math.PI / 180;
-const TURN_MS = 760;
-/** How far the camera sits from the page, as a multiple of the turning face's
- *  width — so the convergence looks the same whatever the window's size. */
-const CAMERA = 2.9;
 /** How much of the turn the far face takes to come up to full strength. The
  *  page it covers is the page still being read: anything past the crease
  *  belongs to the face coming round, so it has to go, but it dissolves over a
@@ -32,6 +27,18 @@ const SUBS_AT = 0.62;
 /** If a route never arrives, let go rather than leave the stage up. */
 const STRAND_MS = 2500;
 
+/** Side quests, for the face the turn brings it in on. Not imported with the
+ *  turn: it carries every section's code and content, and this is on every
+ *  page of the site. It is fetched once the page has settled — see the effect
+ *  in PageTurn — and the turn waits for it in the rare case it is pressed for
+ *  sooner. */
+type Body = typeof import("@/components/SideQuestsBody").default;
+let Body: Body | null = null;
+const loadBody = () =>
+  import("@/components/SideQuestsBody").then((m) => {
+    Body = m.default;
+  });
+
 /** The crease at rest, in a given layout: the middle of the gap between the
  *  two labels — the words themselves, not the boxes they are laid out in. The
  *  tab that is the page is wider than the others, so a box edge is not where
@@ -41,10 +48,6 @@ const seam = (root: ParentNode) => {
   const b = root.querySelector("[data-turn-seam-right] span")?.getBoundingClientRect();
   return a && b ? (a.right + b.left) / 2 : null;
 };
-
-/** Smoothstep: symmetric, and off the mark far sooner than a cubic ease, which
- *  on a click reads as the page having ignored you. */
-const easeInOut = (t: number) => t * t * (3 - 2 * t);
 
 type Phase = "idle" | "out" | "outWait" | "inWait" | "in";
 
@@ -86,8 +89,6 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
   /** The live page's Side quests tab, which hands over to the stage's copy —
    *  the one tab that is on neither face. */
   const liveTab = useRef<HTMLElement | null>(null);
-  /** Window width, and the crease's place in it at rest. */
-  const split = useRef(0);
   /** How far the Side quests tab has to travel, and which way round — see
    *  measure(). */
   const navShift = useRef(0);
@@ -213,9 +214,8 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
     // The crease halves the gap between the two tabs, rather than sitting
     // against either of them: it is the line those two words are written
     // either side of.
-    split.current = seam(page) ?? viewW.current;
-    faceW.current = Math.max(1, split.current);
-    camera.current = Math.max(1200, faceW.current * CAMERA);
+    faceW.current = Math.max(1, seam(page) ?? viewW.current);
+    camera.current = cameraFor(faceW.current);
 
     // Where the Side quests tab is going. The stage's copy is drawn as side
     // quests draws it and the live one as the page being left draws it, so the
@@ -294,7 +294,8 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
     setTurning(true);
     if (href === SIDE) {
       phase.current = "out";
-      setActive(true);
+      if (Body) setActive(true);
+      else loadBody().then(() => setActive(true), finish);
       return;
     }
     // Leaving side quests: the face is the page as it is, nav and all, so it
@@ -307,7 +308,7 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
       setFrozen(page ? freezePage(page) : null);
       setActive(true);
     });
-  }, []);
+  }, [finish]);
 
   // The stage is mounted: measure both layouts and put the first frame up
   // before the browser draws one.
@@ -360,6 +361,17 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
     return () => setTurn(null);
   }, [start]);
 
+  // Side quests for the face, once the page in front of the reader is up.
+  useEffect(() => {
+    if (Body) return;
+    if (typeof requestIdleCallback === "function") {
+      const id = requestIdleCallback(() => void loadBody(), { timeout: 2000 });
+      return () => cancelIdleCallback(id);
+    }
+    const id = setTimeout(() => void loadBody(), 200);
+    return () => clearTimeout(id);
+  }, []);
+
   useEffect(() => {
     if (pathname === SIDE) {
       router.prefetch("/");
@@ -402,7 +414,7 @@ export default function PageTurn({ children }: { children: React.ReactNode }) {
             {frozen ? null : (
               <>
                 <Nav current={SIDE} />
-                <SideQuestsBody still arriving />
+                {Body ? <Body still arriving /> : null}
               </>
             )}
           </div>

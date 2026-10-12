@@ -1,3 +1,4 @@
+import { getImageProps } from "next/image";
 import RichText from "@/components/RichText";
 import { LinkedIn, Mail, Scholar, Twitter } from "@/components/Icons";
 import { bio, news, profile } from "@/content";
@@ -5,6 +6,21 @@ import styles from "@/app/page.module.css";
 
 // How many of content/news.ts (newest first) the home page shows.
 const NEWS_SHOWN = 2;
+
+// The portrait, resized for the width it is seen at: the frame is --side-w
+// wide and the photo is zoomed 1.7 times inside it (see .photoFrame), so it
+// shows about 34rem of picture. It is the first thing the page draws, so it
+// asks to be fetched first.
+const portrait = profile.photo
+  ? getImageProps({
+      src: profile.photo,
+      alt: `${profile.firstName} ${profile.lastName}`,
+      sizes: "34rem",
+      quality: 85,
+      loading: "eager",
+      fetchPriority: "high",
+    }).props
+  : null;
 
 // Everything on the home page above the cube. Nothing here moves during the
 // turn, so it is plain presentational markup.
@@ -16,15 +32,9 @@ export default function HomeBody() {
         <div className={styles.side}>
           {/* The frame does the cropping; see --photo-zoom in page.module.css. */}
           <div className={styles.photoFrame}>
-            {profile.photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                className={styles.photo}
-                src={profile.photo.src}
-                width={profile.photo.width}
-                height={profile.photo.height}
-                alt={`${profile.firstName} ${profile.lastName}`}
-              />
+            {portrait ? (
+              // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text -- alt is in portrait
+              <img {...portrait} className={styles.photo} />
             ) : null}
           </div>
 

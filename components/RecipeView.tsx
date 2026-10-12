@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 import Drawn from "@/components/Drawn";
 import RecipePaper, { type CardPart } from "@/components/RecipePaper";
 import { laidOut, type Laid, type Vec } from "@/components/bakeryLayout";
-import { garamond } from "@/components/recipeFonts";
+import { garamond } from "@/components/bakeryFonts";
 import { TABLE_WIDTH, cardFor, decorations, loadRecipeCards, usualCard, type Recipe, type RecipeCard } from "@/content";
 import styles from "./RecipeView.module.css";
 
@@ -325,7 +325,6 @@ export default function RecipeView({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const wait = (ms: number) => new Promise<void>((r) => window.setTimeout(r, calm ? 0 : ms));
   const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 
   // Where it all starts: the plate where it is on the table, the hand out of

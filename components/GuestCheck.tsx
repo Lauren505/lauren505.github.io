@@ -1,6 +1,5 @@
 "use client";
 
-import { Bodoni_Moda, Corinthia, Reenie_Beanie, Roboto_Mono, Source_Serif_4 } from "next/font/google";
 import { useCallback, useEffect, useRef, useState } from "react";
 import col0 from "@/content/media/bakery/guest-check/col-0.svg";
 import col1 from "@/content/media/bakery/guest-check/col-1.svg";
@@ -14,15 +13,8 @@ import rule0 from "@/content/media/bakery/guest-check/rule-0.svg";
 import rule1 from "@/content/media/bakery/guest-check/rule-1.svg";
 import rule2 from "@/content/media/bakery/guest-check/rule-2.svg";
 import rule3 from "@/content/media/bakery/guest-check/rule-3.svg";
+import { padCover as cover, padHand as hand, padPrint as print, padSigned as signed, padStamped as stamped } from "@/components/bakeryFonts";
 import styles from "./GuestCheck.module.css";
-
-/** The pad's faces: the item written in by hand, the printed headings, the
- *  waiter's name, the check's number, and the cover. */
-const hand = Reenie_Beanie({ weight: "400", subsets: ["latin"], display: "swap" });
-const print = Source_Serif_4({ subsets: ["latin"], display: "swap" });
-const signed = Corinthia({ weight: "400", subsets: ["latin"], display: "swap" });
-const stamped = Roboto_Mono({ subsets: ["latin"], display: "swap" });
-const cover = Bodoni_Moda({ subsets: ["latin"], display: "swap" });
 
 /*
  * Everything is measured in the units of the drawing it was made from —
@@ -261,13 +253,11 @@ function Sheet({
  */
 export default function GuestCheck({
   ref,
-  className,
   arrived = true,
   away: putAway = false,
   onSearch,
 }: {
   ref?: React.Ref<HTMLDivElement>;
-  className?: string;
   arrived?: boolean;
   /** Off the window for now, whatever is written on it kept. */
   away?: boolean;
@@ -442,7 +432,7 @@ export default function GuestCheck({
 
   return (
     <div
-      className={`${styles.pad} ${className ?? ""}`}
+      className={styles.pad}
       style={{ "--extra": (rows - ROWS) * ROW } as React.CSSProperties}
       data-open={open ? "" : undefined}
       ref={ref}

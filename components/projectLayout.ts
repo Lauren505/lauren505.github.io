@@ -16,7 +16,7 @@ export type Piece =
 export const FONT = { title: 2.1, dek: 0.8, text: 0.53 } as const;
 export const LINE = { title: 1.0, dek: 1.3, text: 1.6 } as const;
 /** Between the columns of a text set in more than one, in units. */
-export const TEXT_GAP = 1.2;
+const TEXT_GAP = 1.2;
 /** Afacad's average letter, in ems: for guessing, where nothing is measured. */
 const CHAR = 0.47;
 
@@ -66,7 +66,7 @@ export function textHeight(kind: keyof typeof FONT, text: string, w: number, siz
 
 /* ------------------------------------------------------------ measuring */
 
-export type TextSpec = {
+type TextSpec = {
   text: string;
   /** Pixels: the type, and the width of the box. */
   px: number;
@@ -82,7 +82,7 @@ export type TextSpec = {
 
 /** How tall, in pixels, a text comes out: its words wrapped at their real
  *  widths in the page's face, and shared evenly over its columns. */
-export type Measure = (t: TextSpec) => number;
+type Measure = (t: TextSpec) => number;
 
 export function makeMeasure(family: string): Measure {
   const g = document.createElement("canvas").getContext("2d")!;

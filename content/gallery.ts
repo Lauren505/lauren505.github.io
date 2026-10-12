@@ -143,7 +143,7 @@ export type Portal = {
 };
 
 /** Where the frames are served from. */
-export const FRAME_DIR = "/models/gallery/frames/";
+const FRAME_DIR = "/models/gallery/frames/";
 
 /** How far off the wall an artwork hangs inside a frame's opening: just
  *  enough to sit in front of whatever backs the frame. */
@@ -198,7 +198,7 @@ export type LabelSide =
  *  the room: double-click the artwork to zoom in on it and its label. */
 export const LABEL_W = 0.5;
 export const LABEL_H = 0.34;
-export const LABEL_GAP = 0.08;
+const LABEL_GAP = 0.08;
 
 /** Where a frame's label hangs, as a rectangle in wall units, or null for
  *  none. */

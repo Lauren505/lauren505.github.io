@@ -41,7 +41,7 @@ export type ProjectMedia =
 
 /** A paragraph of the write-up, or a run of pictures beside it. The order is
  *  the order the archived page told it in, and the spread keeps it. */
-export type ProjectBlock = string | ProjectMedia[];
+type ProjectBlock = string | ProjectMedia[];
 
 export type Project = {
   slug: string;
@@ -202,7 +202,7 @@ const MONTHS = ["Jan.", "Feb.", "Mar.", "Apr.", "May", "Jun.", "Jul.", "Aug.", "
 /** A project's date, read either way it is written: "2022-10", or the
  *  month's name, whole or cut short, and the year — "October 2022", "Oct.
  *  2022". A date without a month is the start of its year. */
-export function dateOf(date: string) {
+function dateOf(date: string) {
   const iso = date.match(/^(\d{4})(?:-(\d{1,2}))?/);
   if (iso) return { year: Number(iso[1]), month: iso[2] ? Number(iso[2]) : 1 };
   const year = Number(date.match(/\d{4}/)?.[0] ?? 0);

@@ -1,4 +1,4 @@
-export type NewsItem = {
+type NewsItem = {
   date: string;
   text: string;
 };

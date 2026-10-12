@@ -7,20 +7,9 @@ import PortalWall from "@/components/PortalWall";
 import ProjectReel from "@/components/ProjectReel";
 import { freezePage, type Frozen } from "@/components/freezePage";
 import SectionTurn from "@/components/SectionTurn";
+import { DEFAULT_SECTION, SECTIONS, sectionOf } from "@/components/sections";
 import { WALL_PAD, wall } from "@/content";
 import styles from "./SideQuestsBody.module.css";
-
-/** The sections in the order the nav lists them, which is what decides whether
- *  a turn between two rolls up or down. */
-const ORDER = ["projects", "gallery", "bakery"];
-
-/** The section with no hash at all — arriving from the nav tab, home or
- *  publications — so the page always opens on something. */
-export const DEFAULT_SECTION = "projects";
-
-/** The section a hash names — or, for no hash or one naming nothing here
- *  (Life lately, put away until there is something in it), the default. */
-export const sectionOf = (hash: string) => (ORDER.includes(hash) ? hash : DEFAULT_SECTION);
 
 type Turn = { from: string; to: string; held: Frozen | null };
 
@@ -138,7 +127,7 @@ export default function SideQuestsBody({ still = false, arriving = false }: { st
       <main className={styles.body}>
         <SectionTurn
           key={`${turn.from}>${turn.to}`}
-          up={ORDER.indexOf(turn.to) > ORDER.indexOf(turn.from)}
+          up={SECTIONS.indexOf(turn.to) > SECTIONS.indexOf(turn.from)}
           from={
             turn.held ? (
               <Held frozen={turn.held} />

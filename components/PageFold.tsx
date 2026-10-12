@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import ChargeLine from "@/components/ChargeLine";
+import { DEG, TILT, TURN_MS, cameraFor, easeInOut } from "@/components/cube";
 import Nav from "@/components/Nav";
 import { clearRollUp, pendingRollUp, setRollDown } from "@/components/foldSignal";
 import { isTurning } from "@/components/turnSignal";
@@ -17,7 +18,6 @@ type Props = {
   label: string;
 };
 
-const DEG = Math.PI / 180;
 /** Travel absorbed before anything moves — the catch you feel first, and what
  *  keeps momentum at the bottom of the page from tripping the fold. */
 const DEADZONE = 90;
@@ -30,19 +30,12 @@ const COMMIT = 0.34;
  *  enough to bridge the gap between two flicks of a wheel, since the line now
  *  takes more scroll than one flick gives it. */
 const RELEASE_MS = 450;
-const COMMIT_MS = 760;
 /** Time constant of the line's fill. In milliseconds rather than in frames, so
  *  the feel does not change with the refresh rate. */
 const FILL_TAU = 55;
 /** Fraction of the turn the flying elements take to reach their slots. */
 const FLIGHT = 0.88;
 const BOTTOM_SLOP = 2;
-/** How far the camera sits from the page, as a multiple of the folding face's
- *  height — so the convergence looks the same whatever the face's size. */
-const CAMERA = 2.9;
-/** How far the lower face tips away from the reader at the middle of the turn,
- *  in degrees. Nothing at either end, where it has a real page to match. */
-const TILT = 11;
 
 /** Type size of an element, read off its first child when it has one — a tag
  *  group's size lives on the tags, not on the box around them. */
@@ -58,11 +51,6 @@ const typeScale = (from: HTMLElement, to: HTMLElement) => fontSize(to) / fontSiz
 const boxScale = (el: HTMLElement, rect: DOMRect) =>
   el.offsetWidth > 0 ? rect.width / el.offsetWidth : 1;
 
-/** Smoothstep. A cubic ease-in-out spends its first hundred milliseconds
- *  barely moving, which on a click reads as the page having ignored you; this
- *  is symmetric and just as smooth at both ends but leaves the mark far
- *  sooner. */
-const easeInOut = (t: number) => t * t * (3 - 2 * t);
 
 export default function PageFold({ above, below, href, label }: Props) {
   const router = useRouter();
@@ -119,7 +107,7 @@ export default function PageFold({ above, below, href, label }: Props) {
       );
     }
     const [top, veilTop, shadeTop, veilBottom, shadeBottom, edgeLine] = parts.current;
-    const camera = `perspective(${Math.max(1200, split.current * CAMERA).toFixed(0)}px)`;
+    const camera = `perspective(${cameraFor(split.current).toFixed(0)}px)`;
 
     const theta = v * 90;
     const sin = Math.sin(theta * DEG);
@@ -242,7 +230,7 @@ export default function PageFold({ above, below, href, label }: Props) {
     committedRef.current = true;
     const t0 = performance.now();
     const run = () => {
-      const t = Math.min(1, (performance.now() - t0) / COMMIT_MS);
+      const t = Math.min(1, (performance.now() - t0) / TURN_MS);
       shown.current = 1 - easeInOut(t);
       paint(shown.current);
       if (t < 1) {
@@ -363,7 +351,7 @@ export default function PageFold({ above, below, href, label }: Props) {
     const t0 = performance.now();
     // The remainder keeps the original pace, so committing late doesn't replay
     // the whole turn.
-    const dur = COMMIT_MS * span;
+    const dur = TURN_MS * span;
 
     const run = () => {
       const t = Math.min(1, (performance.now() - t0) / dur);

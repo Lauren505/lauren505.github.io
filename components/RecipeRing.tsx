@@ -1,8 +1,9 @@
 "use client";
 
+import { getImageProps } from "next/image";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Laid, Piece } from "@/components/bakeryLayout";
-import { hand as handwriting } from "@/components/recipeFonts";
+import { hand as handwriting } from "@/components/bakeryFonts";
 import styles from "./RecipeRing.module.css";
 
 /** How long after one letter the next is begun — see .letter in the
@@ -52,7 +53,10 @@ const reachOf = (image: Piece["image"]) => {
       resolve({ far, tall: h / w });
     };
     img.onerror = () => resolve(null);
-    img.src = image.src;
+    // A small copy is all the outline needs: it is read at 200 pixels, and
+    // the photo itself can run to megabytes. Same origin, so the canvas can
+    // read it back; a drawing comes through as it is.
+    img.src = getImageProps({ src: image, alt: "", width: 256 }).props.src;
   });
   reaches.set(image.src, got);
   return got;

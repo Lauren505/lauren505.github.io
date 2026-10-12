@@ -25,6 +25,7 @@ app/                 # routes, layout, global styles
   icon.png           #   favicon, by Next's file convention
 components/          # presentation only
   PageFold.tsx       #   the home -> publications fold (see below)
+  cube.ts            #   what the fold and the two other turns share
   PublicationsMorph.tsx #  the block that rearranges as it folds
   PortalScene.tsx    #   the gallery, in three.js (see below)
 public/models/gallery/ # .glb files for the gallery — see the README in there
@@ -35,6 +36,15 @@ Images live in `content/media/` and are imported as modules (`import portrait
 from "./media/prof_pic.jpg"`), so they get hashed, cached filenames and their
 dimensions come along for free. The one thing `public/` is for is the gallery's
 `.glb` models, which are fetched by URL at run time rather than imported.
+
+Pictures on the pages go through Next's image optimizer (`<Image>`, or
+`getImageProps` where the markup has to stay a plain `<img>` — see
+`components/thumb.ts`), so a reader is sent a copy sized for the screen, not
+the file in `content/media/`. Still, keep photos to about 2400px on the long
+edge, as JPEG unless they need transparency: every size of every picture is
+made from the original the first time it is asked for. The exceptions are sent
+as they are — an animated WebP, SVG drawings, and whatever three.js loads in
+the gallery — so those are the ones to keep small by hand.
 
 Bio paragraphs and post bodies use `[label](https://url)` for links, rendered by
 `components/RichText.tsx`.

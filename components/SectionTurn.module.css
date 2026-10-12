@@ -1,10 +1,9 @@
 /* The fold's stage, with the crease at the foot of the window — see
-   PageFold.module.css, which this follows line for line.
+   PageFold.module.css, whose shading it shares.
 
    Under the nav rather than over it: the nav is not on either face here, it is
-   what the reader is pressing. */
-/* Everything that moves is written to its element inline, frame by frame —
-   see SectionTurn. */
+   what the reader is pressing. Everything that moves is written to its element
+   inline, frame by frame — see SectionTurn. */
 .stage {
   --st-top: 0px;
 
@@ -44,69 +43,33 @@
   padding-top: var(--st-top);
 }
 
-.tint {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  pointer-events: none;
-}
-
+/* The shading and the crease are the fold's own, laid over the window the
+   same way — see PageFold.module.css. Where they start makes no difference:
+   the turn sets every one of them before its first frame is drawn. */
 .shadeAbove {
-  composes: tint;
-  transform-origin: 50% 0;
+  composes: shadeAbove from "./PageFold.module.css";
 }
 
 .shadeBelow {
-  composes: tint;
-  transform-origin: 50% 100%;
-  transform: scaleY(0);
+  composes: shadeBelow from "./PageFold.module.css";
 }
 
 .veilTop {
-  background: linear-gradient(to bottom, var(--bg) 0%, transparent 55%);
-  opacity: 0;
+  composes: veilTop from "./PageFold.module.css";
 }
 
 .veilBottom {
-  background: linear-gradient(to bottom, transparent 45%, var(--bg) 100%);
-  opacity: 0;
+  composes: veilBottom from "./PageFold.module.css";
 }
 
 .shadeTop {
-  background: linear-gradient(
-    to bottom,
-    rgba(72, 54, 34, 0) 60%,
-    rgba(72, 54, 34, 0.7) 100%
-  );
-  opacity: 0;
+  composes: shadeTop from "./PageFold.module.css";
 }
 
 .shadeBottom {
-  background: linear-gradient(
-    to bottom,
-    rgba(74, 56, 34, 1) 0%,
-    rgba(74, 56, 34, 0.8) 42%,
-    rgba(74, 56, 34, 0.62) 100%
-  );
-  opacity: 0;
+  composes: shadeBottom from "./PageFold.module.css";
 }
 
 .edge {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  transform: translateY(100vh);
-  background: linear-gradient(
-    to right,
-    rgba(60, 44, 26, 0) 0%,
-    rgba(60, 44, 26, 0.3) 8%,
-    rgba(60, 44, 26, 0.3) 92%,
-    rgba(60, 44, 26, 0) 100%
-  );
-  opacity: 0;
-  pointer-events: none;
+  composes: edge from "./PageFold.module.css";
 }

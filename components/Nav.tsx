@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { canRollDown, requestRollUp, startRollDown } from "@/components/foldSignal";
-import { DEFAULT_SECTION, sectionOf } from "@/components/SideQuestsBody";
+import { DEFAULT_SECTION, sectionOf } from "@/components/sections";
 import { startTurn } from "@/components/turnSignal";
 import styles from "./Nav.module.css";
 

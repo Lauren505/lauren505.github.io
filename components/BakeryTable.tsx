@@ -7,6 +7,7 @@ import RecipeRing from "@/components/RecipeRing";
 import RecipeView from "@/components/RecipeView";
 import Tablecloth from "@/components/Tablecloth";
 import TableSetting, { type Edit, type Grip, type Part } from "@/components/TableSetting";
+import { warmFonts } from "@/components/bakeryFonts";
 import { laidOut, layTable, placements, type Laid, type Table } from "@/components/bakeryLayout";
 import { arrange, lookFor, moveTable, type Moves, type Room } from "@/components/bakerySearch";
 import { TABLE_WIDTH, loadRecipeCards, lostLine, recipes } from "@/content";
@@ -113,10 +114,11 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
   // Measured rather than rendered on the server: it is the window's size.
   const [win, setWin] = useState<View | null>(null);
 
-  // How each recipe's card is made up, read now, so it is there by the
-  // time one is opened.
+  // How each recipe's card is made up, and the faces it is written in, read
+  // now, so they are there by the time one is opened.
   useEffect(() => {
     void loadRecipeCards();
+    warmFonts();
   }, []);
   useLayoutEffect(() => {
     const read = () =>

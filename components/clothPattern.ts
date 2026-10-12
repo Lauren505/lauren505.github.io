@@ -16,7 +16,7 @@ const INK = "#d98a7b";
 const SEED = 0x5eed;
 /** How far the tassels hang past the ends of the cloth, in CSS pixels. The
  *  cloth is the window less this much at the left and at the right. */
-export const FRINGE = 30;
+const FRINGE = 30;
 
 /** Mulberry32: small, fast, and the same numbers in every browser. */
 const rng = (seed: number) => () => {

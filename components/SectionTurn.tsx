@@ -1,17 +1,9 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
+import { DEG, TILT, TURN_MS, cameraFor, easeInOut } from "@/components/cube";
 import styles from "./SectionTurn.module.css";
 
-const DEG = Math.PI / 180;
-const TURN_MS = 760;
-/** As in the fold: the camera's distance as a multiple of the turning face. */
-const CAMERA = 2.9;
-/** How far the face coming round tips away mid-turn, in degrees. */
-const TILT = 11;
-
-/** Smoothstep, as the other two turns use. */
-const easeInOut = (t: number) => t * t * (3 - 2 * t);
 
 type Props = {
   /** The section being left and the one being opened, each drawn still. */
@@ -20,10 +12,6 @@ type Props = {
   /** Towards a later section, which rolls up as home does into publications;
    *  back towards an earlier one, which rolls down again. */
   up: boolean;
-  /** How far down the section being left had been scrolled. The page goes
-   *  back to its top for the turn — the section coming round starts there —
-   *  so the face it leaves on is drawn from where the reader was. */
-  lift?: number;
   onDone: () => void;
 };
 
@@ -38,7 +26,7 @@ type Props = {
  * that played backwards, with the faces the other way round. It sits under the
  * nav — see .stage — so the nav stays where it is and stays pressable.
  */
-export default function SectionTurn({ from, to, up, lift = 0, onDone }: Props) {
+export default function SectionTurn({ from, to, up, onDone }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const done = useRef(onDone);
   done.current = onDone;
@@ -56,7 +44,7 @@ export default function SectionTurn({ from, to, up, lift = 0, onDone }: Props) {
     const offset = stage.parentElement?.getBoundingClientRect().top ?? 0;
     const view = window.innerHeight || 1;
     stage.style.setProperty("--st-top", `${offset.toFixed(2)}px`);
-    const camera = `perspective(${Math.max(1200, view * CAMERA).toFixed(0)}px)`;
+    const camera = `perspective(${cameraFor(view).toFixed(0)}px)`;
 
     // Every frame is written straight to the handful of elements that move,
     // never as custom properties on the stage: those inherit, so setting one
@@ -101,17 +89,13 @@ export default function SectionTurn({ from, to, up, lift = 0, onDone }: Props) {
     return () => cancelAnimationFrame(raf);
   }, [up]);
 
-  const leaving = (
-    <div style={lift ? { transform: `translateY(${-lift}px)` } : undefined}>{from}</div>
-  );
-
   return (
     <div ref={stageRef} className={styles.stage} aria-hidden inert>
       <div className={styles.top} data-part="top">
-        <div className={styles.inner}>{up ? leaving : to}</div>
+        <div className={styles.inner}>{up ? from : to}</div>
       </div>
       <div className={styles.bottom} data-part="bottom">
-        <div className={styles.inner}>{up ? to : leaving}</div>
+        <div className={styles.inner}>{up ? to : from}</div>
       </div>
 
       <span className={`${styles.shadeAbove} ${styles.veilTop}`} data-part="veilTop" />

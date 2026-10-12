@@ -1,5 +1,6 @@
 import PublicationRows from "@/components/PublicationRows";
 import Tags from "@/components/Tag";
+import { thumbProps } from "@/components/thumb";
 import { primaryLink, publications, selectedPublications, venueLine } from "@/content";
 import pageStyles from "@/app/page.module.css";
 import listStyles from "@/components/PublicationList.module.css";
@@ -34,14 +35,11 @@ export default function PublicationsMorph() {
               <article key={pub.title} className={pageStyles.card}>
                 <a href={primaryLink(pub)} className={pageStyles.cardMedia} aria-label={pub.title}>
                   {pub.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
+                    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text -- alt is in thumbProps
                     <img
+                      {...thumbProps(pub.image, pub.title)}
                       className={`${pageStyles.cardImage} ${styles.flyer}`}
                       data-flip={`img-${i}`}
-                      src={pub.image.src}
-                      width={pub.image.width}
-                      height={pub.image.height}
-                      alt={pub.title}
                     />
                   ) : (
                     <span className={pageStyles.cardImage} />

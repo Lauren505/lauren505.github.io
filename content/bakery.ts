@@ -26,7 +26,7 @@ export type Ware = "plate" | "fork" | "knife" | "spoon" | "flower" | "hand";
 
 const WARES: readonly Ware[] = ["plate", "fork", "knife", "spoon", "flower", "hand"];
 
-export type Decoration = {
+type Decoration = {
   id: string;
   kind: Ware;
   image: StaticImageData;

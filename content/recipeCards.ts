@@ -66,7 +66,7 @@ export type RecipeCard = {
 /** Words on the card that can be moved: how far from where they fall, how
  *  far turned, and how wide — they wrap to it; as wide as the rest of the
  *  words, if left out. */
-export type Words = { x: number; y: number; rotate: number; width?: number };
+type Words = { x: number; y: number; rotate: number; width?: number };
 
 /** One of the things on a card, or the words among them. */
 export type Layer = Item | "steps" | "notes";
@@ -102,7 +102,9 @@ let coming: Promise<Record<string, RecipeCard>> | null = null;
 /** Every recipe's card as public/recipe-cards.json has it — read once, and
  *  kept. */
 export const loadRecipeCards = () => {
-  coming ??= fetch("/recipe-cards.json", { cache: "no-store" })
+  // Never from the cache while the editor can be writing it; on the site it is
+  // a file like any other, and the browser can keep it between visits.
+  coming ??= fetch("/recipe-cards.json", process.env.NODE_ENV === "development" ? { cache: "no-store" } : undefined)
     .then((r) => (r.ok ? r.json() : {}))
     .catch(() => ({}))
     .then((cards: Record<string, RecipeCard>) => (kept = cards));
@@ -163,7 +165,7 @@ const inset = (b: Box, by: number): Box => ({
 
 /** The `k`th photo of `n` as it usually lies: on torn white paper, on brown
  *  card a little bigger. */
-export const usualPhoto = (k: number, n: number): Item[] => {
+const usualPhoto = (k: number, n: number): Item[] => {
   const card = fanned(k, n);
   const paper = inset(card, KRAFT);
   return [

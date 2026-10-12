@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { Fragment, useId, useLayoutEffect, useRef, useState } from "react";
 import Drawn from "@/components/Drawn";
-import { garamond } from "@/components/recipeFonts";
+import { garamond } from "@/components/bakeryFonts";
 import { KINDS, decorations, type Box, type Item, type Layer, type Line, type Recipe, type RecipeCard } from "@/content";
 import handles from "./TableSetting.module.css";
 import styles from "./RecipePaper.module.css";
@@ -247,7 +247,7 @@ export type CardPart = { part: "item"; id: string } | { part: "steps" } | { part
 
 /** Making up the card in the editor, in development only — see
  *  RecipeEditor: which part is chosen, and the card as it is changed. */
-export type CardEdit = {
+type CardEdit = {
   selected: CardPart | null;
   select: (part: CardPart | null) => void;
   change: (card: RecipeCard) => void;

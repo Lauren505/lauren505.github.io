@@ -130,6 +130,6 @@ export const venueLine = (pub: Publication) => `${pub.venue} ${pub.year}`;
 export const primaryLink = (pub: Publication) => pub.links[0]?.href ?? "/publications";
 
 // Authors matching any of these are bolded (an asterisk marks co-first authorship).
-export const SELF_NAMES = ["Lauren W. Wang", "Wei-Hsin Wang"];
+const SELF_NAMES = ["Lauren W. Wang", "Wei-Hsin Wang"];
 
 export const isSelf = (author: string) => SELF_NAMES.some((name) => author.startsWith(name));

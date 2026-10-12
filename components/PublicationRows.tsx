@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Tags from "@/components/Tag";
+import { thumbProps } from "@/components/thumb";
 import { isSelf, venueLine, type Publication } from "@/content";
 import styles from "./PublicationRows.module.css";
 
@@ -68,17 +69,14 @@ export default function PublicationRows({ items, cards }: Props) {
             onClick={() => setActive(i)}
           >
             {pub.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
+              // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text -- alt is in thumbProps
               <img
+                {...thumbProps(pub.image, pub.title)}
                 className={cls(styles.image, styles.slot)}
                 data-flip-to={slot >= 0 ? `img-${slot}` : undefined}
                 /* Inside the fold these rows are off-screen until the turn
                    runs, so they queue behind what the page is showing now. */
                 fetchPriority={folding && slot < 0 ? "low" : undefined}
-                src={pub.image.src}
-                width={pub.image.width}
-                height={pub.image.height}
-                alt={pub.title}
               />
             ) : (
               <span className={styles.image} />

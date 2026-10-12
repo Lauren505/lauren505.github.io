@@ -37,8 +37,8 @@ const LEAVING = "cubic-bezier(0.5, 0, 0.75, 0)";
 
 /** Where something is, from where it is laid now, from a time on — and how
  *  it gets to where it is next. */
-export type Step = { at: number; v: Vec; ease?: string };
-export type Track = Step[];
+type Step = { at: number; v: Vec; ease?: string };
+type Track = Step[];
 
 export type Hand = { key: string; piece: Piece; track: Track };
 
