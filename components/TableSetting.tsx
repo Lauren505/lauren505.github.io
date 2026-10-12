@@ -129,6 +129,7 @@ export default function TableSetting({
   pick,
   hide,
   shuffled = 0,
+  onShuffle,
 }: {
   laid: Laid[];
   cutlery: Piece[];
@@ -140,6 +141,8 @@ export default function TableSetting({
   pick?: (i: number) => void;
   hide?: number;
   shuffled?: number;
+  /** Told how long the table takes to be rearranged, each time it is. */
+  onShuffle?: (ms: number) => void;
 }) {
   /** Where each setting comes, top of the page first: in the order they are
    *  set down, and in which their pictures are fetched. */
@@ -188,6 +191,7 @@ export default function TableSetting({
       bottom: (window.innerHeight - box.top) / scale,
     });
     timeline.current = plan;
+    onShuffle?.(plan.total);
     el.querySelectorAll<HTMLElement>("[data-of]").forEach((part) => {
       const track = plan.settings.get(part.dataset.of ?? "");
       if (!track) return;

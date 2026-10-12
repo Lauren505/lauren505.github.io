@@ -85,6 +85,10 @@ const tidy = (t: Table): Table => {
   return next;
 };
 
+/** How long the writing on the order pad has to pause before the table is
+ *  rearranged for it, in milliseconds. */
+const PAUSE = 300;
+
 /**
  * The bakery: the cloth, and once it is down, the desserts on it. A still
  * bakery has both already there; `laid` false is the bare table, before
@@ -312,18 +316,35 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
   /** What is written on the order pad, as it is written: the table is
    *  rearranged as soon as it names something, and laid as it was once
    *  nothing is written. */
+  // Not at every letter: once the writing pauses — and not while the table
+  // is still being rearranged for what was asked before, but once it is.
+  const waiting = useRef(0);
+  const busy = useRef(0);
+  const shuffling = useCallback((ms: number) => {
+    busy.current = performance.now() + ms;
+  }, []);
   const search = useCallback(
     (lines: string[]) => {
       const want = lookFor(laidOut.laid, lines);
       if (want === undefined) return;
       const key = want ? [...want].sort().join(" ") : "";
+      window.clearTimeout(waiting.current);
       if (key === asked.current) return;
-      asked.current = key;
-      setMoves(want ? arrange(laidOut.laid, laidOut.cutlery, want, room()) : null);
-      setShuffles((n) => n + 1);
+      const go = () => {
+        const left = busy.current - performance.now();
+        if (left > 0) {
+          waiting.current = window.setTimeout(go, left + 30);
+          return;
+        }
+        asked.current = key;
+        setMoves(want ? arrange(laidOut.laid, laidOut.cutlery, want, room()) : null);
+        setShuffles((n) => n + 1);
+      };
+      waiting.current = window.setTimeout(go, PAUSE);
     },
     [room],
   );
+  useEffect(() => () => window.clearTimeout(waiting.current), []);
 
   /** The table as it is now: rearranged, unless it is being edited. */
   const arranged = useMemo(
@@ -445,6 +466,7 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
               laid={arranged.laid}
               cutlery={arranged.cutlery}
               shuffled={shuffles}
+              onShuffle={shuffling}
               scale={scale}
               arrive={!still}
               edit={playing ? undefined : edit}
