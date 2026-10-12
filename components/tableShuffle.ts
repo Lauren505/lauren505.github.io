@@ -1,14 +1,15 @@
 import type { StaticImageData } from "next/image";
-import type { Laid, Piece, Vec } from "@/components/bakeryLayout";
+import { outOf, type Laid, type Piece, type Vec } from "@/components/bakeryLayout";
 import { TABLE_WIDTH, decorations } from "@/content";
 
 /**
  * The table rearranged by hand, the way it is laid: see bakerySearch for
  * where each setting goes, and TableSetting for the table being laid. A
  * setting taken off the table is pulled off by a hand that reaches in from
- * the nearer side, takes hold of its plate, and draws it off the way it
- * came; a setting put on the table is pushed in from the nearer side by a
- * hand that then goes back the way it came; and a setting moved from one
+ * the nearest edge of the window — a side, the top or the bottom, or a
+ * corner — takes hold of its plate, and draws it off the way it came; a
+ * setting put on the table is pushed in the same way from the edge nearest
+ * it by a hand that then goes back the way it came; and a setting moved from one
  * place on the table to another is pulled off and pushed in again. The ones
  * going go first, the ones coming once the table is clearing.
  *
@@ -60,34 +61,15 @@ const LONGEST = 470;
 /** How many hands at once, going and coming. */
 const MOST = 4;
 
-/**
- * A hand at the side `side` (−1 left, 1 right) of a plate at `at`, fingers
- * just over its rim, the way the table's own hands are — long enough that
- * its arm reaches off the table, so the end of it is never seen. None, for
- * a plate too far in for one to reach.
- */
-const handBy = (plate: Piece, at: Vec, side: number, n: number): Piece | null => {
-  const drawn = HANDS[n % Math.max(1, HANDS.length)];
-  if (!drawn) return null;
-  const tip = at.x + side * (plate.width / 2 - 25);
-  const length = Math.max(HAND, (side > 0 ? TABLE_WIDTH - tip : tip) + 40);
-  if (length > LONGEST) return null;
-  return {
-    image: drawn.image,
-    x: tip + (side * length) / 2,
-    y: at.y,
-    width: length / shape(drawn.image),
-    height: length,
-    rotate: side < 0 ? 90 : -90,
-  };
-};
-
-/** How far along the side `side` something at `x`, `r` across, has to go to
- *  be off the table. */
-const offBy = (x: number, side: number, r: number) => (side > 0 ? TABLE_WIDTH - x : x) + r;
+/** The ways a plate can be taken off the window, or brought on: every
+ *  sixteenth of the way round. */
+const WAYS: Vec[] = Array.from({ length: 16 }, (_, k) => ({
+  x: Math.cos((k * Math.PI) / 8),
+  y: Math.sin((k * Math.PI) / 8),
+}));
 
 const sub = (a: Vec, b: Vec): Vec => ({ x: a.x - b.x, y: a.y - b.y });
-const nearer = (x: number) => (x < TABLE_WIDTH / 2 ? -1 : 1);
+const along = (a: Vec, d: Vec, by: number): Vec => ({ x: a.x + d.x * by, y: a.y + d.y * by });
 
 /**
  * How the table goes from `was` to `now`, settings matched by id: `seen` is
@@ -96,9 +78,53 @@ const nearer = (x: number) => (x < TABLE_WIDTH / 2 ? -1 : 1);
  */
 export const shuffle = (was: Laid[], now: Laid[], seen: { top: number; bottom: number }): Shuffle => {
   const before = new Map(was.map((s) => [s.id, s]));
+  const box = { x0: 0, y0: seen.top, x1: TABLE_WIDTH, y1: seen.bottom };
+  /** How far from `at` along `d` the edge of the window is. */
+  const edge = (at: Vec, d: Vec) => outOf(box, at, d, 0);
   const onTable = (p: Piece) => {
     const r = Math.max(p.width, p.height) / 2;
     return p.x + r > 0 && p.x - r < TABLE_WIDTH && p.y + r > seen.top && p.y - r < seen.bottom;
+  };
+
+  /** The rim of a plate at `at`, the way `d` from its middle — with the
+   *  fingers that take hold of it a little over it. */
+  const rim = (plate: Piece, at: Vec, d: Vec) =>
+    along(at, d, Math.hypot((d.x * plate.width) / 2, (d.y * plate.height) / 2) - 25);
+
+  /** The quickest way off the window for a plate at `at`: the way the hand
+   *  that takes it comes from, and goes. */
+  const wayOff = (plate: Piece, at: Vec) => {
+    let best = WAYS[0];
+    let far = Infinity;
+    for (const d of WAYS) {
+      const e = edge(rim(plate, at, d), d);
+      if (e < far - 1) [best, far] = [d, e];
+    }
+    return best;
+  };
+
+  /**
+   * A hand coming the way `d` to a plate at `at`, fingers to it and just
+   * over its rim, the way the table's own hands are — long enough that its
+   * arm reaches off the window, so the end of it is never seen. None, for a
+   * plate too far in for one to reach.
+   */
+  const handBy = (plate: Piece, at: Vec, d: Vec, n: number): Piece | null => {
+    const drawn = HANDS[n % Math.max(1, HANDS.length)];
+    if (!drawn) return null;
+    const tip = rim(plate, at, d);
+    const length = Math.max(HAND, edge(tip, d) + 60);
+    if (length > LONGEST) return null;
+    const mid = along(tip, d, length / 2);
+    // Drawn upright, fingers up: turned so they point back along `d`.
+    return {
+      image: drawn.image,
+      x: mid.x,
+      y: mid.y,
+      width: length / shape(drawn.image),
+      height: length,
+      rotate: (Math.atan2(-d.x, d.y) * 180) / Math.PI,
+    };
   };
 
   type Plan = { s: Laid; from: Piece; going: boolean; coming: boolean };
@@ -123,35 +149,37 @@ export const shuffle = (was: Laid[], now: Laid[], seen: { top: number; bottom: n
   let pushing = 0;
 
   for (const p of plans) {
-    const to = p.s.plate;
+    const s = p.s;
+    const to = s.plate;
     const A = { x: p.from.x, y: p.from.y };
     const B = { x: to.x, y: to.y };
-    const r = Math.max(to.width, to.height) / 2 + 40;
+    // Far enough that it is off the window, and what is laid by it too.
+    const r = Math.max(to.width, to.height, s.dessert.width, s.dessert.height) / 2 + 220;
     const track: Track = [];
     let gone = 0;
 
     if (p.going) {
       const start = goers.indexOf(p) * GOING;
-      // Off the side it is going to — or, if it is only going so as to come
-      // back somewhere else, the nearer.
-      const side = p.coming ? nearer(A.x) : Math.sign(B.x - A.x) || nearer(A.x);
-      const out = p.coming ? { x: A.x + side * offBy(A.x, side, r), y: A.y } : B;
+      const d = wayOff(to, A);
+      const out = along(A, d, edge(A, d) + r);
       const held = start + REACH + GRIP;
       gone = held + DRAW;
       track.push({ at: 0, v: sub(A, B) }, { at: held, v: sub(A, B) }, { at: gone, v: sub(out, B), ease: SLIDE });
-      const hand = pulling < MOST ? handBy(to, A, side, n++) : null;
+      // Off the window, it is wherever it is going in no time.
+      if (!p.coming) track.push({ at: gone, v: { x: 0, y: 0 } });
+      const hand = pulling < MOST ? handBy(to, A, d, n++) : null;
       if (hand) {
         pulling++;
-        const away = { x: side * offBy(hand.x, side, hand.height * 0.6), y: 0 };
+        const away = along({ x: 0, y: 0 }, d, edge(hand, d) + hand.height);
         hands.push({
-          key: `${p.s.id}-going`,
+          key: `${s.id}-going`,
           piece: hand,
           track: [
             { at: 0, v: away },
             { at: start, v: away },
             { at: start + REACH, v: { x: 0, y: 0 }, ease: REACHING },
             { at: held, v: { x: 0, y: 0 } },
-            { at: held + DRAW, v: sub(out, A), ease: SLIDE },
+            { at: gone, v: sub(out, A), ease: SLIDE },
           ],
         });
       }
@@ -160,19 +188,19 @@ export const shuffle = (was: Laid[], now: Laid[], seen: { top: number; bottom: n
     if (p.coming) {
       // Not before it has gone, if it is coming back somewhere else.
       const start = Math.max(firstComing + comers.indexOf(p) * COMING, gone);
-      const side = nearer(B.x);
-      const from = { x: B.x + side * offBy(B.x, side, r), y: B.y };
-      // Off the table until then — from where it went off to where it comes
-      // on in no time, not across it.
+      const d = wayOff(to, B);
+      const from = along(B, d, edge(B, d) + r);
+      // Off the window until then — from where it went off to where it
+      // comes on in no time, not across it.
       if (p.going) track.push({ at: start, v: track[track.length - 1].v });
       else track.push({ at: 0, v: sub(from, B) });
       track.push({ at: start, v: sub(from, B) }, { at: start + PUSH, v: { x: 0, y: 0 }, ease: SLIDE });
-      const hand = pushing < MOST ? handBy(to, B, side, n++) : null;
+      const hand = pushing < MOST ? handBy(to, B, d, n++) : null;
       if (hand) {
         pushing++;
-        const away = { x: side * offBy(hand.x, side, hand.height * 0.6), y: 0 };
+        const away = along({ x: 0, y: 0 }, d, edge(hand, d) + hand.height);
         hands.push({
-          key: `${p.s.id}-coming`,
+          key: `${s.id}-coming`,
           piece: hand,
           track: [
             { at: 0, v: sub(from, B) },
@@ -184,7 +212,7 @@ export const shuffle = (was: Laid[], now: Laid[], seen: { top: number; bottom: n
         });
       }
     }
-    settings.set(p.s.id, track);
+    settings.set(s.id, track);
   }
 
   const ends = [...settings.values(), ...hands.map((h) => h.track)].map((t) => t[t.length - 1]?.at ?? 0);
