@@ -1,0 +1,202 @@
+/* The custom order pad. Everything on it is measured in units of the
+   drawing it was made from, 809.2 of them across: --u is one, in pixels.
+   --extra is how much longer than printed the pad has grown, in units, for
+   the rows added to it. */
+.pad {
+  --pad-w: min(720px, calc(100vw - 32px));
+  --u: calc(var(--pad-w) / 809.2);
+  position: absolute;
+  top: 2rem;
+  left: 50%;
+  z-index: 20;
+  width: var(--pad-w);
+  height: calc((487.65 + var(--extra)) * var(--u));
+  margin-left: calc(var(--pad-w) / -2);
+  transition: height 0.25s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* A sheet. It is what moves as it is pulled off, and what casts its
+   shadow: the shadow is outside the clip of the torn edge. */
+.sheet {
+  position: absolute;
+  left: calc(57.76 * var(--u));
+  top: calc(3.55 * var(--u));
+  width: calc(750.07 * var(--u));
+  height: calc((470.42 + var(--extra)) * var(--u));
+  transform-origin: 0 100%;
+  cursor: grab;
+  touch-action: pan-y;
+  transition: height 0.25s ease;
+}
+
+/* Being pulled off: over the binding it was held under. */
+.sheet[data-pulled] {
+  z-index: 3;
+  cursor: grabbing;
+  filter: drop-shadow(0 calc(1.5 * var(--u)) calc(3 * var(--u)) rgba(60, 45, 25, 0.28));
+}
+
+/* Its face: the paper — its cream, its wash and its grain, which repeat
+   down a sheet grown longer — with what is printed on it laid over. */
+.face {
+  position: absolute;
+  inset: 0;
+  background-color: #fff7d7;
+  background-size: 100% calc(940.84 * var(--u));
+  background-repeat: repeat-y;
+}
+
+/* Where it tore, the paper's fibres, pulled out a little past its face:
+   paler than it, and only there once it tears. */
+.fibres {
+  position: absolute;
+  inset: 0;
+  display: none;
+  background: #fffcf0;
+}
+
+.sheet[data-pulled] .fibres {
+  display: block;
+}
+
+.sheet img {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.printHead,
+.headings {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: calc(162.75 * var(--u));
+  overflow: visible;
+  pointer-events: none;
+}
+
+.headings text {
+  font-size: 15.92px;
+  letter-spacing: 0.02em;
+  fill: #000;
+}
+
+.headings .server {
+  font-size: 50px;
+  letter-spacing: 0;
+}
+
+.check {
+  position: absolute;
+  left: calc((394.4 - 57.76) * var(--u));
+  top: calc((108 - 3.55) * var(--u));
+  width: calc((553.5 - 394.4) * var(--u));
+  height: calc(32 * var(--u));
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #c62905;
+  font-size: calc(23.88 * var(--u));
+  letter-spacing: 0.04em;
+  line-height: calc(32 * var(--u));
+  text-align: center;
+  outline: none;
+  cursor: text;
+}
+
+span.check {
+  cursor: inherit;
+}
+
+/* The rules between the rows, one under each, and the columns down their
+   right-hand side, as long as there are rows. */
+.rule {
+  left: calc((114 - 57.76) * var(--u));
+  top: calc(var(--y) * var(--u));
+  width: calc(636 * var(--u));
+  height: calc(3.44 * var(--u));
+}
+
+.col {
+  left: calc(var(--x) * var(--u));
+  top: calc((168.2 - 3.55) * var(--u));
+  width: calc(3.44 * var(--u));
+  height: calc((194.2 + var(--extra)) * var(--u));
+}
+
+/* A row, written in by hand, from where the rule starts to the first
+   column. */
+.item {
+  position: absolute;
+  left: calc((115 - 57.76) * var(--u));
+  top: calc((var(--y) + 2) * var(--u));
+  width: calc((617 - 115) * var(--u));
+  height: calc(62 * var(--u));
+  padding: calc(4 * var(--u)) 0 0 calc(40 * var(--u));
+  box-sizing: border-box;
+  border: 0;
+  background: transparent;
+  color: #000;
+  font-size: calc(59.71 * var(--u));
+  line-height: 1;
+  outline: none;
+  cursor: text;
+  caret-color: #3b3431;
+}
+
+.printFoot {
+  left: 0;
+  top: calc((370 - 3.55 + var(--extra)) * var(--u));
+  width: 100%;
+  height: calc(90 * var(--u));
+}
+
+/* The binding: the spine and cover down the left, the stubs of the sheets
+   torn off before, and the edge of the pad along its foot. Its middle
+   repeats down a pad grown longer. */
+.binding {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.binding > div {
+  position: absolute;
+  left: 0;
+  background-repeat: repeat-y;
+  background-size: 100% auto;
+}
+
+.bindingTop {
+  top: 0;
+  width: calc(90 * var(--u));
+  height: calc(60 * var(--u));
+}
+
+.bindingMid {
+  top: calc(60 * var(--u));
+  width: calc(90 * var(--u));
+  height: calc((360 + var(--extra)) * var(--u));
+  transition: height 0.25s ease;
+}
+
+.foot {
+  bottom: 0;
+  width: 100%;
+  height: calc(67.65 * var(--u));
+}
+
+.cover {
+  position: absolute;
+  left: calc(37.5 * var(--u));
+  top: 50%;
+  color: #fffefd;
+  font-size: calc(32 * var(--u));
+  line-height: 1;
+  white-space: nowrap;
+  transform: translate(-50%, -50%) rotate(-90deg);
+}

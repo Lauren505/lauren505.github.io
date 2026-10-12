@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import GuestCheck from "@/components/GuestCheck";
 import RecipeRing from "@/components/RecipeRing";
 import RecipeView from "@/components/RecipeView";
 import Tablecloth from "@/components/Tablecloth";
@@ -428,6 +429,10 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
           onGone={gone}
         />
       ) : null}
+
+      {/* The custom order pad, over the table — for now; where it goes is
+          still to be decided. */}
+      {!still && showing && shown === null ? <GuestCheck /> : null}
 
       {/* Not while a recipe is out: that has its own editor. */}
       {TableEditor && !still && showing && shown === null ? (
