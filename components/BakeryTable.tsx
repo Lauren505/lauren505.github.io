@@ -319,7 +319,7 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
       const key = want ? [...want].sort().join(" ") : "";
       if (key === asked.current) return;
       asked.current = key;
-      setMoves(want ? arrange(laidOut.laid, want, room()) : null);
+      setMoves(want ? arrange(laidOut.laid, laidOut.cutlery, want, room()) : null);
       setShuffles((n) => n + 1);
     },
     [room],

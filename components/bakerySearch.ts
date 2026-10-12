@@ -78,94 +78,126 @@ export type Room = { top: number; bottom: number; pad: { left: number; top: numb
 
 /** Room left round the table's edges, and under the nav at the window's
  *  top, in the table's pixels. */
-const EDGE = 40;
+const EDGE = 24;
 const NAV = 90;
 
-/** The room kept between desserts, widest first: the widest that lets them
- *  all into the window is the one they are laid with. */
-const GAPS = [300, 240, 190, 150, 115, 85, 60, 40, 25];
+/** The room kept between settings, widest first: the widest that lets
+ *  them all into the window is the one they are laid with — and never less
+ *  than the last. */
+const GAPS = [240, 190, 150, 120, 95, 75, 60];
 
-type Spot = { x: number; y: number; r: number };
+/** How far a setting reaches from the middle of its plate — left, right,
+ *  up and down — and its shape, as rounds from there: its plate, what is on
+ *  it, and a few along each piece of its cutlery. */
+type Round = { dx: number; dy: number; r: number };
+type Reach = { l: number; r: number; t: number; b: number; rounds: Round[] };
+type Spot = Reach & { x: number; y: number };
+
+/** Which setting each piece of cutlery is laid by: the nearest plate. */
+const owners = (laid: Laid[], cutlery: Piece[]) =>
+  cutlery.map((c) => {
+    let best = -1;
+    let far = Infinity;
+    laid.forEach((s, i) => {
+      const d = Math.hypot(s.plate.x - c.x, s.plate.y - c.y);
+      if (d < far) [best, far] = [i, d];
+    });
+    return best;
+  });
+
+/** How far a setting reaches from the middle of its plate: the plate, the
+ *  dessert on it, and the cutlery by it, each as it is turned. */
+const reachOf = (s: Laid, wares: Piece[]): Reach => {
+  const at = s.plate;
+  const round = (p: Piece, k = 1): Round => ({ dx: p.x - at.x, dy: p.y - at.y, r: (Math.max(p.width, p.height) / 2) * k });
+  const rounds = [round(s.plate), round(s.dessert, 0.9)];
+  for (const c of wares) {
+    // Drawn upright: its length runs down it, turned as it is.
+    const a = (c.rotate * Math.PI) / 180;
+    const along = { x: -Math.sin(a), y: Math.cos(a) };
+    const r = Math.max(c.width / 2, c.height * 0.17);
+    for (const t of [-0.33, 0, 0.33]) {
+      rounds.push({ dx: c.x - at.x + along.x * t * c.height, dy: c.y - at.y + along.y * t * c.height, r });
+    }
+  }
+  const out = { l: 0, r: 0, t: 0, b: 0, rounds };
+  for (const p of [s.plate, s.dessert, ...wares]) {
+    const a = (p.rotate * Math.PI) / 180;
+    const w = (Math.abs(p.width * Math.cos(a)) + Math.abs(p.height * Math.sin(a))) / 2;
+    const h = (Math.abs(p.width * Math.sin(a)) + Math.abs(p.height * Math.cos(a))) / 2;
+    out.l = Math.max(out.l, at.x - (p.x - w));
+    out.r = Math.max(out.r, p.x + w - at.x);
+    out.t = Math.max(out.t, at.y - (p.y - h));
+    out.b = Math.max(out.b, p.y + h - at.y);
+  }
+  return out;
+};
 
 /**
- * Lays dishes `r` across from their middles to their edges, in order, with
- * at least `gap` between them, from the top of the room down: in rows across
- * the room — short of the pad, beside it — each spread out to fill its row,
- * every other row starting half a dish in, as bricks are laid; each dish
- * then as high as it will go against those above it, so the rows sit into
- * each other. Where each goes, and whether they are all in the window.
+ * Lays settings reaching as far as `reach` from their plates, in order,
+ * with at least `gap` between them, from the top of the room down: each in
+ * the highest place there is room for it, across the table — below the nav,
+ * clear of the pad, and clear of every setting already laid, round by round,
+ * so that its plate is never over another's cutlery, nor theirs over its.
+ * The ones after sit into the gaps between those before, as bricks are
+ * laid. Where each plate goes, and whether they are all in the window.
  */
-const pack = (rs: number[], gap: number, room: Room) => {
+const pack = (reach: Reach[], gap: number, room: Room) => {
   const left = EDGE;
   const right = TABLE_WIDTH - EDGE;
   const top = room.top + NAV;
   const bottom = room.bottom - EDGE;
   const pad = room.pad;
-  const mean = rs.reduce((a, r) => a + 2 * r, 0) / Math.max(1, rs.length);
   const spots: Spot[] = [];
-  let y = top;
-  let row = 0;
-  let n = 0;
-  while (n < rs.length) {
-    // Beside the pad, only as far as it.
-    const beside = !!pad && y < pad.bottom + gap && y + 2 * rs[n] > pad.top - gap;
-    const end = beside && pad ? Math.max(left + 2 * rs[n], pad.left - gap) : right;
-    const indent = row % 2 ? Math.min(mean / 2, (end - left) / 4) : 0;
-    const from = left + indent;
-    // As many as fit with the gap round each.
-    const take: number[] = [];
-    let used = 0;
-    while (n + take.length < rs.length) {
-      const more = used + 2 * rs[n + take.length] + gap;
-      if (take.length && more > end - from) break;
-      take.push(n + take.length);
-      used = more;
-    }
-    // Spread out across the row — or, the last, together in the middle.
-    const last = n + take.length >= rs.length;
-    const sum = take.reduce((a, i) => a + 2 * rs[i], 0);
-    const space = last ? gap : (end - from - sum) / take.length;
-    let x = last ? (from + end) / 2 - (sum + gap * (take.length - 1)) / 2 : from + space / 2;
-    for (const i of take) {
-      const r = rs[i];
-      const cx = x + r;
-      x += 2 * r + space;
-      // As high as it will go: below the top, clear of the pad, and of
-      // every dish above it.
-      let cy = top + r;
-      if (pad && cx + r > pad.left - gap) cy = Math.max(cy, pad.bottom + gap + r);
-      for (const o of spots) {
-        const need = r + o.r + gap;
-        const dx = cx - o.x;
-        if (Math.abs(dx) < need) cy = Math.max(cy, o.y + Math.sqrt(need * need - dx * dx));
+  /** How high a setting can go with its plate at `x`. */
+  const highest = (k: Reach, x: number) => {
+    let y = top + k.t;
+    if (pad && x + k.r > pad.left - gap / 2 && x - k.l < pad.left + 2000) y = Math.max(y, pad.bottom + gap + k.t);
+    for (const o of spots) {
+      for (const a of k.rounds) {
+        for (const b of o.rounds) {
+          const need = a.r + b.r + gap;
+          const dx = x + a.dx - (o.x + b.dx);
+          if (Math.abs(dx) < need) y = Math.max(y, o.y + b.dy + Math.sqrt(need * need - dx * dx) - a.dy);
+        }
       }
-      spots.push({ x: cx, y: cy, r });
     }
-    n += take.length;
-    row++;
-    // The next row, roughly where these end.
-    const ends = take.map((i) => spots[i].y);
-    y = Math.max(y + mean * 0.5, Math.min(...ends) + mean * 0.4);
+    return y;
+  };
+  for (const k of reach) {
+    let best = { x: left + k.l, y: Infinity };
+    for (let x = left + k.l; x <= right - k.r; x += 16) {
+      const y = highest(k, x);
+      // The highest; of those as high, the one furthest left.
+      if (y < best.y - 4) best = { x, y };
+    }
+    spots.push({ ...k, ...best });
   }
-  return { spots, fits: spots.every((o) => o.y + o.r <= bottom) };
+  return { spots, fits: spots.every((o) => o.y + o.b <= bottom) };
 };
 
 /**
  * Where the desserts asked for go: laid over the part of the table in the
- * window — not under the nav, or the pad — like bricks, each by its own
- * size, as far apart as lets them all in; if they will not all go in, as
- * close as they go, and on down the table. In the order they were laid, top
- * first. The rest go off the table, on whichever side is nearer.
+ * window — not under the nav, or the pad — like bricks, each setting by its
+ * own size, cutlery and all, so that no plate is laid over another's
+ * cutlery; as far apart as lets them all in, or if they will not all go in,
+ * on down the table. In the order they were laid, top first. The rest go
+ * off the table, on whichever side is nearer.
  */
-export const arrange = (laid: Laid[], wanted: Set<string>, room: Room): Moves => {
+export const arrange = (laid: Laid[], cutlery: Piece[], wanted: Set<string>, room: Room): Moves => {
   const moves: Moves = new Map();
+  const by = owners(laid, cutlery);
   const asked = laid
     .filter((s) => wanted.has(s.id))
     .sort((a, b) => a.plate.y - b.plate.y || a.plate.x - b.plate.x);
-  const rs = asked.map((s) => Math.max(s.plate.width, s.plate.height, s.dessert.width, s.dessert.height) / 2);
-  let laidOut = pack(rs, GAPS[GAPS.length - 1], room);
+  // Its cutlery: what is laid close by its plate — not what only happens
+  // to be nearer it than any other, further off.
+  const near = (s: Laid, c: Piece) =>
+    Math.hypot(c.x - s.plate.x, c.y - s.plate.y) < Math.max(s.plate.width, s.plate.height) / 2 + Math.max(c.width, c.height) / 2 + 40;
+  const reach = asked.map((s) => reachOf(s, cutlery.filter((c, k) => laid[by[k]] === s && near(s, c))));
+  let laidOut = pack(reach, GAPS[GAPS.length - 1], room);
   for (const gap of GAPS) {
-    const tried = pack(rs, gap, room);
+    const tried = pack(reach, gap, room);
     if (tried.fits) {
       laidOut = tried;
       break;
@@ -190,15 +222,7 @@ const moved = (p: Piece, by: Vec): Piece => ({ ...p, x: p.x + by.x, y: p.y + by.
  *  each piece of cutlery with the plate it is laid by. */
 export const moveTable = (laid: Laid[], cutlery: Piece[], moves: Moves | null) => {
   if (!moves) return { laid, cutlery, nearest: cutlery.map(() => -1) };
-  const nearest = cutlery.map((c) => {
-    let best = -1;
-    let far = Infinity;
-    laid.forEach((s, i) => {
-      const d = Math.hypot(s.plate.x - c.x, s.plate.y - c.y);
-      if (d < far) [best, far] = [i, d];
-    });
-    return best;
-  });
+  const nearest = owners(laid, cutlery);
   const by = (s: Laid | undefined) => (s && moves.get(s.id)?.by) || { x: 0, y: 0 };
   return {
     laid: laid.map((s) => {
