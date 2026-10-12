@@ -79,6 +79,8 @@ export type Room = { top: number; bottom: number; pad: { left: number; top: numb
 /** Room left round the table's edges, and under the nav at the window's
  *  top, in the table's pixels. */
 const EDGE = 24;
+/** Room round a plate itself at the table's edges, as it is laid. */
+const SIDES = 110;
 const NAV = 90;
 
 /** The room kept between settings, widest first: the widest that lets
@@ -152,7 +154,10 @@ const pack = (reach: Reach[], gap: number, room: Room) => {
   /** How high a setting can go with its plate at `x`. */
   const highest = (k: Reach, x: number) => {
     let y = top + k.t;
-    if (pad && x + k.r > pad.left - gap / 2 && x - k.l < pad.left + 2000) y = Math.max(y, pad.bottom + gap + k.t);
+    // Beside the pad, a little of the plate can be under it, and of its
+    // cutlery as much as may be — but not the middle of it.
+    const plate = k.rounds[0].r;
+    if (pad && x + plate * 0.2 > pad.left - gap / 4) y = Math.max(y, pad.bottom + gap / 2 + plate);
     for (const o of spots) {
       for (const a of k.rounds) {
         for (const b of o.rounds) {
@@ -166,7 +171,12 @@ const pack = (reach: Reach[], gap: number, room: Room) => {
   };
   for (const k of reach) {
     let best = { x: left + k.l, y: Infinity };
-    for (let x = left + k.l; x <= right - k.r; x += 16) {
+
+    // The cutlery by the table's edges, and the plate further in.
+    const plate = k.rounds[0].r;
+    const from = Math.max(left + k.l, SIDES + plate);
+    const to = Math.min(right - k.r, TABLE_WIDTH - SIDES - plate);
+    for (let x = from; x <= Math.max(from, to); x += 16) {
       const y = highest(k, x);
       // The highest; of those as high, the one furthest left.
       if (y < best.y - 4) best = { x, y };
