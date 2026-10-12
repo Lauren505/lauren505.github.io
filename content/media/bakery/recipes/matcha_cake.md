@@ -24,4 +24,4 @@
 
 1. Bake at 170 °C for 30 minutes.
 
-![](matcha_cake/matcha_cake_2.png)
+![](matcha_cake/matcha_cake_2.jpg)

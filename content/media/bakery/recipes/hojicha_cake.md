@@ -44,4 +44,4 @@
 
 1. Bake at 150 °C for 30–35 minutes.
 
-![](hojicha_cake/hojicha_cake_2.png)
+![](hojicha_cake/hojicha_cake_2.jpg)

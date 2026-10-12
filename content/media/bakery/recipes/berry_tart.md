@@ -25,5 +25,5 @@ Size: 1 × 15 cm tart + approximately 3–4 × 8 cm tarts
 1. Bake the tart shells at 175 °C for 10 minutes.
 2. Add the brownie filling and bake for another 10 minutes.
 
-![](berry_tart/berry_tart_2.png)
-![](berry_tart/berry_tart_3.png)
+![](berry_tart/berry_tart_2.jpg)
+![](berry_tart/berry_tart_3.jpg)

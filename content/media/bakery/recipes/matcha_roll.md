@@ -31,5 +31,5 @@ For the jasmine-infused cream:
 2. Spread the cream more thickly along the edge where you will begin rolling.
 3. If adding a central filling, place it near the starting edge of the roll.
 
-![](matcha_roll/matcha_roll_2.png)
-![](matcha_roll/matcha_roll_3.png)
+![](matcha_roll/matcha_roll_2.jpg)
+![](matcha_roll/matcha_roll_3.jpg)
