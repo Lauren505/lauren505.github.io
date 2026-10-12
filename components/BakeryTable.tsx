@@ -8,7 +8,7 @@ import RecipeView from "@/components/RecipeView";
 import Tablecloth from "@/components/Tablecloth";
 import TableSetting, { type Edit, type Grip, type Part } from "@/components/TableSetting";
 import { laidOut, layTable, placements, type Laid, type Table } from "@/components/bakeryLayout";
-import { arrange, lookFor, moveTable, type Moves } from "@/components/bakerySearch";
+import { arrange, lookFor, moveTable, type Moves, type Room } from "@/components/bakerySearch";
 import { TABLE_WIDTH, loadRecipeCards, lostLine, recipes } from "@/content";
 import styles from "./SideQuestsBody.module.css";
 
@@ -295,30 +295,18 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
   const asked = useRef("");
   const pad = useRef<HTMLDivElement>(null);
 
-  /** The places at the front of the table, best first: those in the window
-   *  and not under the order pad, top first, then the rest, nearest the
-   *  window first. */
-  const front = useCallback((laid: Laid[]) => {
+  /** The part of the table in the window, and the order pad over it if it
+   *  is out, in the table's own pixels: where what is asked for is put. */
+  const room = useCallback((): Room => {
     const t = tableRef.current?.getBoundingClientRect();
-    if (!t) return laid.map((_, i) => i);
     const s = scaleRef.current;
+    if (!t) return { top: 0, bottom: window.innerHeight / s, pad: null };
     const p = pad.current?.hasAttribute("data-open") ? pad.current.getBoundingClientRect() : null;
-    const high = window.innerHeight;
-    const at = laid.map((l, i) => {
-      const x = t.left + l.plate.x * s;
-      const y = t.top + l.plate.y * s;
-      const r = (Math.max(l.plate.width, l.plate.height) * s) / 2;
-      const seen = y - r * 0.5 >= 0 && y + r * 0.5 <= high;
-      // Under the pad, if the middle of it is: it would not be seen.
-      const covered = !!p && x > p.left && y > p.top - r * 0.3 && y < p.bottom + r * 0.3;
-      const off = y < 0 ? -y : Math.max(0, y - high);
-      // Of the places not in the window, those under the pad are as good
-      // as those half the window below it.
-      return { i, x, y, good: seen && !covered, off: covered ? Math.max(off, high / 2) : off };
-    });
-    const good = at.filter((a) => a.good).sort((a, b) => a.y - b.y || a.x - b.x);
-    const rest = at.filter((a) => !a.good).sort((a, b) => a.off - b.off || a.y - b.y);
-    return [...good, ...rest].map((a) => a.i);
+    return {
+      top: Math.max(0, -t.top / s),
+      bottom: (window.innerHeight - t.top) / s,
+      pad: p ? { left: (p.left - t.left) / s, top: (p.top - t.top) / s, bottom: (p.bottom - t.top) / s } : null,
+    };
   }, []);
 
   /** What is written on the order pad, as it is written: the table is
@@ -331,10 +319,10 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
       const key = want ? [...want].sort().join(" ") : "";
       if (key === asked.current) return;
       asked.current = key;
-      setMoves(want ? arrange(laidOut.laid, want, front(laidOut.laid)) : null);
+      setMoves(want ? arrange(laidOut.laid, want, room()) : null);
       setShuffles((n) => n + 1);
     },
-    [front],
+    [room],
   );
 
   /** The table as it is now: rearranged, unless it is being edited. */

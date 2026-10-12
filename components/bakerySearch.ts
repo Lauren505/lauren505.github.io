@@ -66,21 +66,94 @@ export const lookFor = (laid: Laid[], lines: string[]): Set<string> | null | und
 /** How far each setting is moved, by its id, and in what order it goes. */
 export type Moves = Map<string, { by: Vec; order: number; wanted: boolean }>;
 
+/** The part of the table in the window, top to bottom, in its own pixels —
+ *  and the order pad over it, if it is out. */
+export type Room = { top: number; bottom: number; pad: { left: number; top: number; bottom: number } | null };
+
+/** Room left round the table's edges, and under the nav at the window's
+ *  top, in the table's pixels. */
+const EDGE = 40;
+const NAV = 90;
+
+/** The same small turn of the place, for the same dessert, every time, so
+ *  that they are not ruled into rows. */
+const nudge = (id: string) => {
+  let h = 0;
+  for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return { x: ((h % 1000) / 1000 - 0.5) * 0.12, y: (((h >> 10) % 1000) / 1000 - 0.5) * 0.1 };
+};
+
 /**
- * Where the desserts asked for go, and the rest: the ones asked for to the
- * places at the front of the table — `places`, the indices of the settings
- * whose places they are, best first — in the order they were laid, top
- * first; the rest off the table, on whichever side is nearer.
+ * Where the desserts asked for go: spread out evenly over the part of the
+ * table in the window — not under the nav, or the pad — in rows as far
+ * apart as the room allows and no closer than the biggest of them needs;
+ * and if they do not all fit, in more rows like them down the table. In
+ * the order they were laid, top first. The rest go off the table, on
+ * whichever side is nearer.
  */
-export const arrange = (laid: Laid[], wanted: Set<string>, places: number[]): Moves => {
+export const arrange = (laid: Laid[], wanted: Set<string>, room: Room): Moves => {
   const moves: Moves = new Map();
   const asked = laid
-    .map((s, i) => [s, i] as const)
-    .filter(([s]) => wanted.has(s.id))
-    .sort((a, b) => a[0].plate.y - b[0].plate.y || a[0].plate.x - b[0].plate.x);
-  asked.forEach(([s], n) => {
-    const to = laid[places[n]].plate;
-    moves.set(s.id, { by: { x: to.x - s.plate.x, y: to.y - s.plate.y }, order: n, wanted: true });
+    .filter((s) => wanted.has(s.id))
+    .sort((a, b) => a.plate.y - b.plate.y || a.plate.x - b.plate.x);
+
+  const big = Math.max(0, ...asked.map((s) => Math.max(s.plate.width, s.plate.height, s.dessert.width, s.dessert.height)));
+  const least = big + 20;
+  const left = EDGE;
+  const wide = TABLE_WIDTH - 2 * EDGE;
+  const top = room.top + NAV;
+  const high = Math.max(least, room.bottom - EDGE - top);
+  const covered = (x: number, y: number, w: number, h: number) =>
+    !!room.pad && x + w * 0.25 > room.pad.left && y > room.pad.top - h * 0.3 && y < room.pad.bottom + h * 0.3;
+
+  /** The places in a grid `cols` across with rows `tall` apart, `rows` of
+   *  them — or as many as `need` takes — row by row, less those under the
+   *  pad. */
+  const grid = (cols: number, tall: number, rows: number, need: number) => {
+    const w = wide / cols;
+    const out: { x: number; y: number; row: number }[] = [];
+    for (let j = 0; j < rows && out.length < need; j++) {
+      for (let i = 0; i < cols && out.length < need; i++) {
+        const x = left + (i + 0.5) * w;
+        const y = top + (j + 0.5) * tall;
+        if (!covered(x, y, w, tall)) out.push({ x, y, row: j });
+      }
+    }
+    return { out, w };
+  };
+
+  // As few across as will all fit in the window, so they are as far apart
+  // as they can be; if none will, as many across as there is room for, and
+  // the rest further down.
+  let places: { x: number; y: number; row: number }[] = [];
+  let w = wide;
+  let tall = least;
+  for (let cols = 1; wide / cols >= least; cols++) {
+    const rows = Math.max(1, Math.floor(high / Math.max(least * 0.9, (wide / cols) * 0.75)));
+    const g = grid(cols, high / rows, rows, asked.length);
+    if (g.out.length >= asked.length) {
+      [places, w, tall] = [g.out, g.w, high / rows];
+      break;
+    }
+  }
+  if (places.length < asked.length) {
+    const cols = Math.max(1, Math.floor(wide / least));
+    const g = grid(cols, least, Infinity, asked.length);
+    [places, w, tall] = [g.out, g.w, least];
+  }
+  // A last row only partly filled, and clear of the pad, spread across.
+  const lastRow = places.length ? places[places.length - 1].row : 0;
+  const last = places.filter((p) => p.row === lastRow);
+  if (last.length && !last.some((p) => covered(p.x, p.y, w, tall)) && last.length < Math.round(wide / w)) {
+    last.forEach((p, i) => (p.x = left + ((i + 0.5) * wide) / last.length));
+  }
+
+  asked.forEach((s, n) => {
+    const at = places[n];
+    const k = nudge(s.id);
+    const x = at.x + k.x * w;
+    const y = at.y + k.y * tall;
+    moves.set(s.id, { by: { x: x - s.plate.x, y: y - s.plate.y }, order: n, wanted: true });
   });
   laid.forEach((s) => {
     if (wanted.has(s.id)) return;

@@ -53,15 +53,28 @@ const HANDS = decorations.filter((d) => d.kind === "hand");
 
 const shape = (image: StaticImageData) => image.height / image.width;
 
-/** A hand at the side `side` (−1 left, 1 right) of a plate at `at`,
- *  fingers to it, the way the table's own hands are. */
+/** As long as a hand is drawn, and as long as one can be drawn to reach a
+ *  plate from off the table. */
+const HAND = 300;
+const LONGEST = 470;
+/** How many hands at once, going and coming. */
+const MOST = 4;
+
+/**
+ * A hand at the side `side` (−1 left, 1 right) of a plate at `at`, fingers
+ * just over its rim, the way the table's own hands are — long enough that
+ * its arm reaches off the table, so the end of it is never seen. None, for
+ * a plate too far in for one to reach.
+ */
 const handBy = (plate: Piece, at: Vec, side: number, n: number): Piece | null => {
   const drawn = HANDS[n % Math.max(1, HANDS.length)];
   if (!drawn) return null;
-  const length = Math.min(380, Math.max(300, plate.width * 1.4));
+  const tip = at.x + side * (plate.width / 2 - 25);
+  const length = Math.max(HAND, (side > 0 ? TABLE_WIDTH - tip : tip) + 40);
+  if (length > LONGEST) return null;
   return {
     image: drawn.image,
-    x: at.x + side * (plate.width / 2 + 155),
+    x: tip + (side * length) / 2,
     y: at.y,
     width: length / shape(drawn.image),
     height: length,
@@ -104,6 +117,10 @@ export const shuffle = (was: Laid[], now: Laid[], seen: { top: number; bottom: n
   const comers = plans.filter((p) => p.coming).sort((a, b) => a.s.plate.y - b.s.plate.y);
   const firstComing = goers.length ? CLEARING : 0;
   let n = 0;
+  // Only so many hands; the rest slide on their own, as the plates with no
+  // hand do when the table is laid.
+  let pulling = 0;
+  let pushing = 0;
 
   for (const p of plans) {
     const to = p.s.plate;
@@ -122,8 +139,9 @@ export const shuffle = (was: Laid[], now: Laid[], seen: { top: number; bottom: n
       const held = start + REACH + GRIP;
       gone = held + DRAW;
       track.push({ at: 0, v: sub(A, B) }, { at: held, v: sub(A, B) }, { at: gone, v: sub(out, B), ease: SLIDE });
-      const hand = handBy(to, A, side, n++);
+      const hand = pulling < MOST ? handBy(to, A, side, n++) : null;
       if (hand) {
+        pulling++;
         const away = { x: side * offBy(hand.x, side, hand.height * 0.6), y: 0 };
         hands.push({
           key: `${p.s.id}-going`,
@@ -149,8 +167,9 @@ export const shuffle = (was: Laid[], now: Laid[], seen: { top: number; bottom: n
       if (p.going) track.push({ at: start, v: track[track.length - 1].v });
       else track.push({ at: 0, v: sub(from, B) });
       track.push({ at: start, v: sub(from, B) }, { at: start + PUSH, v: { x: 0, y: 0 }, ease: SLIDE });
-      const hand = handBy(to, B, side, n++);
+      const hand = pushing < MOST ? handBy(to, B, side, n++) : null;
       if (hand) {
+        pushing++;
         const away = { x: side * offBy(hand.x, side, hand.height * 0.6), y: 0 };
         hands.push({
           key: `${p.s.id}-coming`,
