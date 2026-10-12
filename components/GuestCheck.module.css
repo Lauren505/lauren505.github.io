@@ -3,7 +3,7 @@
    --extra is how much longer than printed the pad has grown, in units, for
    the rows added to it. */
 .pad {
-  --pad-w: min(720px, calc(100vw - 32px));
+  --pad-w: min(576px, calc(100vw - 32px));
   --u: calc(var(--pad-w) / 809.2);
   /* As much of it as shows put away: the binding, and the stubs of the
      sheets torn off it. */
@@ -23,9 +23,26 @@
   -webkit-user-select: none;
 }
 
-/* Taken out: all of it in the window, its right-hand side at its edge. */
+/* Taken out: all of it in the window but half the margin down the right
+   of its sheet, which is past the window's edge. */
 .pad[data-open] {
-  transform: none;
+  transform: translateX(calc(29 * var(--u)));
+}
+
+/* The shadow it casts on the table: it is held a little above it, over
+   whatever is laid there. Under the pad's binding, sheets and foot — not
+   under the sheet being torn off, which has its own. */
+.pad::before {
+  content: "";
+  position: absolute;
+  left: calc(2 * var(--u));
+  top: calc(4 * var(--u));
+  right: 0;
+  bottom: 0;
+  box-shadow:
+    -2px 6px 10px rgba(60, 40, 20, 0.18),
+    -8px 22px 40px rgba(60, 40, 20, 0.22);
+  pointer-events: none;
 }
 
 /* The sheets, in a box of their own that sets nothing in front of

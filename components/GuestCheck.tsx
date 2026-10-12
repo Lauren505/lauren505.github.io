@@ -430,7 +430,7 @@ export default function GuestCheck({ className }: { className?: string }) {
         <div className={styles.bindingTop} style={{ backgroundImage: `url(${leftTop.src})` }} />
         <div className={styles.bindingMid} style={{ backgroundImage: `url(${leftMid.src})` }} />
         <div className={styles.foot} style={{ backgroundImage: `url(${foot.src})` }} />
-        <span className={`${cover.className} ${styles.cover}`}>CUSTOM ORDER</span>
+        <span className={`${cover.className} ${styles.cover}`}>SEARCH</span>
       </div>
       <button
         type="button"
