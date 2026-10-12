@@ -255,8 +255,25 @@ function Sheet({
  * binding; pressing the binding takes it out, and again puts it away. Until
  * the table is being laid — `arrived` — it is off the window altogether,
  * and it comes in with the plates, pushed in as they are: see TableSetting.
+ *
+ * What is written on it is looked for on the table — see bakerySearch —
+ * and a sheet torn off takes what was asked for with it.
  */
-export default function GuestCheck({ className, arrived = true }: { className?: string; arrived?: boolean }) {
+export default function GuestCheck({
+  ref,
+  className,
+  arrived = true,
+  away: putAway = false,
+  onSearch,
+}: {
+  ref?: React.Ref<HTMLDivElement>;
+  className?: string;
+  arrived?: boolean;
+  /** Off the window for now, whatever is written on it kept. */
+  away?: boolean;
+  /** Told what is written on it, line by line, as it is written. */
+  onSearch?: (lines: string[]) => void;
+}) {
   const [items, setItems] = useState<string[]>([]);
   const [check, setCheck] = useState("");
   const [date, setDate] = useState("");
@@ -288,6 +305,10 @@ export default function GuestCheck({ className, arrived = true }: { className?: 
     setDate(d);
     setCheck((c) => c || d);
   }, []);
+
+  useEffect(() => {
+    onSearch?.(items);
+  }, [items, onSearch]);
 
   const setItem = useCallback((i: number, v: string) => {
     setItems((was) => {
@@ -424,14 +445,15 @@ export default function GuestCheck({ className, arrived = true }: { className?: 
       className={`${styles.pad} ${className ?? ""}`}
       style={{ "--extra": (rows - ROWS) * ROW } as React.CSSProperties}
       data-open={open ? "" : undefined}
-      data-away={away ? "" : undefined}
+      ref={ref}
+      data-away={away || putAway ? "" : undefined}
       data-coming={coming ? "" : undefined}
       role="group"
       aria-label="Custom order"
     >
       {/* Put away, only its binding shows at the window's edge, and none of
           it can be written in. */}
-      <div className={styles.sheets} inert={!open}>
+      <div className={styles.sheets} inert={!open || putAway}>
         {/* The next sheet, blank, under the one written on. */}
         <Sheet check={date} rows={rows} mode="blank" />
         <Sheet items={items} check={check} rows={rows} mode="copy" sheetRef={held} />
@@ -457,6 +479,7 @@ export default function GuestCheck({ className, arrived = true }: { className?: 
         type="button"
         className={styles.binder}
         aria-expanded={open}
+        tabIndex={putAway ? -1 : undefined}
         aria-label={open ? "Put the custom order pad away" : "Take out the custom order pad"}
         onClick={() => setOpen((o) => !o)}
       />

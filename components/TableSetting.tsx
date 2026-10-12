@@ -64,6 +64,7 @@ function Hold({
   scale,
   edit,
   hidden = false,
+  delay,
   children,
 }: {
   part: Part;
@@ -71,13 +72,21 @@ function Hold({
   scale: number;
   edit?: Edit;
   hidden?: boolean;
+  /** How long it waits, as the table is rearranged, before it moves. */
+  delay?: number;
   children: React.ReactNode;
 }) {
   const on = samePart(edit?.selected ?? null, part);
   return (
     <div
       className={styles.piece}
-      style={{ ...place(piece, scale), visibility: hidden ? "hidden" : undefined }}
+      style={
+        {
+          ...place(piece, scale),
+          visibility: hidden ? "hidden" : undefined,
+          "--delay": delay ? `${delay}ms` : undefined,
+        } as React.CSSProperties
+      }
       data-editing={edit ? "" : undefined}
       data-selected={on || undefined}
       onPointerDown={edit ? (e) => edit.grab(part, "move", e) : undefined}
@@ -113,6 +122,10 @@ function Hold({
  * Otherwise, once it is laid, every dessert can be clicked — `pick` is told
  * which — and `hide` takes one setting off the table while its recipe is
  * out: see RecipeView, which has it up close instead.
+ *
+ * While `sorting`, the table is being rearranged — see bakerySearch — and
+ * every piece moves to where it is laid now, after the wait `delays` gives
+ * its setting, by its id.
  */
 export default function TableSetting({
   laid,
@@ -124,6 +137,8 @@ export default function TableSetting({
   onArrived,
   pick,
   hide,
+  sorting = false,
+  delays,
 }: {
   laid: Laid[];
   cutlery: Piece[];
@@ -134,6 +149,8 @@ export default function TableSetting({
   onArrived?: () => void;
   pick?: (i: number) => void;
   hide?: number;
+  sorting?: boolean;
+  delays?: Map<string, number>;
 }) {
   /** Where each setting comes, top of the page first: in the order they are
    *  set down, and in which their pictures are fetched. */
@@ -239,6 +256,7 @@ export default function TableSetting({
     <div
       className={styles.table}
       data-editing={edit ? "" : undefined}
+      data-sorting={sorting && !edit ? "" : undefined}
       style={{ "--slide": `${SLIDE}ms`, "--retreat": `${RETREAT}ms` } as React.CSSProperties}
     >
       {cutlery.map((c, k) => (
@@ -248,6 +266,7 @@ export default function TableSetting({
           piece={c}
           scale={scale}
           edit={edit}
+          delay={delays?.get(laid[nearest(c)]?.id)}
         >
           <div {...set(nearest(c))}>
             <Drawn image={c.image} width={c.width * scale} />
@@ -257,13 +276,27 @@ export default function TableSetting({
 
       {[...rank.keys()].map((i) => [laid[i], i] as const).map(([s, i]) => (
         <div key={`${s.id}-${i}`} className={styles.setting}>
-          <Hold part={{ i, part: "plate" }} piece={s.plate} scale={scale} edit={edit} hidden={hide === i}>
+          <Hold
+            part={{ i, part: "plate" }}
+            piece={s.plate}
+            scale={scale}
+            edit={edit}
+            hidden={hide === i}
+            delay={delays?.get(s.id)}
+          >
             <div {...slide(i, s.plate)}>
               <Drawn image={s.plate.image} width={s.plate.width * scale} />
             </div>
           </Hold>
 
-          <Hold part={{ i, part: "dessert" }} piece={s.dessert} scale={scale} edit={edit} hidden={hide === i}>
+          <Hold
+            part={{ i, part: "dessert" }}
+            piece={s.dessert}
+            scale={scale}
+            edit={edit}
+            hidden={hide === i}
+            delay={delays?.get(s.id)}
+          >
             <div {...slide(i, s.dessert)}>
               <div className={styles.bake}>
                 {picking ? (

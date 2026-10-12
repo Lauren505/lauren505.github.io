@@ -8,6 +8,7 @@ import RecipeView from "@/components/RecipeView";
 import Tablecloth from "@/components/Tablecloth";
 import TableSetting, { type Edit, type Grip, type Part } from "@/components/TableSetting";
 import { laidOut, layTable, placements, type Laid, type Table } from "@/components/bakeryLayout";
+import { arrange, lookFor, moveTable, type Moves } from "@/components/bakerySearch";
 import { TABLE_WIDTH, loadRecipeCards, lostLine, recipes } from "@/content";
 import styles from "./SideQuestsBody.module.css";
 
@@ -284,6 +285,73 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
     [editing, selected, grab],
   );
 
+  /* ------------------------------------------------------------ search */
+
+  /** How the table is rearranged for what is asked for on the order pad —
+   *  see bakerySearch — or, with nothing asked for, nothing. */
+  const [moves, setMoves] = useState<Moves | null>(null);
+  const [sorting, setSorting] = useState(false);
+  const asked = useRef("");
+  const sorted = useRef(0);
+  const pad = useRef<HTMLDivElement>(null);
+
+  /** The places at the front of the table, best first: those in the window
+   *  and not under the order pad, top first, then the rest, nearest the
+   *  window first. */
+  const front = useCallback((laid: Laid[]) => {
+    const t = tableRef.current?.getBoundingClientRect();
+    if (!t) return laid.map((_, i) => i);
+    const s = scaleRef.current;
+    const p = pad.current?.hasAttribute("data-open") ? pad.current.getBoundingClientRect() : null;
+    const high = window.innerHeight;
+    const at = laid.map((l, i) => {
+      const x = t.left + l.plate.x * s;
+      const y = t.top + l.plate.y * s;
+      const r = (Math.max(l.plate.width, l.plate.height) * s) / 2;
+      const seen = y - r * 0.5 >= 0 && y + r * 0.5 <= high;
+      // Under the pad, if the middle of it is: it would not be seen.
+      const covered = !!p && x > p.left && y > p.top - r * 0.3 && y < p.bottom + r * 0.3;
+      const off = y < 0 ? -y : Math.max(0, y - high);
+      // Of the places not in the window, those under the pad are as good
+      // as those half the window below it.
+      return { i, x, y, good: seen && !covered, off: covered ? Math.max(off, high / 2) : off };
+    });
+    const good = at.filter((a) => a.good).sort((a, b) => a.y - b.y || a.x - b.x);
+    const rest = at.filter((a) => !a.good).sort((a, b) => a.off - b.off || a.y - b.y);
+    return [...good, ...rest].map((a) => a.i);
+  }, []);
+
+  /** What is written on the order pad, as it is written: the table is
+   *  rearranged as soon as it names something, and laid as it was once
+   *  nothing is written. */
+  const search = useCallback(
+    (lines: string[]) => {
+      const want = lookFor(laidOut.laid, lines);
+      if (want === undefined) return;
+      const key = want ? [...want].sort().join(" ") : "";
+      if (key === asked.current) return;
+      asked.current = key;
+      setMoves(want ? arrange(laidOut.laid, want, front(laidOut.laid)) : null);
+      setSorting(true);
+      window.clearTimeout(sorted.current);
+      sorted.current = window.setTimeout(() => setSorting(false), 900 + 250 + (want?.size ?? 0) * 90 + 100);
+    },
+    [front],
+  );
+  useEffect(() => () => window.clearTimeout(sorted.current), []);
+
+  /** The table as it is now: rearranged, unless it is being edited. */
+  const arranged = useMemo(
+    () => (editing ? { laid: layout.laid, cutlery: layout.cutlery } : moveTable(layout.laid, layout.cutlery, moves)),
+    [editing, layout, moves],
+  );
+  const delays = useMemo(() => {
+    if (!moves) return undefined;
+    const d = new Map<string, number>();
+    moves.forEach((m, id) => d.set(id, m.wanted ? 250 + m.order * 90 : 0));
+    return d;
+  }, [moves]);
+
   /* ----------------------------------------------------------- recipes */
 
   /** The dessert asked for, and the one whose recipe is out — which, while
@@ -320,7 +388,7 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
     setShown(null);
   }, [editing, plays]);
 
-  const open = shown === null ? undefined : layout.laid[shown];
+  const open = shown === null ? undefined : arranged.laid[shown];
   const recipe = open && recipes[open.id];
 
   /** How big a plate is among those on the table with no recipe: 0 for the
@@ -392,8 +460,10 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
           {showing && down ? (
             <TableSetting
               key={plays}
-              laid={layout.laid}
-              cutlery={layout.cutlery}
+              laid={arranged.laid}
+              cutlery={arranged.cutlery}
+              sorting={sorting}
+              delays={delays}
               scale={scale}
               arrive={!still}
               edit={playing ? undefined : edit}
@@ -430,9 +500,12 @@ export default function BakeryTable({ still, laid: showing }: { still: boolean; 
         />
       ) : null}
 
-      {/* The custom order pad, over the table — for now; where it goes is
-          still to be decided. */}
-      {!still && showing && shown === null ? <GuestCheck arrived={down} /> : null}
+      {/* The custom order pad, at the window's edge: what is written on it
+          rearranges the table. Put away while a recipe is out, or the table
+          is being laid out in the editor, and kept, with what is on it. */}
+      {!still && showing ? (
+        <GuestCheck ref={pad} arrived={down} away={shown !== null || editing} onSearch={search} />
+      ) : null}
 
       {/* Not while a recipe is out: that has its own editor. */}
       {TableEditor && !still && showing && shown === null ? (
