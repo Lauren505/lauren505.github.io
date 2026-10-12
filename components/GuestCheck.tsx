@@ -69,23 +69,27 @@ const rowsFor = (items: string[]) => {
 
 /** A ragged line from top to bottom, in units of the drawing, for the left
  *  edge of a sheet as it tears off — and, a little outside it, the edge of
- *  the fibres the tear pulls out of the paper. */
+ *  the fibres the tear pulls out of the paper, and of the shadow it casts. */
 const tornEdge = (height: number, seed: number) => {
   let s = seed;
   const rnd = () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
   const edge: [number, number][] = [];
   const fibres: [number, number][] = [];
+  const shade: [number, number][] = [];
   let x = TEAR_X;
   for (let y = 0; y < height; y += 1.5 + rnd() * 4) {
     x += (rnd() - 0.5) * 4.5;
     x += (TEAR_X - x) * 0.2;
     const bite = rnd() < 0.12 ? rnd() * 3.5 : 0;
     edge.push([x + bite, y]);
-    fibres.push([x - 0.8 - rnd() * 2.2, y]);
+    const fibre = x - 0.8 - rnd() * 2.2;
+    fibres.push([fibre, y]);
+    shade.push([Math.min(fibre, x + bite) - 1.2 - rnd() * 0.8, y]);
   }
   edge.push([x, height]);
   fibres.push([x - 1.5, height]);
-  return { edge, fibres };
+  shade.push([x - 3, height]);
+  return { edge, fibres, shade };
 };
 
 type Pull = {
@@ -97,16 +101,20 @@ type Pull = {
   edge: ReturnType<typeof tornEdge>;
   /** Torn all the way down, and free. */
   free: boolean;
-  /** How far it was pulled when it came free. */
+  /** How far it was pulled when it came free, and how far it leant. */
   at: { x: number; y: number };
+  lean: number;
 };
 
-/** One sheet of the pad: printed, and written on or not. */
+/** One sheet of the pad: printed, and written on or not. The one on top
+ *  is `live`, written in; under it is the next, `blank`; and while the top
+ *  one is being torn off, the part of it not yet torn is its `copy`, which
+ *  stays where it is, bound. */
 function Sheet({
   items = [],
   check,
   rows,
-  live,
+  mode,
   setItem,
   setCheck,
   sheetRef,
@@ -115,13 +123,14 @@ function Sheet({
   items?: string[];
   check: string;
   rows: number;
-  live: boolean;
+  mode: "live" | "blank" | "copy";
   setItem?: (i: number, v: string) => void;
   setCheck?: (v: string) => void;
   sheetRef?: React.Ref<HTMLDivElement>;
   onPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void;
 }) {
   const fields = useRef<(HTMLInputElement | null)[]>([]);
+  const live = mode === "live";
   const extra = (rows - ROWS) * ROW;
 
   const key = (i: number) => (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -142,11 +151,12 @@ function Sheet({
   return (
     <div
       ref={sheetRef}
-      className={styles.sheet}
+      className={`${styles.sheet} ${mode === "copy" ? styles.copy : ""}`}
       style={{ "--extra": extra } as React.CSSProperties}
       onPointerDown={onPointerDown}
       aria-hidden={live ? undefined : true}
     >
+      <div className={styles.shade} />
       <div className={styles.fibres} />
       <div className={styles.face} style={{ backgroundImage: `url(${paper.src})` }}>
       <img className={styles.printHead} src={printHead.src} alt="" draggable={false} />
@@ -196,24 +206,35 @@ function Sheet({
         />
       ))}
       {/* The sheet under it is blank: nothing written, nothing to write in. */}
-      {live
-        ? Array.from({ length: rows }, (_, i) => (
-            <input
-              key={`item-${i}`}
-              ref={(el) => {
-                fields.current[i] = el;
-              }}
-              className={`${hand.className} ${styles.item}`}
-              style={{ "--y": ROWS_TOP + i * ROW - SHEET_Y } as React.CSSProperties}
-              value={items[i] ?? ""}
-              onChange={(e) => setItem?.(i, e.target.value)}
-              onKeyDown={key(i)}
-              spellCheck={false}
-              autoComplete="off"
-              aria-label={`Order, line ${i + 1}`}
-            />
-          ))
-        : null}
+      {mode === "blank"
+        ? null
+        : Array.from({ length: rows }, (_, i) =>
+            live ? (
+              <input
+                key={`item-${i}`}
+                ref={(el) => {
+                  fields.current[i] = el;
+                }}
+                className={`${hand.className} ${styles.item}`}
+                style={{ "--y": ROWS_TOP + i * ROW - SHEET_Y } as React.CSSProperties}
+                value={items[i] ?? ""}
+                onChange={(e) => setItem?.(i, e.target.value)}
+                onKeyDown={key(i)}
+                spellCheck={false}
+                autoComplete="off"
+                aria-label={`Order, line ${i + 1}`}
+              />
+            ) : (
+              <input
+                key={`item-${i}`}
+                className={`${hand.className} ${styles.item}`}
+                style={{ "--y": ROWS_TOP + i * ROW - SHEET_Y } as React.CSSProperties}
+                value={items[i] ?? ""}
+                readOnly
+                tabIndex={-1}
+              />
+            ),
+          )}
       <img className={styles.printFoot} src={printFoot.src} alt="" draggable={false} />
       </div>
     </div>
@@ -225,6 +246,9 @@ function Sheet({
  * typed into, and there is always another empty one under the last — the
  * check grows longer to fit them. Pulled away from its binding, the top
  * sheet tears off along its left edge and goes, leaving the next one, blank.
+ *
+ * It is kept at the right-hand edge of the window, put away but for its
+ * binding; pressing the binding takes it out, and again puts it away.
  */
 export default function GuestCheck({ className }: { className?: string }) {
   const [items, setItems] = useState<string[]>([]);
@@ -233,7 +257,9 @@ export default function GuestCheck({ className }: { className?: string }) {
   /** Sheets torn off so far: the live sheet's key, so it comes back new. */
   const [torn, setTorn] = useState(0);
   const [going, setGoing] = useState(false);
+  const [open, setOpen] = useState(false);
   const sheet = useRef<HTMLDivElement>(null);
+  const held = useRef<HTMLDivElement>(null);
   const pull = useRef<Pull | null>(null);
   const rows = rowsFor(items);
 
@@ -256,42 +282,57 @@ export default function GuestCheck({ className }: { className?: string }) {
   /** Draws the sheet as far as it has been pulled. */
   const draw = (p: Pull, dx: number, dy: number) => {
     const el = sheet.current;
-    if (!el) return;
+    const stays = held.current;
+    if (!el || !stays) return;
+    const at = (x: number, y: number) => `${x * p.scale}px ${y * p.scale}px`;
     const h = el.offsetHeight / p.scale;
     // Torn from the top down, as far as it has been pulled; still bound
     // below that.
     const t = p.free ? 1 : Math.min(1, Math.hypot(dx, dy) / TEAR);
     const down = t * h;
-    // Round the sheet: across its top and down its right, along its foot,
-    // up its bound edge to where the tear has got, and up the tear.
-    const round = (line: [number, number][]) =>
-      `polygon(100% 0, 100% 100%, 0 100%, 0 ${down * p.scale}px, ${line
-        .filter(([, y]) => y <= down)
+    const torn = (line: [number, number][]) => {
+      const pts = line.filter(([, y]) => y < down);
+      return [...pts, [pts.length ? pts[pts.length - 1][0] : TEAR_X, down] as [number, number]];
+    };
+    // What has torn: across the top from the tear, down the right side to
+    // where the tear has got, back across, and up the tear.
+    const off = (line: [number, number][]) =>
+      `polygon(100% 0, 100% ${down * p.scale}px, ${torn(line)
         .reverse()
-        .map(([x, y]) => `${x * p.scale}px ${y * p.scale}px`)
+        .map(([x, y]) => at(x, y))
         .join(", ")})`;
-    const [fibres, face] = el.children as unknown as HTMLElement[];
-    face.style.clipPath = round(p.edge.edge);
-    fibres.style.clipPath = round(p.edge.fibres);
+    const [shade, fibres, face] = el.children as unknown as HTMLElement[];
+    face.style.clipPath = off(p.edge.edge);
+    fibres.style.clipPath = off(p.edge.fibres);
+    shade.style.clipPath = off(p.edge.shade);
+    if (p.free) el.dataset.free = "";
+    // What has not: the rest of it, which stays bound, as it was.
+    stays.style.visibility = p.free ? "hidden" : "visible";
+    stays.style.clipPath = `polygon(0 0, ${torn(p.edge.edge)
+      .map(([x, y]) => at(x, y))
+      .join(", ")}, 100% ${down * p.scale}px, 100% 100%, 0 100%)`;
     if (p.free) {
       // Off the pad: it goes where it is pulled, a little turned.
       const fx = dx - p.at.x;
       const fy = dy - p.at.y;
-      el.style.transform = `translate(${fx + p.at.x * 0.2}px, ${fy + p.at.y * 0.2}px) rotate(${4 + fx * 0.01}deg)`;
+      el.style.transformOrigin = "0 100%";
+      el.style.transform = `translate(${fx}px, ${fy}px) rotate(${fx * 0.01}deg) skewX(${-p.lean}deg)`;
     } else {
-      // Still held at the foot of its binding: it turns about it, and comes
-      // only a little way with the hand.
-      el.style.transform = `translate(${dx * 0.2}px, ${dy * 0.2}px) rotate(${t * 4}deg)`;
+      // Still joined where the tear has got to: what has torn leans away
+      // from there, the way it is pulled, and nothing below it moves.
+      p.lean = Math.max(-5, Math.min(5, dx * 0.03)) * t;
+      el.style.transformOrigin = `0 ${down * p.scale}px`;
+      el.style.transform = `skewX(${-p.lean}deg)`;
     }
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (going || e.button !== 0 || (e.target as Element).closest("input")) return;
+    if (!open || going || e.button !== 0 || (e.target as Element).closest("input")) return;
     const el = sheet.current;
     if (!el) return;
     const scale = el.offsetWidth / SHEET_W;
     const edge = tornEdge(el.offsetHeight / scale, 1 + Math.floor(Math.random() * 1e6));
-    pull.current = { id: e.pointerId, x: e.clientX, y: e.clientY, scale, edge, free: false, at: { x: 0, y: 0 } };
+    pull.current = { id: e.pointerId, x: e.clientX, y: e.clientY, scale, edge, free: false, at: { x: 0, y: 0 }, lean: 0 };
     el.setPointerCapture(e.pointerId);
     el.dataset.pulled = "";
     el.style.transition = "none";
@@ -334,12 +375,16 @@ export default function GuestCheck({ className }: { className?: string }) {
       } else {
         // Let go before it tore through: it lies back down, whole.
         el.style.transition = "transform 0.3s cubic-bezier(0.3, 1.4, 0.5, 1)";
-        el.style.transform = "";
+        el.style.transform = "skewX(0deg)";
         const done = () => {
           if (pull.current) return;
           for (const c of el.children as unknown as HTMLElement[]) c.style.clipPath = "";
           el.style.transition = "";
+          el.style.transform = "";
+          el.style.transformOrigin = "";
+          if (held.current) held.current.style.visibility = "hidden";
           delete el.dataset.pulled;
+          delete el.dataset.free;
         };
         el.addEventListener("transitionend", done, { once: true });
         window.setTimeout(done, 350);
@@ -359,28 +404,41 @@ export default function GuestCheck({ className }: { className?: string }) {
     <div
       className={`${styles.pad} ${className ?? ""}`}
       style={{ "--extra": (rows - ROWS) * ROW } as React.CSSProperties}
+      data-open={open ? "" : undefined}
       role="group"
       aria-label="Custom order"
     >
-      {/* The next sheet, blank, under the one written on. */}
-      <Sheet check={date} rows={rows} live={false} />
-      <Sheet
-        key={torn}
-        items={items}
-        check={check}
-        rows={rows}
-        live
-        setItem={setItem}
-        setCheck={setCheck}
-        sheetRef={sheet}
-        onPointerDown={onPointerDown}
-      />
+      {/* Put away, only its binding shows at the window's edge, and none of
+          it can be written in. */}
+      <div className={styles.sheets} inert={!open}>
+        {/* The next sheet, blank, under the one written on. */}
+        <Sheet check={date} rows={rows} mode="blank" />
+        <Sheet items={items} check={check} rows={rows} mode="copy" sheetRef={held} />
+        <Sheet
+          key={torn}
+          items={items}
+          check={check}
+          rows={rows}
+          mode="live"
+          setItem={setItem}
+          setCheck={setCheck}
+          sheetRef={sheet}
+          onPointerDown={onPointerDown}
+        />
+      </div>
       <div className={styles.binding} aria-hidden>
         <div className={styles.bindingTop} style={{ backgroundImage: `url(${leftTop.src})` }} />
         <div className={styles.bindingMid} style={{ backgroundImage: `url(${leftMid.src})` }} />
         <div className={styles.foot} style={{ backgroundImage: `url(${foot.src})` }} />
         <span className={`${cover.className} ${styles.cover}`}>CUSTOM ORDER</span>
       </div>
+      <button
+        type="button"
+        className={styles.binder}
+        aria-expanded={open}
+        aria-label={open ? "Put the custom order pad away" : "Take out the custom order pad"}
+        onClick={() => setOpen((o) => !o)}
+      />
     </div>
   );
 }

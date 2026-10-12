@@ -5,16 +5,53 @@
 .pad {
   --pad-w: min(720px, calc(100vw - 32px));
   --u: calc(var(--pad-w) / 809.2);
-  position: absolute;
-  top: 2rem;
-  left: 50%;
+  /* As much of it as shows put away: the binding, and the stubs of the
+     sheets torn off it. */
+  --spine: calc(90 * var(--u));
+  position: fixed;
+  right: 0;
+  /* About a third of the way down the window. */
+  top: max(5.5rem, calc(33dvh - 243.8 * var(--u)));
   z-index: 20;
   width: var(--pad-w);
   height: calc((487.65 + var(--extra)) * var(--u));
-  margin-left: calc(var(--pad-w) / -2);
-  transition: height 0.25s ease;
+  transform: translateX(calc(100% - var(--spine)));
+  transition:
+    transform 0.55s cubic-bezier(0.3, 0.7, 0.2, 1),
+    height 0.25s ease;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* Taken out: all of it in the window, its right-hand side at its edge. */
+.pad[data-open] {
+  transform: none;
+}
+
+/* The sheets, in a box of their own that sets nothing in front of
+   anything: the one being torn off comes up over the binding. */
+.sheets {
+  position: absolute;
+  inset: 0;
+}
+
+/* What is pressed to take the pad out, or put it away. */
+.binder {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  width: var(--spine);
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.binder:focus-visible {
+  outline: 2px solid #4e6684;
+  outline-offset: 2px;
 }
 
 /* A sheet. It is what moves as it is pulled off, and what casts its
@@ -31,11 +68,23 @@
   transition: height 0.25s ease;
 }
 
-/* Being pulled off: over the binding it was held under. */
+/* Being pulled off: over the binding it was held under — and once torn
+   free, lifted off the pad, with a shadow under it. Until then it is still
+   joined to the rest of itself, and only its torn edge casts one. */
 .sheet[data-pulled] {
   z-index: 3;
   cursor: grabbing;
+}
+
+.sheet[data-free] {
   filter: drop-shadow(0 calc(1.5 * var(--u)) calc(3 * var(--u)) rgba(60, 45, 25, 0.28));
+}
+
+/* The part of the sheet not yet torn, which stays where it is: there only
+   while the sheet is being torn. */
+.copy {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* Its face: the paper — its cream, its wash and its grain, which repeat
@@ -57,7 +106,16 @@
   background: #fffcf0;
 }
 
-.sheet[data-pulled] .fibres {
+/* And just past them, the shadow the torn edge casts on what is under it. */
+.shade {
+  position: absolute;
+  inset: 0;
+  display: none;
+  background: rgba(70, 50, 25, 0.16);
+}
+
+.sheet[data-pulled] .fibres,
+.sheet[data-pulled] .shade {
   display: block;
 }
 
