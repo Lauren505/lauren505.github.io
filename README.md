@@ -1,634 +1,641 @@
-# lauren505.github.io
+# al-folio
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+[maintainers]: https://img.shields.io/badge/maintainers-3-success.svg 'Number of maintainers'
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
 
-Personal site — Next.js (App Router), deployed on Vercel.
+[![deploy](https://github.com/alshedivat/al-folio/actions/workflows/deploy.yml/badge.svg)](https://github.com/alshedivat/al-folio/actions/workflows/deploy.yml)
+[![demo](https://img.shields.io/badge/theme-demo-brightgreen.svg)](https://alshedivat.github.io/al-folio/)
+[![GitHub contributors](https://img.shields.io/github/contributors/alshedivat/al-folio.svg)](https://github.com/alshedivat/al-folio/graphs/contributors/)
+[![Maintainers][maintainers]](#maintainers)
+[![GitHub release](https://img.shields.io/github/v/release/alshedivat/al-folio)](https://github.com/alshedivat/al-folio/releases/latest)
+[![GitHub license](https://img.shields.io/github/license/alshedivat/al-folio?color=blue)](https://github.com/alshedivat/al-folio/blob/master/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/alshedivat/al-folio)](https://github.com/alshedivat/al-folio)
+[![GitHub forks](https://img.shields.io/github/forks/alshedivat/al-folio)](https://github.com/alshedivat/al-folio/fork)
 
-## Develop
+[![Docker Image Version](https://img.shields.io/docker/v/amirpourmand/al-folio?sort=semver&label=docker%20image&color=blueviolet)](https://hub.docker.com/r/amirpourmand/al-folio)
+[![Docker Image Size](https://img.shields.io/docker/image-size/amirpourmand/al-folio?sort=date&label=docker%20image%20size&color=blueviolet)](https://hub.docker.com/r/amirpourmand/al-folio)
+[![Docker Pulls](https://img.shields.io/docker/pulls/amirpourmand/al-folio?color=blueviolet)](https://hub.docker.com/r/amirpourmand/al-folio)
+
+A simple, clean, and responsive [Jekyll](https://jekyllrb.com/) theme for academics.
+If you like the theme, give it a star!
+
+[![Preview](https://raw.githubusercontent.com/alshedivat/al-folio/master/assets/img/al-folio-preview.png)](https://alshedivat.github.io/al-folio/)
+
+## User community
+
+The vibrant community of **al-folio** users is growing!
+Academics around the world use this theme for their homepages, blogs, lab pages, as well as webpages for courses, workshops, conferences, meetups, and more.
+Check out the community webpages below.
+Feel free to add your own page(s) by sending a PR.
+
+<table>
+<tr>
+<td>Academics</td>
+<td>
+<a href="https://maruan.alshedivat.com" target="_blank">★</a>
+<a href="https://www.cs.columbia.edu/~chen1ru/" target="_blank">★</a>
+<a href="https://maithraraghu.com" target="_blank">★</a>
+<a href="https://platanios.org" target="_blank">★</a>
+<a href="https://otiliastr.github.io" target="_blank">★</a>
+<a href="https://www.maths.dur.ac.uk/~sxwc62/" target="_blank">★</a>
+<a href="https://jessachandler.com/" target="_blank">★</a>
+<a href="https://mayankm96.github.io/" target="_blank">★</a>
+<a href="https://markdean.info/" target="_blank">★</a>
+<a href="https://kakodkar.github.io/" target="_blank">★</a>
+<a href="https://sahirbhatnagar.com/" target="_blank">★</a>
+<a href="https://spd.gr/" target="_blank">★</a>
+<a href="https://jay-sarkar.github.io/" target="_blank">★</a>
+<a href="https://aborowska.github.io/" target="_blank">★</a>
+<a href="https://aditisgh.github.io/" target="_blank">★</a>
+<a href="https://alexhaydock.co.uk/" target="_blank">★</a>
+<a href="https://alixkeener.net/" target="_blank">★</a>
+<a href="https://andreea7b.github.io/" target="_blank">★</a>
+<a href="https://rishabhjoshi.github.io/" target="_blank">★</a>
+<a href="https://sheelabhadra.github.io/" target="_blank">★</a>
+<a href="https://giograno.me/" target="_blank">★</a>
+<a href="https://immsrini.github.io/" target="_blank">★</a>
+<a href="https://apooladian.github.io/" target="_blank">★</a>
+<a href="https://chinmoy-dutta.github.io/" target="_blank">★</a>
+<a href="https://liamcli.com/" target="_blank">★</a>
+<a href="https://yoonholee.com/" target="_blank">★</a>
+<a href="https://zrqiao.github.io/" target="_blank">★</a>
+<a href="https://abstractgeek.github.io/" target="_blank">★</a>
+<a href="https://www.compphys.de/" target="_blank">★</a>
+<a href="https://julianstreyczek.github.io" target="_blank">★</a>
+<a href="https://sdaza.com" target="_blank">★</a>
+<a href="https://niweera.gq" target="_blank">★</a>
+<a href="https://www.alihkw.com" target="_blank">★</a>
+<a href="https://amirpourmand.ir" target="_blank">★</a>
+<a href="https://scottleechua.github.io" target="_blank">★</a>
+<a href="https://sk1y101.github.io" target="_blank">★</a>
+<a href="https://yyang768osu.github.io" target="_blank">★</a>
+<a href="https://veedata.github.io" target="_blank">★</a>
+<a href="https://K-Wu.github.io" target="_blank">★</a>
+<a href="https://amalawilson.com" target="_blank">★</a>
+<a href="https://tirtharajdash.github.io" target="_blank">★</a>
+<a href="https://carolinacarreira.github.io" target="_blank">★</a>
+<a href="https://manandey.github.io" target="_blank">★</a>
+<a href="https://johanneshoerner.github.io" target="_blank">★</a>
+<a href="https://ioannismavromatis.com" target="_blank">★</a>
+<a href="https://taidnguyen.github.io" target="_blank">★</a>
+<a href="https://lbugnon.github.io" target="_blank">★</a>
+<a href="https://joahannes.github.io" target="_blank">★</a>
+<a href="https://dominikstrb.github.io" target="_blank">★</a>
+<a href="https://tylerbarna.com" target="_blank">★</a>
+<a href="https://daviddmc.github.io/" target="_blank">★</a>
+<a href="https://andreaskuster.ch/" target="_blank">★</a>
+<a href="https://ellisbrown.github.io/" target="_blank">★</a>
+<a href="https://noman-bashir.github.io/" target="_blank">★</a>
+<a href="https://djherron.github.io/" target="_blank">★</a>
+<a href="https://rodosingh.github.io/" target="_blank">★</a>
+<a href="https://vdivakar.github.io/" target="_blank">★</a>
+<a href="https://george-gca.github.io/" target="_blank">★</a>
+<a href="https://bashirkazimi.github.io/" target="_blank">★</a>
+<a href="https://dohaison.github.io/" target="_blank">★</a>
+<a href="https://raphaaal.github.io/" target="_blank">★</a>
+</td>
+</tr>
+<tr>
+<td>Labs</td>
+<td>
+<a href="https://www.haylab.caltech.edu/" target="_blank">★</a>
+<a href="https://sjkimlab.github.io/" target="_blank">★</a>
+<a href="https://systemconsultantgroup.github.io/scg-folio/" target="_blank">★</a>
+<a href="https://decisionlab.ucsf.edu/" target="_blank">★</a>
+<a href="https://programming-group.com/" target="_blank">★</a>
+<a href="https://sailing-lab.github.io/" target="_blank">★</a>
+<a href="https://inbt.jhu.edu/epidiagnostics/" target="_blank">★</a>
+</td>
+</tr>
+<tr>
+<td>Courses</td>
+<td>
+CMU PGM (<a href="https://sailinglab.github.io/pgm-spring-2019/" target="_blank">S-19</a>) <br>
+CMU DeepRL (<a href="https://cmudeeprl.github.io/703website_f19/" target="_blank">F-19</a>, <a href="https://cmudeeprl.github.io/Spring202010403website/" target="_blank">S-20</a>, <a href="https://cmudeeprl.github.io/703website/" target="_blank">F-20</a>, <a href="https://cmudeeprl.github.io/403_website/" target="_blank">S-21</a>, <a href="https://cmudeeprl.github.io/703website_f21/" target="_blank">F-21</a>, <a href="https://cmudeeprl.github.io/403website_s22/" target="_blank">S-22</a>) <br>
+CMU MMML (<a href="https://cmu-multicomp-lab.github.io/mmml-course/fall2020/" target="_blank">F-20</a>, <a href="https://cmu-multicomp-lab.github.io/mmml-course/fall2022/" target="_blank">F-22</a>) <br>
+CMU AMMML (<a href="https://cmu-multicomp-lab.github.io/adv-mmml-course/spring2022/" target="_blank">S-22</a>, <a href="https://cmu-multicomp-lab.github.io/adv-mmml-course/spring2023/" target="_blank">S-23</a>) <br>
+CMU ASI (<a href="https://cmu-multicomp-lab.github.io/asi-course/spring2023/" target="_blank">S-23</a>) <br>
+CMU Distributed Systems (<a href="https://andrew.cmu.edu/course/15-440/" target="_blank">S-21</a>)
+</td>
+</tr>
+<tr>
+<td>Conferences & workshops</td>
+<td>
+ICLR Blog Post Track (<a href="https://iclr-blogposts.github.io/2023/" target="_blank">2023</a>) <br>
+ML Retrospectives (NeurIPS: <a href="https://ml-retrospectives.github.io/neurips2019/" target="_blank">2019</a>, <a href="https://ml-retrospectives.github.io/neurips2020/" target="_blank">2020</a>; ICML: <a href="https://ml-retrospectives.github.io/icml2020/" target="_blank">2020</a>) <br>
+HAMLETS (NeurIPS: <a href="https://hamlets-workshop.github.io/" target="_blank">2020</a>) <br>
+ICBINB (NeurIPS: <a href="https://i-cant-believe-its-not-better.github.io/" target="_blank">2020</a>, <a href="https://i-cant-believe-its-not-better.github.io/neurips2021/" target="_blank">2021</a>) <br>
+Neural Compression (ICLR: <a href="https://neuralcompression.github.io/" target="_blank">2021</a>) <br>
+Score Based Methods (NeurIPS: <a href="https://score-based-methods-workshop.github.io/" target="_blank">2022</a>)<br>
+Images2Symbols (CogSci: <a href="https://images2symbols.github.io/" target="_blank"> 2022</a>)
+</td>
+</tr>
+</table>
+
+## Lighthouse PageSpeed Insights
+
+[![Google PageSpeed](https://raw.githubusercontent.com/alshedivat/al-folio/master/assets/img/pagespeed.svg)](https://pagespeed.web.dev/report?url=https%3A%2F%2Falshedivat.github.io%2Fal-folio%2F&form_factor=desktop)
+
+## Table Of Contents
+
+  * [User community](#user-community)
+  * [Lighthouse PageSpeed Insights](#lighthouse-pagespeed-insights)
+  * [Getting started](#getting-started)
+    + [Installation](#installation)
+      - [Local setup using Docker (Recommended on Windows)](#local-setup-using-docker-recommended-on-windows)
+      - [Local Setup (Standard)](#local-setup-standard)
+      - [Deployment](#deployment)
+      - [Upgrading from a previous version](#upgrading-from-a-previous-version)
+    + [FAQ](#faq)
+  * [Features](#features)
+    + [Publications](#publications)
+    + [Collections](#collections)
+    + [Layouts](#layouts)
+      - [The iconic style of Distill](#the-iconic-style-of-distill)
+      - [Full support for math & code](#full-support-for-math--code)
+      - [Photos](#photos)
+    + [Other features](#other-features)
+      - [GitHub repositories and user stats](#github-repositories-and-user-stats)
+      - [Theming](#theming)
+      - [Social media previews](#social-media-previews)
+      - [Atom (RSS-like) Feed](#atom-rss-like-feed)
+      - [Related posts](#related-posts)
+  * [Contributing](#contributing)
+    + [Core Contributors](#core-contributors)
+  * [License](#license)
+
+## Getting started
+
+Want to learn more about Jekyll? Check out [this tutorial](https://www.taniarascia.com/make-a-static-website-with-jekyll/).
+Why Jekyll? Read [Andrej Karpathy's blog post](https://karpathy.github.io/2014/07/01/switching-to-jekyll/)!
+
+### Installation
+
+For a hands-on walkthrough of al-folio installation, check out [this cool video tutorial](https://www.youtube.com/watch?v=g6AJ9qPPoyc) by one of the community members! 🎬 🍿
+
+The preferred way of using this template is by clicking in [Use this template](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template#creating-a-repository-from-a-template) above the file list.
+Then, create a new repository at `github.com:<your-username>/<your-repo-name>`. If you plan to upload your site to `<your-github-username>.github.io`,
+note that the name of your repository must be `<your-github-username>.github.io` or `<your-github-orgname>.github.io`, as stated in the [GitHub pages docs](https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages#types-of-github-pages-sites).
+For more information on how to deploy your site, check the [Deployment](#deployment) section below. After you created your new repository, just download it to your machine:
 
 ```bash
-npm install
-npm run dev     # http://localhost:3000
-npm run build   # production build
+$ git clone git@github.com:<your-username>/<your-repo-name>.git
+$ cd <your-repo-name>
 ```
 
-## Layout
+---
 
-```
-content/             # ALL site content — edit here, not in the components
-  profile.ts         #   name, tagline, socials, bio paragraphs
-  news.ts            #   news list
-  publications.ts    #   papers, venues, links
-  posts.ts           #   side quests (empty for now)
-  gallery.ts         #   the wall: where each frame hangs, what is in it
-  media/             #   portrait, paper previews, gallery stand-ins
-  index.ts           #   re-exports, so components `import { … } from "@/content"`
-app/                 # routes, layout, global styles
-  icon.png           #   favicon, by Next's file convention
-components/          # presentation only
-  PageFold.tsx       #   the home -> publications fold (see below)
-  cube.ts            #   what the fold and the two other turns share
-  PublicationsMorph.tsx #  the block that rearranges as it folds
-  PortalScene.tsx    #   the gallery, in three.js (see below)
-public/models/gallery/ # .glb files for the gallery — see the README in there
-Archive/             # previous Jekyll site, kept for reference only
+#### Local setup using Docker (Recommended on Windows)
+
+You need to take the following steps to get `al-folio` up and running in your local machine:
+
+- First, install [docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/).
+- Finally, run the following command that will pull a pre-built image from DockerHub and will run your website.
+
+```bash
+$ docker-compose up
 ```
 
-Images live in `content/media/` and are imported as modules (`import portrait
-from "./media/prof_pic.jpg"`), so they get hashed, cached filenames and their
-dimensions come along for free. The one thing `public/` is for is the gallery's
-`.glb` models, which are fetched by URL at run time rather than imported.
+Note that when you run it for the first time, it will download a docker image of size 300MB or so.
 
-Pictures on the pages go through Next's image optimizer (`<Image>`, or
-`getImageProps` where the markup has to stay a plain `<img>` — see
-`components/thumb.ts`), so a reader is sent a copy sized for the screen, not
-the file in `content/media/`. Still, keep photos to about 2400px on the long
-edge, as JPEG unless they need transparency: every size of every picture is
-made from the original the first time it is asked for. The exceptions are sent
-as they are — an animated WebP, SVG drawings, and whatever three.js loads in
-the gallery — so those are the ones to keep small by hand.
+Now, feel free to customize the theme however you like (don't forget to change the name!). After you are done, you can use the same command (`docker-compose up`) to render the webpage with all you changes. Also, make sure to commit your final changes.
 
-Bio paragraphs and post bodies use `[label](https://url)` for links, rendered by
-`components/RichText.tsx`.
+> To change port number, you can edit `docker-compose.yml` file.
 
-## The frame
+<details><summary>(click to expand) <strong>Build your own docker image:</strong></summary>
 
-Every page sits inside one frame, and the whole of it is four tokens in
-`app/globals.css`:
+> Note: this approach is only necessary if you would like to build an older or very custom version of al-folio.
 
-```
---edge       window -> content, left and right, and the top of the nav
---nav-h      one line of the nav, pinned so the band above the page is a number
---nav-gap    nav -> the first line of the page
---frame      the three of them: window -> content, top, and the same at the foot
+Build and run a new docker image using:
+
+```bash
+$ docker-compose -f docker-local.yml up
 ```
 
-So the left and right margins are equal at every window width — one column of
-`--page-max`, centred, never closer to the edge than `--edge` — and the top and
-bottom are equal to each other, because the band below the page is built from
-the same parts as the band above it. Nothing in the layout measures from the
-window any other way; a page ends by carrying `padding-bottom: var(--frame)`.
+> If you want to update jekyll, install new ruby packages, etc., all you have to do is build the image again using `--force-recreate` argument at the end of previous command! It will download ruby and jekyll and install all ruby packages again from scratch.
 
-`--edge` is a `clamp`, so the gutter closes as the window narrows instead of
-stepping at a breakpoint.
+</details>
 
-`--nav-gap` is the knob for how much room the page keeps at its top and foot,
-since it is the only part of `--frame` that is not doing another job as well.
-On the home page it is not free: that page is drawn to fit the window, so
-widening the band has to be paid for out of the space between its sections —
-see `.sectionTitle` and the rest of the vertical rhythm in `app/page.module.css`,
-which are tighter than they would be on a page that scrolls. Widen one, tighten
-the other, then re-measure the fit below.
+---
 
-**The home page fits the window it is in.** Every width, height and gap in the
-layout is in `rem`, so the root font size is the scale of the whole drawing —
-set it and the page is drawn at that size, in proportion. The page is 70.7
-rem-units tall, so in a window on its side the root size is 1/70.7 of the
-window's height:
+#### Local Setup (Standard)
 
-```css
-@media (orientation: landscape) {
-  :root { font-size: clamp(10.86px, 1.414vh, 19px); }
-}
+Assuming you have [Ruby](https://www.ruby-lang.org/en/downloads/) and [Bundler](https://bundler.io/) installed on your system (*hint: for ease of managing ruby gems, consider using [rbenv](https://github.com/rbenv/rbenv)*).
+
+```bash
+$ bundle install
+$ bundle exec jekyll serve --lsi
 ```
 
-That is the whole of it. The page comes out exactly as tall as the window, so
-both margins are on screen at once with nothing below the fold, and the four of
-them stay in proportion as the window is dragged about.
+Now, feel free to customize the theme however you like (don't forget to change the name!).
+After you are done, **commit** your final changes.
 
-The two ends of the `clamp` are where it gives up. Below **10.86px** the page
-would be too small to read, so windows under about 768px tall scroll instead —
-raise the floor to trade that for larger type. Above **19px** it stops growing,
-so a window over about 1345px tall keeps its extra room at the foot. In
-between, the fit is exact to within a few pixels.
+---
 
-Upright windows are read by scrolling, so they stay at full size.
+#### Deployment
 
-The height it is calibrated against is the height of the blocks on the page, so
-it holds while Selected Publications is one row of cards. A fourth selected
-paper wraps to a second row and adds about 24rem, which no root size can take
-back — `selectedPublications` in `content/publications.ts` is the knob.
+Deploying your website to [GitHub Pages](https://pages.github.com/) is the most popular option.
+Starting version [v0.3.5](https://github.com/alshedivat/al-folio/releases/tag/v0.3.5), **al-folio** will automatically re-deploy your webpage each time you push new changes to your repository! :sparkles:
 
-It also follows `--page-max`. The cards are three across the column, so a wider
-column makes their pictures taller faster than it makes the text beside them
-shorter: the page was 67.6 rem tall at a column of 68.75rem and is 70.7 at
-78rem. Widen the column and both this number and the nav's shape gate below
-have to be measured again. The same is true of `--nav-gap`: it is paid for
-twice, once at the top and once at the foot.
+**For personal and organization webpages:**
 
-**The nav ends where the body text ends.** It runs down the same column as the
-page, so its right edge is the text's right edge — and the last tab is taken
-out of flow (`.hang` in `Nav.module.css`) and hung past it, in the margin. That
-puts the end of *Publications* level with the end of the body text, with Side
-quests outside the column. Below about 1320px there is no margin to hang in, so
-the last tab comes back into the line and the nav ends at the text instead.
+1. The name of your repository **MUST BE** `<your-github-username>.github.io` or `<your-github-orgname>.github.io`.
+2. In `_config.yml`, set `url` to `https://<your-github-username>.github.io` and leave `baseurl` empty.
+3. Set up automatic deployment of your webpage (see instructions below).
+4. Make changes, commit, and push!
+5. After deployment, the webpage will become available at `<your-github-username>.github.io`.
 
-It also puts the sideways turn's crease — the line between those two tabs —
-just clear of the column, which is the one place a vertical crease can fall
-without cutting through what is being read.
+**For project pages:**
 
-**Every tab is as wide as its word**, so the gap between two labels is
-`--nav-gap-x` and nothing else — the same gap between every pair, on every
-page. The tab that is the page is genuinely wider, being set uppercase, bold
-and tracked, and it takes that room rather than having it reserved on all of
-them: reserving the widest state everywhere would leave each of the other
-words sitting in a slot too big for it, and the slack, which grows with the
-length of the label, would show up as a wider gap beside the longer ones. What
-*is* reserved is the hover. The label is printed twice underneath, hidden, at
-the two weights it is drawn in while it is not the page (`.link::before` and
-`.link::after`), so the tab is as wide as the widest of the three and hovering
-one moves nothing but itself.
+1. In `_config.yml`, set `url` to `https://<your-github-username>.github.io` and `baseurl` to `/<your-repository-name>/`.
+2. Set up automatic deployment of your webpage (see instructions below).
+3. Make changes, commit, and push!
+4. After deployment, the webpage will become available at `<your-github-username>.github.io/<your-repository-name>/`.
 
-**On side quests the row stands in the left margin instead**, with Side quests
-— the tab that is now the page — level with the start of the body text and the
-other two hanging off the far side of it: the mirror of where it sits
-everywhere else. It is one rule (`.atSide` in `Nav.module.css`), and the
-distance is `-100%` of the row's own width, which is the column's, plus one
-gap, so it lands exactly whatever the window's size. Only where there is a
-margin to stand in, which — the column being in `rem` like the type in it — is
-a question about the window's shape rather than its width: about five twelfths
-wider than it is tall (`17 / 12`). Anywhere narrower or more upright the row
-stays put.
+**To enable automatic deployment:**
 
-**And the row grows while it is there.** Side quests has sections of its own —
-Projects, Gallery, Bakery, Life lately — and they stand after its tab, over the
-column the row has just crossed into, which is the only place with room for
-them. They are `SUBS` and `.subs` in `Nav.tsx` / `Nav.module.css`, rendered only
-while side quests is the page, and they are anchors to `#projects` and the rest:
-places on one page rather than routes, so the tab that is lit is read from the
-hash. Nothing has those ids yet — `content/posts.ts` is still empty — so they
-are a frame waiting for its content.
+1. Click on **Actions** tab and **Enable GitHub Actions**; do not worry about creating any workflows as everything has already been set for you.
+2. Go to Settings -> Actions -> General -> Workflow permissions, and give **Read and write permissions** to GitHub Actions
+3. Make any other changes to your webpage, commit, and push. This will automatically trigger the **Deploy** action.
+4. Wait for a few minutes and let the action complete. You can see the progress in the **Actions** tab. If completed successfully, in addition to the `master` branch, your repository should now have a newly built `gh-pages` branch.
+5. Finally, in the **Settings** of your repository, in the Pages section, set the branch to `gh-pages` (**NOT** to `master`). For more details, see [Configuring a publishing source for your GitHub Pages site](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site#choosing-a-publishing-source).
 
-The turn carries them. The row arrives from the right of the window, where four
-more tabs would reach off the edge of it, so they unfurl over the last third of
-the journey instead of riding along from the first frame: `--turn-subs` on the
-stage (`SUBS_AT` in `PageTurn.tsx`) becomes `--nav-subs` on `.chrome`, which is
-the opacity and a small slide, and is unset on a page at rest. Where the row has
-*not* crossed — a narrow or upright window — there is nothing to the right of
-Side quests but window, so the group dissolves into the row (`display: contents`)
-and the sections take a line of their own underneath.
 
-## Layout
+<details><summary>(click to expand) <strong>Manual deployment to GitHub Pages:</strong></summary>
 
-On the home page the photo, the links + address row and the News block sit in
-one side column, and that column is **one publication card wide**: the cards
-below are three across the page with `--cards-gap` between them, and the column
-is drawn on the same width, so the same arithmetic gives the same number and
-the photo lines up with the card under it. The links sit together under the
-middle of the photo rather than being ruled across it: four of a kind with one
-real measure between them, so the gap does not change with the length of the
-address or the width of the column, and the air left over goes to the ends.
-The address cannot be broken, so on a window too narrow to hold the row in a
-line it takes one of its own. `--side-w` is the width the photo keeps when the
-layout stacks and there are no cards to measure against.
+If you need to manually re-deploy your website to GitHub pages, go to Actions, click "Deploy" in the left sidebar, then "Run workflow."
 
-Whenever the window is upright — a phone, or a desktop window dragged taller
-than it is wide — both halves dissolve (`display: contents`) and their parts
-are ordered into a single run: name, photo, about, news, and then Selected
-Publications, which is a block of its own below. Two columns need width; a
-window turned on its end has height instead. Each block carries its own spacing
-rather than sharing one grid gap, since they do not all want the same.
+</details>
 
-On the publications page the year column is a run of years rather than a list
-of them. Entries that share a year are strung on one line, and only one of them
-says the year out loud — the row you are reading, or the first of the run when
-you are reading somewhere else; the rest are circles on the line. The year is
-painted on the page colour, so it covers the line rather than the line being
-cut to fit around it, which is what lets the year and the circle trade places
-by fading with no geometry to animate. The line does stop short of the circles,
-by `--mark-gap` — the same measure the year takes as its padding, so the air
-around a circle and the air around a year are one distance. Every row still
-carries its year in the markup, so it is still spoken; it is only the ink that
-is shared.
+<details><summary>(click to expand) <strong>Deployment to another hosting server (non GitHub Pages):</strong></summary>
 
-## The home -> publications fold
+If you decide to not use GitHub Pages and host your page elsewhere, simply run:
 
-At the bottom of the home page, the page folds along the line between News and
-Selected Publications — halfway between the last line of news and the heading
-below it, which the two `data-fold-seam-*` marks in `HomeBody` and
-`PublicationsMorph` point at. About + News is the face above the edge; it foreshortens
-away and the edge rides up to the top of the screen. Below the edge, the
-Selected Publications block rearranges into the publications page's layout: the
-heading drops the word "Selected", and each card's image, title, venue and tag
-buttons fly from their place in the grid to their place in the list. Then it
-hands over to `/publications`.
-
-**What the scroll drives is a line, not the rotation.** At the foot of the home
-page there is a thin chevron under the words *See all publications*
-(`components/ChargeLine.tsx`), and scrolling down fills it from one end to the
-other. Nothing else moves until it is full; when it is, the fold plays through
-on its own. The line is the gesture's meter, so "scroll until the line is full"
-is the whole instruction, and the point of no return — which used to be a
-threshold you could only feel — is now something you can see coming.
-
-Two colours and nothing else: the mark stands in the lighter orange, and the
-darker one travels along it. The fill is `stroke-dashoffset` on a path declared
-one unit long, so the same number means the same fraction of the line at any
-size. `--pull` carries it, on its own spring (`FILL_TAU`) rather than the
-turn's, since the two never run at once. The line is on the page at all times
-rather than waiting for the foot of it, and it stands in the page's own bottom
-band — `--frame` less the handle's height — so it sits under the last row of
-cards rather than adrift on the window's edge. On an upright window, which is
-the only kind the home page is longer than, it stands on a wash of the page's
-own colour so the text dissolves under it rather than meeting a card.
-
-Pulling up at the top of the publications page turns it back, the mirror of
-pulling down at the foot of the home page — `components/PageLift.tsx`, with the
-same line and the same length of scroll. That one is shown only once the page
-is back at its top: until then there is nothing to pull against, and a line
-there would be promising a gesture that does nothing. The rotation itself
-cannot run there, since it is laid out against the home page, so the pull hands
-over once the line is full and the home route plays the rotation on arrival.
-
-The nav turns the cube too: Publications rolls down, Home rolls back up.
-Rolling down happens in place, since the fold is already mounted. Rolling up
-cannot — only the home route lays the turn out — so the nav navigates first and
-leaves a note in `components/foldSignal.ts`; the fold reads it on mount and
-plays the turn backwards before the first frame is drawn, landing at the top of
-the home page. Under `prefers-reduced-motion` both are ordinary links.
-
-Three components:
-
-- `components/PageFold.tsx` — the gesture, the geometry and the frozen stage.
-- `components/ChargeLine.tsx` — the line both ends of the fold are charged by.
-- `components/PublicationsMorph.tsx` — the block below the edge, which holds
-  both layouts at once so the flight has real geometry at both ends.
-- `components/foldSignal.ts` — the one-way channel between the nav and the
-  fold, which live on opposite sides of the route boundary.
-- `components/PageLift.tsx` — the pull-up gesture at the top of the
-  publications page, which hands over through the same channel.
-
-**Both ends are real pages.** The face below the edge ends up exactly where
-`/publications` starts: it borrows that page's own classes, lists every paper
-rather than the selected few, and is dropped clear of the nav by `--fold-land`.
-So the hand-off moves nothing, which is what lets the turn also run backwards —
-the first frame of a roll-up has to be the page you were just reading.
-
-**The fold.** While the turn runs, a fixed copy of the viewport sits over the
-live page, which never moves. The face above the edge is hinged along the top
-of the viewport and foreshortens away; the face below hangs from the edge and
-fills the screen by 90 degrees. The edge itself sits at `height * cos(theta)`,
-and everything the fold measures hangs off that number.
-
-**The camera.** A flat projection turns out to read as a squash rather than a
-turn — parallel lines say nothing about depth. Each face is drawn through a
-`perspective()` of its own, with the vanishing point at its own hinge, so the
-upper face converges on the top of the screen and the lower one on the foot.
-Type that has swung away is smaller than type near the edge, which is what
-makes the crease read as a corner pointing at the reader.
-
-That would normally move the crease, since a perspective divide scales the
-whole face. `--fold-top-z` pushes the upper face back by exactly the depth its
-near edge gained, putting that edge on the camera plane: it keeps its size, the
-crease stays at `height * cos(theta)`, and only what is behind it draws
-smaller. The lower face leans away from the same edge by `--fold-tilt`, which
-peaks side-on and is nothing at either end of the turn, where it has a real
-page to match.
-
-`--fold-veil-*` then fades each face's far end into the page colour, under the
-shading, the way distance washes things out.
-
-Both the shading and the haze are laid over the window, not over the faces. A
-turned face no longer reaches the sides of the screen, and tinting the face
-alone would draw its silhouette — a slanted edge where the tint stops. Painted
-full width, against a background the same colour as the faces, only the type
-gives the turn away.
-
-**Cost.** Every animated value is a custom property feeding a transform or an
-opacity, so a turn costs a style recalculation and compositing, and no layout
-at all. That is worth keeping: the earlier version moved the lower face with
-`top` and resized two window-sized gradients, which laid out and repainted most
-of the page on every frame. The FLIP below measures in one pass and writes in
-another for the same reason — interleaving them makes each write invalidate the
-layout the next read needs.
-
-The springs that follow a pull are given a time constant in milliseconds, not a
-fraction per frame, so they feel the same whatever the refresh rate.
-
-**The morph** is a FLIP. `PublicationsMorph` renders the cards in flow and the
-rows laid out but collapsed to zero height, so both have measurable geometry at
-rest. When the fold starts, `PageFold` pairs every `[data-flip]` element with
-its `[data-flip-to]` slot, banks the corner-to-corner delta and the size ratio
-as custom properties, and CSS interpolates them against `--fold-q`. Because the
-rows use the same column as the real publications page, everything lands exactly
-where that page puts it.
-
-Two things about the flight are worth knowing:
-
-- **Text scales by type size, not by box.** A card title and a row title hold
-  the same words but wrap at different widths, so scaling one into the other's
-  box would stretch the letters. `data-flip-mode="text"` switches to a single
-  uniform scale taken from the font sizes — times whatever an ancestor is
-  already scaling the slot by, since the rows shrink their inactive entries.
-- **Images land; text dissolves.** An image's slot stays hidden for good and
-  the flying copy is what you see arrive. Text can't do that: the two versions
-  break their lines in different places, so holding both over the same spot
-  reads as doubled text. The flying copy fades out partway across and the real
-  row text comes up afterwards, with no overlap between them. The flying text
-  also travels *under* the images, the only reading that makes sense while they
-  cross paths.
-
-The row-only parts — the year, the authors, the figure's brackets — have
-nothing flying to them, so they simply arrive, through a `--row-fade` variable
-that multiplies into whatever opacity they already carry rather than
-overriding it.
-
-It is built with CSS transforms rather than three.js on purpose: the faces hold
-real DOM, so the text stays selectable, crisp at any zoom, and readable by a
-screen reader — nothing has to be captured to a texture.
-
-Tuning lives in the constants at the top of `PageFold.tsx`: `DEADZONE` is the
-travel absorbed before the line starts to fill, `RESIST` how hard the pull
-fights back, and `COMMIT` the charge at which the line reads as full and the
-turn takes over — together they come to about 670px of scroll, and `PageLift`
-is tuned to the same, so both directions ask for the same gesture. That is more
-than one flick of a wheel gives, so `RELEASE_MS` is long enough to bridge the
-gap between two of them; pause for longer than that and the charge drains. Shading starts at zero so the
-page looks untouched until the rotation begins, then the lower face lifts out
-of shadow as it comes round. Reduced-motion users get a plain link instead.
-
-## The sideways turn
-
-Side quests is the same cube laid on its side. Its crease is the vertical line
-between the Publications and Side quests tabs, so the tab you press is already
-on the face coming round: clicking it turns the page away to the left, and
-clicking Home or Publications from there turns it back. It runs between side
-quests and either of the other two pages — `components/PageTurn.tsx`, which
-wraps the document in `app/layout.tsx` and talks to the nav through
-`components/turnSignal.ts`.
-
-The geometry is the fold's, rotated a quarter turn: the near face is hinged
-along a vertical line and foreshortens away, the far face hangs from the crease
-and leans away from it, each is drawn through a `perspective()` whose vanishing
-point is its own hinge, and the shading and haze are laid over the window
-rather than over the faces. The same numbers do the same jobs, with `--turn-`
-in place of `--fold-`.
-
-**The crease keeps its place in the nav.** It is the middle of the gap between
-the two tabs — measured from the labels themselves rather than the boxes they
-are laid out in, so it is the line those two words are written either side of —
-and those two tabs are on their way to the left margin, so it goes with them:
-the hinge is not the edge of the window but that same gap read in the layout
-the turn is landing in, and the near face is what lies between the two. Both
-are read in `measure()` by one function, and the row's travel is then taken as
-the distance between them rather than measured separately. That is what glues
-the two together: `hinge + width * cos(theta)` and `landed + travel *
-cos(theta)` are the same number by construction, so the crease sits exactly
-between Publications and Side quests in every frame of the turn instead of
-running out from under them towards the window's edge.
-
-It ends where the new page's own column begins, and over the last fifth of the
-turn (`EDGE_OUT`) the crease goes out: the line, and the shading and haze that
-gather into it from the near side. Everything the stage draws over the near
-half has to be gone by the last frame, because the stage is taken down the
-moment the turn is over and whatever is still painted then would go with it in
-one step. (The far face's two need no help — they are already `cos` and
-`sin * cos`, which are nothing at a right angle.) There is only the page's own
-margin to the left of the hinge, so nothing being read swings the wrong way
-round it.
-
-Where the row does not travel — a window too narrow or too upright for it to
-stand in the left margin — the gap it lands in is the gap it started in, so the
-hinge falls back to the edge of the window and the crease sweeps the whole of
-it as it always did. That test is measured too, not a breakpoint: the crease
-stops short only when its destination is in the far half of the window from
-where it starts.
-
-What is different is where the faces come from. **The near face is the live
-page itself**, rotated where it stands: a route is only laid out where it is
-mounted, and there is nothing to copy it from. **The far face is always side
-quests**, which is empty and so can be drawn from anywhere — and that is what
-makes both directions one animation:
-
-```
-to side quests    turn 0 -> 1, then change route behind the covered screen
-from side quests  change route behind the covered screen, then turn 1 -> 0
+```bash
+$ bundle exec jekyll build --lsi
 ```
 
-At a full turn the near face is edge-on and the far one fills the window, so
-the route can change with nothing to see either way.
+which will (re-)generate the static webpage in the `_site/` folder.
+Then simply copy the contents of the `_site/` directory to your hosting server.
 
-Two things the fold did not have to answer:
+**Note:** Make sure to correctly set the `url` and `baseurl` fields in `_config.yml` before building the webpage. If you are deploying your webpage to `your-domain.com/your-project/`, you must set `url: your-domain.com` and `baseurl: /your-project/`. If you are deploying directly to `your-domain.com`, leave `baseurl` blank.
 
-- **The page is not cut at the crease.** It runs the full width of the window,
-  and on a narrow one the crease falls inside the column, so clipping there
-  would take a strip of what is being read away the instant the tab was
-  pressed. The far face is opaque
-  and covers everything past the crease anyway; it comes up over the first
-  frames of the turn (`RAMP`) rather than at the first one, so at rest the
-  window is the page, untouched.
-- **The nav is chrome, not page.** The crease runs between two of its tabs, so
-  it belongs to neither face. It rides above the shading and clear of the
-  crease, and hands over from the live one at the start — the two stand in the
-  same place, so all that changes is which tab is lit.
+</details>
 
-  It travels, though. Side quests keeps the row in the left margin and every
-  other page keeps it against the right of the column, so the turn carries it
-  between the two: `--turn-nav-x` falls by `cos(theta)`, the same law the
-  crease moves by, which is what makes the row read as part of the cube rather
-  than as something laid over it. The distance is measured rather than
-  computed — the stage's copy is already drawn where side quests draws it and
-  the live one is drawn where the page being left draws it, so the distance
-  between the two creases is the whole of the journey, whichever way round the
-  turn is going and whether the window is wide enough for the row to move at
-  all. At either end it is exactly where the page it lands on puts it.
+<details><summary>(click to expand) <strong>Deployment to a separate repository (advanced users only):</strong></summary>
 
-There is no gesture for it: sideways is not a direction the window scrolls, and
-the two vertical gestures stand down while it runs. Under
-`prefers-reduced-motion` the tabs are ordinary links.
+**Note:** Do not try using this method unless you know what you are doing (make sure you are familiar with [publishing sources](https://help.github.com/en/github/working-with-github-pages/about-github-pages#publishing-sources-for-github-pages-sites)). This approach allows to have the website's source code in one repository and the deployment version in a different repository.
 
-## The gallery
+Let's assume that your website's publishing source is a `publishing-source` subdirectory of a git-versioned repository cloned under `$HOME/repo/`.
+For a user site this could well be something like `$HOME/<user>.github.io`.
 
-Side quests is a page of sections, and which one is open is the hash and nothing
-else — the same thing the nav reads to light a sub-tab. Only **Gallery** has
-anything in it so far, so `/side-quests` and the other three tabs are the blank
-page this route was before the gallery went in.
+Firstly, from the deployment repo dir, checkout the git branch hosting your publishing source.
 
-The gallery is a wall of three kinds of frame, and which kind a frame is is
-which of `model` and `video` it is given in `content/gallery.ts`: a **picture**
-hangs flat, a **film** hangs flat and plays, and a **model** is a window into a
-room of its own — drei's `MeshPortalMaterial`
-renders every room into its own texture and masks it to the shape of the frame.
-Each room is captioned "double-click to step in" at its bottom left corner (a
-small label inside the corner on a phone, where the gaps between frames are a
-few pixels). A picture or a film is double-clicked to **zoom** in on it: the camera flies
-to the one card, fitted to the window, with the wall's stops still on and the
-films still playing — a zoomed film's controls work as they do on the wall,
-and a single press on a film waits a quarter of a second to be sure it is not
-the start of a double-click, so zooming never pauses it. Double-click a room and
-its mask dissolves while the camera flies in; double-click again — anywhere — and it takes you back out, as do
-Escape and the ← back link. It is the pmndrs
-[Enter portals](https://codesandbox.io/p/sandbox/9m4tpc) demo laid flat: no tilt
-on the frames, the swing stopped at fifteen degrees in each direction so the
-backs of them can never be reached, and the corners square.
+Then from the website sources dir (commonly your al-folio fork's clone):
 
-That stop is on the wall, not on the room: once you are through a frame there is
-no back of it to get to, so the camera goes all the way round whatever is in
-there. Coming out, the stops go back on *after* the flight home rather than before it,
-because camera-controls clamps the instant a limit narrows and tightening them
-while the camera is still round the back of a room snaps it instead of flying
-it.
+```bash
+$ bundle exec jekyll build --lsi --destination $HOME/repo/publishing-source
+```
 
-Stepping in also **freezes the wall**: every frame's mesh stops answering the
-raycaster. The wall is behind you by then and, being right in front of the
-camera, most of the screen — left pickable, every press meant for the room you
-are standing in lands on a picture instead. Which is also why the way back out
-is heard on the element rather than in the scene: by then there is nothing in
-the scene left to press.
+This will instruct jekyll to deploy the website under `$HOME/repo/publishing-source`.
 
-Where the frames hang is `content/gallery.ts`, in wall units — an arbitrary
-measure, since the whole wall is fitted to the window, so the numbers are only
-ever read against each other. They are deliberately ragged — no two frames the
-same size and few edges in line — but evenly spaced: every frame is `GUTTER`
-(0.3) from each of its neighbours.
+**Note:** Jekyll will clean `$HOME/repo/publishing-source` before building!
 
-**Turning and zooming** needs no clicking. With a mouse, the view follows the
-pointer — its place across the canvas is the angle the wall is seen from, out to
-the stops at the edges (forty degrees round and twenty-five up in a room) — and
-the wheel zooms. With a trackpad, a two-finger slide turns the view and a pinch
-zooms; both arrive as wheel events (a pinch with `ctrlKey`), so `fromTrackpad`
-in `PortalScene` tells a slide from a mouse wheel by the shape of the events,
-and once it has seen a trackpad the pointer stops turning the view until a mouse
-wheel is seen again. To slide the view across the wall, hold Shift and slide
-two fingers, or hold the mouse wheel down and drag; the wall follows, and stops
-once the point at the middle of the view reaches the wall's edge, so some of it
-is always in sight (`slide` in `PortalScene`). On a touch screen a finger drags
-to turn and two pinch to zoom, as before.
+The quote below is taken directly from the [jekyll configuration docs](https://jekyllrb.com/docs/configuration/options/):
 
-**The room.** A floor meets the wall at the bottom, laid just below the bottom
-of the window as it is at rest (`FLOOR_DROP`), so it is out of sight head on and
-comes into view as soon as the wall is turned from above or stepped back from.
-The corner is drawn as the inside of one of the sideways page turn's cube edges,
-in the cube's own colours (`PageTurn.module.css`): the floor, seen at a slant,
-takes the cube's warm brown by how edge-on it is, deepest at the crease; the
-wall darkens a little into the crease, only as far as it is turned; the crease
-is a hairline; and what swings furthest away goes back into the page rather
-than dark. The wall is still the page behind the canvas — all that is drawn
-over it is that tint, which head on is none (`Space` in `PortalScene`).
+> Destination folders are cleaned on site builds
+>
+> The contents of `<destination>` are automatically cleaned, by default, when the site is built. Files or folders that are not created by your site will be removed. Some files could be retained by specifying them within the `<keep_files>` configuration directive.
+>
+> Do not use an important location for `<destination>`; instead, use it as a staging area and copy files from there to your web server.
 
-**Frames.** An artwork can hang in a frame from `public/models/gallery/frames/`
-(`frame` in `content/gallery.ts`, or the editor's panel). The frame is fitted to
-the artwork's footprint and the artwork hangs in its opening, so the wall's gaps
-never change; `npm run frames` measures new frames into `content/frames.ts` —
-see the README in that folder. Each frame loads on its own, after the artwork:
-the wall does not wait for its frames.
+If `$HOME/repo/publishing-source` contains files that you want jekyll to leave untouched, specify them under `keep_files` in `_config.yml`.
+In its default configuration, al-folio will copy the top-level `README.md` to the publishing source. If you want to change this behavior, add `README.md` under `exclude` in `_config.yml`.
 
-**Light and labels.** The wall's light is one spot from above, like a gallery's
-track lights, throwing crisp shadows down the wall from anything standing off
-it; the artworks themselves are not lit, so their colours are what they are.
-Every artwork has a wall label (`components/WallLabel.tsx`): a slip of card on
-whichever side `label` says, with the title, `medium` and `about` on it. At the
-wall's size it is a little piece of paper; double-clicking the artwork zooms in
-on it and its label together, which is where it is read. Labels count as part of
-a frame's footprint, for the wall's fit and for the editor's even gaps.
+**Note:** Do _not_ run `jekyll clean` on your publishing source repo as this will result in the entire directory getting deleted, irrespective of the content of `keep_files` in `_config.yml`.
 
-**The wall is drawn twice.** `components/PortalWall.tsx` draws it flat, in HTML,
-and `components/PortalScene.tsx` fades the canvas up over it once the pictures
-are in. They land on the same pixels: every frame is on the z = 0 plane, so the
-perspective camera scales them all by one number, and markup fitting the same
-rectangle into the same box puts them in the same place. The flat one is what
-the sideways turn would carry round on its far face (a second WebGL context for
-three quarters of a second, blank for most of it, is worse than no turn at all —
-hence `SideQuestsBody`'s `still`), and what a reader without WebGL keeps.
+</details>
 
-**The canvas is the window; the wall is the column.** The scene is drawn on a
-`position: fixed` canvas over the whole viewport, but the camera is fitted *and
-aimed* at the rectangle the section occupies: blown up by as much as the window
-is bigger than that rectangle, and slid off the axis by the distance between the
-two centres — which are the same point on a wide window and nowhere near it on
-an upright one, where the section is cut down to the wall's own height. So at
-rest the wall lands exactly where the flat copy of it does, and the margins are
-window the wall simply does not reach. That is what
-they are for: a wall zoomed in on runs off into them instead of being clipped at
-them, and a room you have stepped into spreads out over the whole window rather
-than sitting in a frame of page. The nav is given `z-index: 2` so it stays over
-the canvas and stays pressable.
+---
 
-A room stands behind its frame and everything in it is drawn that much larger to
-pay for the distance, so head-on the two cancel out and what is in the frame
-sits square in it — what is left is the parallax, which only shows once the wall
-is turned. That is the whole reason the rooms are back there and not in the
-frame.
+#### Upgrading from a previous version
 
-A model has depth, and the window is a plane that **cuts** —
-anything of it in front of the glass is sliced off, and a sliced mesh is a hollow
-one — so a model stands its own height further back again, which is room enough
-for everything but the room's own walls, and those are what the cut is for. The
-height it is drawn at is the one that pays the distance back exactly, so it
-fills the frame by as much as it would have at the glass.
+If you installed **al-folio** as described above, you can configure a [GitHub action](https://github.com/AndreasAugustin/actions-template-sync) to automatically sync your repository with the latest version of the theme:
 
-Every room is lit by three's `RoomEnvironment`, prefiltered once **per
-renderer** — not once per page. It is a render target, whose pixels live on one
-WebGL context only, and the canvas is made anew whenever the gallery is (coming
-back to the tab, or React's development double-mount): cached from the last
-canvas, it is an empty texture on the next, and the rooms come out at half
-brightness with their metal black. Pictures and stills likewise have their
-colour space set in a *layout* effect, before the first frame — a texture first
-drawn while it still calls itself linear keeps linear storage for good, and
-reads as the picture under a white haze.
+```yaml
+name: Sync from template
+on:
+    # cronjob trigger
+  schedule:
+  - cron:  "0 0 1 * *"
+  # manual trigger
+  workflow_dispatch:
+jobs:
+  repo-sync:
+    runs-on: ubuntu-latest
+    steps:
+      # To use this repository's private action, you must check out the repository
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: actions-template-sync
+        uses: AndreasAugustin/actions-template-sync@v0.7.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          source_repo_path: alshedivat/al-folio
+          upstream_branch: master
+```
 
-Each room is also **scissored to its frame**. drei's `MeshPortalMaterial`
-renders a room into a target the size of the whole canvas, at full pixel
-density, every frame, and samples only the patch behind the frame — but a
-room's sky and walls cover the whole target, so three rooms were three
-full-window passes of lit shading a frame, enough to halve the frame rate on a
-retina screen and make every film on the wall stutter. `clip` in
-`PortalScene.tsx` projects the frame's corners each frame and cuts the room's
-render down to that rectangle; while a room is opening or open, it comes off.
+You will receive a pull request within your repository if there are some changes available in the template.
 
-And **glass is drawn as plain see-through**. A glTF material with
-`KHR_materials_transmission` makes three re-draw everything behind it into a
-full-size, mipmapped picture of its own every frame, so that the glass can bend
-it; the gate's gems and vines were glass, and that one pass was most of what
-the wall cost. `Model` sets transmission to nothing and leaves the material
-blended — at the size they are drawn, it looks the same.
+Another option is to manually update your code by following the steps below:
 
-The **films** play muted on a loop from the moment they can, showing their still
-until the first frame is decoded. The film gets a material of its own when it
-takes over from the still, rather than the still's material being handed a new
-map: three keeps a video's frames as they come and decodes them from sRGB in
-the shader, but only in a shader that was built for a video — given the still's,
-every frame is drawn encoded twice, under a white haze. And every film is a
-720p `-web` copy: each new frame of a film is copied into a texture, and at
-1080p four of them were enough to make them stutter while the rooms stayed
-smooth. Under the pointer each shows a pause control
-in the middle (a press anywhere on the card works it) and, if it is marked
-`sound: true`, a sound toggle in the corner. The wall has one soundtrack at a
-time: turning one film's on turns whichever was on off. Both controls are drawn
-in the scene rather than laid over the canvas in HTML, so they swing with the
-wall like everything else on it.
+```bash
+# Assuming the current directory is <your-repo-name>
+$ git remote add upstream https://github.com/alshedivat/al-folio.git
+$ git fetch upstream
+$ git rebase v0.9.0
+```
 
-**Editing the wall.** Under `next dev` there is an **Edit gallery** button in
-the bottom right of the gallery, the bakery's table editor for a wall
-(`components/GalleryEditor.tsx`). Drag a frame to move it and its corner to size
-it — shift keeps its shape — and it snaps to an even gap (`GUTTER`, 0.3) from
-the neighbour beside, above or below it, with a guide where it does; ⌘ places
-it freely. Nothing snaps edges into line: the wall is ragged on purpose, and
-only its spacing is even. In framing mode (the panel's button, F, or ⌥ held)
-a drag moves what is inside instead: a picture or a film is panned across its
-crop (`focus`) and scrolled to zoom (`zoom`); a model is walked round
-(`modelView`), shift-dragged to move the point it is centred on
-(`modelFocus`), and scrolled to zoom (`modelSpan`). The panel swaps which
-artwork hangs in which frame, hangs new ones from the two gallery folders,
-takes frames down, and has the numbers — and the label of each, with its
-text. Save writes `content/gallery.ts`
-through `app/api/gallery` — the picture imports and the `entries` list,
-keeping the comment above each field — and neither the button nor the route
-exists in any other build. While it is open the camera is held at rest and the
-wall's fit is held still mid-drag, so the frame under the pointer stays under
-it. A model's still is not re-rendered when its framing changes.
+If you have extensively customized a previous version, it might be trickier to upgrade.
+You can still follow the steps above, but `git rebase` may result in merge conflicts that must be resolved.
+See [git rebase manual](https://help.github.com/en/github/using-git/about-git-rebase) and how to [resolve conflicts](https://help.github.com/en/github/using-git/resolving-merge-conflicts-after-a-git-rebase) for more information.
+If rebasing is too complicated, we recommend re-installing the new version of the theme from scratch and port over your content and changes from the previous version manually.
 
-`three`, `@react-three/fiber` and `@react-three/drei` are about half a megabyte
-between them and nothing else on the site wants them, so `PortalScene` is a
-`next/dynamic` import with `ssr: false` and is fetched when this section is.
+---
 
-Models and films go in `public/models/gallery/` — **see the README in that
-folder** for how a model is staged, where to stand to look at it, what gets
-clipped, and why a Blender animation can export perfectly and still move
-nothing.
+### FAQ
 
-`Archive/` is not part of the build — it's the old al-folio Jekyll site, kept
-around to copy content out of.
+Here are some frequently asked questions.
+If you have a different question, please ask using [Discussions](https://github.com/alshedivat/al-folio/discussions/categories/q-a).
 
-## Deploy
+1. **Q:** After I create a new repository from this template and setup the repo, I get a deployment error.
+   Isn't the website supposed to correctly deploy automatically? <br>
+   **A:** Yes, if you are using release `v0.3.5` or later, the website will automatically and correctly re-deploy right after your first commit.
+   Please make some changes (e.g., change your website info in `_config.yml`), commit, and push.
+   Make sure to follow [deployment instructions](https://github.com/alshedivat/al-folio#deployment) in the previous section.
+   (Relevant issue: [209](https://github.com/alshedivat/al-folio/issues/209#issuecomment-798849211).)
 
-Import the repo at [vercel.com/new](https://vercel.com/new). Framework preset
-Next.js, everything else default. Pushes to `master` deploy automatically.
+2. **Q:** I am using a custom domain (e.g., `foo.com`).
+   My custom domain becomes blank in the repository settings after each deployment.
+   How do I fix that? <br>
+   **A:** You need to add `CNAME` file to the `master` or `source` branch of your repository.
+   The file should contain your custom domain name.
+   (Relevant issue: [130](https://github.com/alshedivat/al-folio/issues/130).)
+
+3. **Q:** My webpage works locally.
+    But after deploying, it is not displayed correctly (CSS and JS is not loaded properly).
+    How do I fix that? <br>
+   **A:** Make sure to correctly specify the `url` and `baseurl` paths in `_config.yml`.
+   Set `url` to `https://<your-github-username>.github.io` or to `https://<your.custom.domain>` if you are using a custom domain.
+   If you are deploying a personal or organization website, leave `baseurl` blank.
+   If you are deploying a project page, set `baseurl: /<your-project-name>/`.
+
+4. **Q:** Atom feed doesn't work. Why?
+   <br>
+   **A:** Make sure to correctly specify the `url` and `baseurl` paths in `_config.yml`.
+  RSS Feed plugin works with these correctly set up fields: `title`, `url`, `description` and `author`.
+  Make sure to fill them in an appropriate way and try again.
+
+5. **Q:** My site doesn't work when I enable `related_blog_posts`. Why? <br>
+   **A:** This is probably due to the [classifier reborn](https://github.com/jekyll/classifier-reborn) plugin, which is used to calculate
+   related posts. If the error states `Liquid Exception: Zero vectors can not be normalized...`, it means that it could not calculate related
+   posts for a specific post. This is usually caused by [empty or minimal blog posts](https://github.com/jekyll/classifier-reborn/issues/64)
+   without meaningful words (i.e. only [stop words](https://en.wikipedia.org/wiki/Stop_words)) or even
+   [specific characters](https://github.com/jekyll/classifier-reborn/issues/194) you used in your posts. Also, the calculus for similar posts are
+   made for every `post`, which means every page that uses `layout: post`, including the announcements. To change this behavior, simply add
+   `related_posts: false` to the front matter of the page you don't want to display related posts on.
+
+## Features
+
+### Publications
+
+Your publications' page is generated automatically from your BibTex bibliography.
+Simply edit `_bibliography/papers.bib`.
+You can also add new `*.bib` files and customize the look of your publications however you like by editing `_pages/publications.md`.
+
+<p align="center"><img src="https://raw.githubusercontent.com/alshedivat/al-folio/master/assets/img/publications-screenshot.png" width=800></p>
+
+<details><summary>(click to expand) <strong>Author annotation:</strong></summary>
+
+In publications, the author entry for yourself is identified by string array `scholar:last_name` and string array `scholar:first_name` in `_config.yml`:
+
+```yaml
+scholar:
+  last_name: [Einstein]
+  first_name: [Albert, A.]
+```
+
+If the entry matches one form of the last names and the first names, it will be underlined.
+Keep meta-information about your co-authors in `_data/coauthors.yml` and Jekyll will insert links to their webpages automatically.
+The co-author data format in `_data/coauthors.yml` is as follows,
+
+```yaml
+"Adams":
+  - firstname: ["Edwin", "E.", "E. P.", "Edwin Plimpton"]
+    url: https://en.wikipedia.org/wiki/Edwin_Plimpton_Adams
+
+"Podolsky":
+  - firstname: ["Boris", "B.", "B. Y.", "Boris Yakovlevich"]
+    url: https://en.wikipedia.org/wiki/Boris_Podolsky
+
+"Rosen":
+  - firstname: ["Nathan", "N."]
+    url: https://en.wikipedia.org/wiki/Nathan_Rosen
+
+"Bach":
+  - firstname: ["Johann Sebastian", "J. S."]
+    url: https://en.wikipedia.org/wiki/Johann_Sebastian_Bach
+
+  - firstname: ["Carl Philipp Emanuel", "C. P. E."]
+    url: https://en.wikipedia.org/wiki/Carl_Philipp_Emanuel_Bach
+```
+
+If the entry matches one of the combinations of the last names and the first names, it will be highlighted and linked to the url provided.
+
+</details>
+
+<details><summary>(click to expand) <strong>Buttons (through custom bibtex keywords):</strong></summary>
+
+There are several custom bibtex keywords that you can use to affect how the entries are displayed on the webpage:
+
+- `abbr`: Adds an abbreviation to the left of the entry. You can add links to these by creating a venue.yaml-file in the _data folder and adding entries that match.
+- `abstract`: Adds an "Abs" button that expands a hidden text field when clicked to show the abstract text
+- `arxiv`: Adds a link to the Arxiv website (Note: only add the arxiv identifier here - the link is generated automatically)
+- `bibtex_show`: Adds a "Bib" button that expands a hidden text field with the full bibliography entry
+- `html`: Inserts an "HTML" button redirecting to the user-specified link
+- `pdf`: Adds a "PDF" button redirecting to a specified file (if a full link is not specified, the file will be assumed to be placed in the /assets/pdf/ directory)
+- `supp`: Adds a "Supp" button to a specified file (if a full link is not specified, the file will be assumed to be placed in the /assets/pdf/ directory)
+- `blog`: Adds a "Blog" button redirecting to the specified link
+- `code`: Adds a "Code" button redirecting to the specified link
+- `poster`: Adds a "Poster" button redirecting to a specified file (if a full link is not specified, the file will be assumed to be placed in the /assets/pdf/ directory)
+- `slides`: Adds a "Slides" button redirecting to a specified file (if a full link is not specified, the file will be assumed to be placed in the /assets/pdf/ directory)
+- `website`: Adds a "Website" button redirecting to the specified link
+- `altmetric`: Adds an [Altmetric](https://www.altmetric.com/) badge (Note: if DOI is provided just use `true`, otherwise only add the altmetric identifier here - the link is generated automatically)
+- `dimensions`: Adds a [Dimensions](https://www.dimensions.ai/) badge (Note: if DOI or PMID is provided just use `true`, otherwise only add the Dimensions' identifier here - the link is generated automatically)
+
+You can implement your own buttons by editing the bib.html file.
+
+</details>
+
+---
+
+### Collections
+
+This Jekyll theme implements `collections` to let you break up your work into categories.
+The theme comes with two default collections: `news` and `projects`.
+Items from the `news` collection are automatically displayed on the home page.
+Items from the `projects` collection are displayed on a responsive grid on projects page.
+
+<p align="center"><img src="https://raw.githubusercontent.com/alshedivat/al-folio/master/assets/img/projects-screenshot.png" width=700></p>
+
+You can easily create your own collections, apps, short stories, courses, or whatever your creative work is.
+To do this, edit the collections in the `_config.yml` file, create a corresponding folder, and create a landing page for your collection, similar to `_pages/projects.md`.
+
+---
+
+### Layouts
+
+**al-folio** comes with stylish layouts for pages and blog posts.
+
+#### The iconic style of Distill
+
+The theme allows you to create blog posts in the [distill.pub](https://distill.pub/) style:
+
+<p align="center"><a href="https://alshedivat.github.io/al-folio/blog/2021/distill/" target="_blank"><img src="https://raw.githubusercontent.com/alshedivat/al-folio/master/assets/img/distill-screenshot.png" width=700></a></p>
+
+For more details on how to create distill-styled posts using `<d-*>` tags, please refer to [the example](https://alshedivat.github.io/al-folio/blog/2021/distill/).
+
+#### Full support for math & code
+
+**al-folio** supports fast math typesetting through [MathJax](https://www.mathjax.org/) and code syntax highlighting using [GitHub style](https://github.com/jwarby/jekyll-pygments-themes):
+
+<p align="center">
+<a href="https://alshedivat.github.io/al-folio/blog/2015/math/" target="_blank"><img src="https://raw.githubusercontent.com/alshedivat/al-folio/master/assets/img/math-screenshot.png" width=400></a>
+<a href="https://alshedivat.github.io/al-folio/blog/2015/code/" target="_blank"><img src="https://raw.githubusercontent.com/alshedivat/al-folio/master/assets/img/code-screenshot.png" width=400></a>
+</p>
+
+#### Photos
+
+Photo formatting is made simple using [Bootstrap's grid system](https://getbootstrap.com/docs/4.4/layout/grid/).
+Easily create beautiful grids within your blog posts and project pages:
+
+<p align="center">
+  <a href="https://alshedivat.github.io/al-folio/projects/1_project/">
+    <img src="https://raw.githubusercontent.com/alshedivat/al-folio/master/assets/img/photos-screenshot.png" width="75%">
+  </a>
+</p>
+
+---
+
+### Other features
+
+#### GitHub's repositories and user stats
+
+**al-folio** uses [github-readme-stats](https://github.com/anuraghazra/github-readme-stats) and [github-profile-trophy](https://github.com/ryo-ma/github-profile-trophy)
+to display GitHub repositories and user stats on the `/repositories/` page.
+
+Edit the `_data/repositories.yml` and change the `github_users` and `github_repos` lists to include your own GitHub profile and repositories to the `/repositories/` page.
+
+You may also use the following codes for displaying this in any other pages.
+
+```html
+<!-- code for GitHub users -->
+{% if site.data.repositories.github_users %}
+<div class="repositories d-flex flex-wrap flex-md-row flex-column justify-content-between align-items-center">
+  {% for user in site.data.repositories.github_users %}
+    {% include repository/repo_user.html username=user %}
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- code for GitHub trophies -->
+{% if site.repo_trophies.enabled %}
+{% for user in site.data.repositories.github_users %}
+  {% if site.data.repositories.github_users.size > 1 %}
+  <h4>{{ user }}</h4>
+  {% endif %}
+  <div class="repositories d-flex flex-wrap flex-md-row flex-column justify-content-between align-items-center">
+  {% include repository/repo_trophies.html username=user %}
+  </div>
+{% endfor %}
+{% endif %}
+
+<!-- code for GitHub repositories -->
+{% if site.data.repositories.github_repos %}
+<div class="repositories d-flex flex-wrap flex-md-row flex-column justify-content-between align-items-center">
+  {% for repo in site.data.repositories.github_repos %}
+    {% include repository/repo.html repository=repo %}
+  {% endfor %}
+</div>
+{% endif %}
+```
+
+#### Theming
+
+A variety of beautiful theme colors have been selected for you to choose from.
+The default is purple, but you can quickly change it by editing the
+`--global-theme-color` variable in the `_sass/_themes.scss` file.
+Other color variables are listed there as well.
+The stock theme color options available can be found at `_sass/variables.scss`.
+You can also add your own colors to this file assigning each a name for ease of
+use across the template.
+
+#### Social media previews
+
+**al-folio** supports preview images on social media.
+To enable this functionality you will need to set `serve_og_meta` to `true` in your `_config.yml`.
+Once you have done so, all your site's pages will include Open Graph data in the HTML head element.
+
+You will then need to configure what image to display in your site's social media previews.
+This can be configured on a per-page basis, by setting the `og_image` page variable.
+If for an individual page this variable is not set, then the theme will fall back to a site-wide `og_image` variable, configurable in your `_config.yml`.
+In both the page-specific and site-wide cases, the `og_image` variable needs to hold the URL for the image you wish to display in social media previews.
+
+#### Atom (RSS-like) Feed
+
+It generates an Atom (RSS-like) feed of your posts, useful for Atom and RSS readers.
+The feed is reachable simply by typing after your homepage `/feed.xml`.
+E.g. assuming your website mountpoint is the main folder, you can type `yourusername.github.io/feed.xml`
+
+#### Related posts
+
+By default, there will be a related posts section on the bottom of the blog posts.
+These are generated by selecting the `max_related` most recent posts that share at least `min_common_tags` tags with the current post.
+If you do not want to display related posts on a specific post, simply add `related_posts: false` to the front matter of the post.
+If you want to disable it for all posts, simply set `enabled` to false in the `related_blog_posts` section in `_config.yml`.
+
+## Contributing
+
+Contributions to al-folio are very welcome!
+Before you get started, please take a look at [the guidelines](CONTRIBUTING.md).
+
+If you would like to improve documentation, add your webpage to the list below, or fix a minor inconsistency or bug, please feel free to send a PR directly to `master`.
+For more complex issues/bugs or feature requests, please open an issue using the appropriate template.
+
+### Maintainers
+
+Our most active contributors are welcome to join the maintainers team.
+If you are interested, please reach out!
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tr>
+    <td align="center"><a href="http://maruan.alshedivat.com"><img src="https://avatars.githubusercontent.com/u/2126561?v=4" width="100px;" alt=""/><br /><sub><b>Maruan</b></sub></a></td>
+    <td align="center"><a href="http://rohandebsarkar.github.io"><img src="https://avatars.githubusercontent.com/u/50144004?v=4" width="100px;" alt=""/><br /><sub><b>Rohan Deb Sarkar</b></sub></a></td>
+    <td align="center"><a href="https://amirpourmand.ir"><img src="https://avatars.githubusercontent.com/u/32064808?v=4" width="100px;" alt=""/><br /><sub><b>Amir Pourmand</b></sub></a></td>
+  </tr>
+</table>
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+## License
+
+The theme is available as open source under the terms of the [MIT License](https://github.com/alshedivat/al-folio/blob/master/LICENSE).
+
+Originally, **al-folio** was based on the [\*folio theme](https://github.com/bogoli/-folio) (published by [Lia Bogoev](https://liabogoev.com) and under the MIT license).
+Since then, it got a full re-write of the styles and many additional cool features.
